@@ -68,17 +68,12 @@ class AccountingAuthController extends Controller
                 ->with('error', 'Invalid Google Authenticator code.');
         }
 
-        // Google Authenticator successfully verified
+       // Google Authenticator successfully verified
         session([
             'accounting_authenticated' => true,
             'accounting_authenticated_at' => time(),
         ]);
 
-        // Temporary success response
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Google Authenticator verified successfully.',
-            'idno' => $idno,
-        ]);
+        return redirect()->route('accounting.dashboard');
     }    
 }

@@ -6,14 +6,6 @@ use Illuminate\Http\Request;
 
 class SsoController extends Controller
 {
-    public function test()
-    {
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Laravel SSO endpoint is working.',
-        ]);
-    }
-
     public function login(Request $request)
     {
         $idno = $request->query('idno');
@@ -51,4 +43,5 @@ class SsoController extends Controller
         // 6. Go to Laravel 2FA verification
         return redirect()->route('accounting.verify');
     }
+    
 }
