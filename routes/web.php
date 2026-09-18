@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SsoController;
 use App\Http\Controllers\AccountingAuthController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -16,7 +17,7 @@ Route::post('/accounting/verify-code', [AccountingAuthController::class, 'verify
             ->name('accounting.verify.code');
 
 Route::middleware('accounting.auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('accounting.dashboard');
-    })->name('accounting.dashboard');
+   
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
 });

@@ -74,6 +74,6 @@ class AccountingAuthController extends Controller
             'accounting_authenticated_at' => time(),
         ]);
 
-        return redirect()->route('accounting.dashboard');
+        return redirect()->route('dashboard');
     }    
 }

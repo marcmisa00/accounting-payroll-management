@@ -150,7 +150,7 @@
     <aside class="sidebar">
         <div class="brand">Accounting Portal</div>
         <nav>
-            <a href="{{ route('accounting.dashboard') }}" class="{{ request()->routeIs('accounting.dashboard') ? 'active' : '' }}">
+            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <span class="icon">&#9632;</span> Dashboard
             </a>
             <a href="#"><span class="icon">&#9776;</span> Invoices</a>
