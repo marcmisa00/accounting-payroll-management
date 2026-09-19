@@ -12,12 +12,12 @@ Route::get('/', function () {
 Route::get('/sso', [SsoController::class, 'login'])->name('sso.login');
 
 Route::get('/accounting/verify', [AccountingAuthController::class, 'showVerify'])
-            ->name('accounting.verify');
+    ->name('accounting.verify');
 Route::post('/accounting/verify-code', [AccountingAuthController::class, 'verifyCode'])
-            ->name('accounting.verify.code');
+    ->name('accounting.verify.code');
 
 Route::middleware('accounting.auth')->group(function () {
-   
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
 });
