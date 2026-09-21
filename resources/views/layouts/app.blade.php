@@ -29,7 +29,7 @@
         }
 
         /* ----- dark theme overrides ----- */
-        body.dark-mode {
+        html.dark-mode {
             --bg-body: #12181f;
             --text-primary: #e8edf2;
             --sidebar-bg-start: #1a2530;
@@ -252,7 +252,7 @@
             <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <span class="icon">&#9632;</span> Dashboard
             </a>
-            <a href="#"><span class="icon">&#9776;</span> Invoices</a>
+            <a href="#"><span class="icon">&#9776;</span> Payroll</a>
             <a href="#"><span class="icon">&#9679;</span> Expenses</a>
             <a href="#"><span class="icon">&#9673;</span> Budgets</a>
             <a href="#"><span class="icon">&#9636;</span> Reports</a>
@@ -285,7 +285,7 @@
 
     <script>
         (function() {
-            const body = document.body;
+            const html = document.documentElement; // use <html> for theme class
             const toggleBtn = document.getElementById('themeToggle');
 
             // 1. Determine initial theme: localStorage > system preference > light
@@ -300,11 +300,11 @@
             // 2. Apply theme class and update button icon
             function applyTheme(theme) {
                 if (theme === 'dark') {
-                    body.classList.add('dark-mode');
+                    html.classList.add('dark-mode');
                     toggleBtn.textContent = '☀️';   // sun icon for switching to light
                     toggleBtn.setAttribute('aria-label', 'Switch to light mode');
                 } else {
-                    body.classList.remove('dark-mode');
+                    html.classList.remove('dark-mode');
                     toggleBtn.textContent = '🌙';   // moon icon for switching to dark
                     toggleBtn.setAttribute('aria-label', 'Switch to dark mode');
                 }
@@ -316,7 +316,7 @@
 
             // 4. Toggle on button click
             toggleBtn.addEventListener('click', function() {
-                const isDark = body.classList.contains('dark-mode');
+                const isDark = html.classList.contains('dark-mode');
                 const newTheme = isDark ? 'light' : 'dark';
                 applyTheme(newTheme);
                 localStorage.setItem('theme', newTheme);
