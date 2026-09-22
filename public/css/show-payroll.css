@@ -1,0 +1,548 @@
+ /* ---------- Page layout ---------- */
+    .centered-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px 0;
+    }
+
+    .content-panel {
+        background: var(--panel-bg);
+        border-radius: 14px;
+        box-shadow: var(--panel-shadow);
+        overflow: hidden;
+        width: 100%;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    /* ---------- Panel heading / toolbar ---------- */
+    .panel-heading {
+        background: var(--panel-heading-bg);
+        color: #fff;
+        padding: 14px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        transition: background 0.2s;
+    }
+
+    .breadcrumb-section {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+
+    .breadcrumb-section a {
+        color: #fff;
+        text-decoration: none;
+        opacity: 0.85;
+        transition: opacity 0.15s;
+    }
+
+    .breadcrumb-section a:hover {
+        opacity: 1;
+        text-decoration: underline;
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .search-section span {
+        color: #fff;
+        font-size: 13px;
+    }
+
+    /* ---------- Panel body ---------- */
+    .panel-body {
+        padding: 20px 24px 24px;
+    }
+
+    /* ---------- Custom inputs ---------- */
+    .custom-input {
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        color: var(--input-text); /* Use the input text color variable */
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+
+    .custom-input:focus {
+        outline: none;
+        border-color: #4b79a1;
+        box-shadow: 0 0 0 3px rgba(75, 121, 161, 0.15);
+    }
+
+    .custom-select {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 26px;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%234b79a1' d='M4 6l4 4 4-4z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 12px;
+        cursor: pointer;
+    }
+
+    .dark-mode .custom-select {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%238ab4f0' d='M4 6l4 4 4-4z'/%3e%3c/svg%3e");
+    }
+
+    .custom-select option {
+        background: var(--input-bg);
+        color: var(--input-text); /* Use the input text color variable */
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn-primary {
+        background: #4b79a1;
+        border: none;
+        color: #fff;
+        transition: background 0.15s;
+    }
+    .btn-primary:hover,
+    .btn-primary:focus {
+        background: #3c6389;
+        color: #fff;
+    }
+
+    .btn-success {
+        background: #2f8f83;
+        border: none;
+        color: #fff;
+        transition: background 0.15s;
+    }
+    .btn-success:hover,
+    .btn-success:focus {
+        background: #277a70;
+        color: #fff;
+    }
+
+    .btn-warning {
+        background: #c98a2b;
+        border: none;
+        color: #fff;
+        transition: background 0.15s;
+    }
+    .btn-warning:hover,
+    .btn-warning:focus {
+        background: #ad7524;
+        color: #fff;
+    }
+
+    .reset-btn {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.15s;
+    }
+    .reset-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+    }
+
+    /* ---------- Tabs (company + department) ---------- */
+    .nav-tabs {
+        border-bottom: 1px solid var(--tab-border);
+        display: flex;
+        flex-wrap: wrap;
+        padding-left: 0;
+        margin: 0;
+        list-style: none;
+        transition: border-color 0.2s;
+    }
+
+    .nav-tabs > li {
+        margin-bottom: -1px;
+    }
+
+    .nav-tabs > li > a {
+        display: block;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--tab-link);
+        text-decoration: none;
+        border: 1px solid transparent;
+        border-bottom-color: transparent;
+        border-radius: 8px 8px 0 0;
+        transition: color 0.15s, background 0.15s, border-color 0.15s;
+        position: relative;
+    }
+
+    .nav-tabs > li > a:hover {
+        background: var(--tab-hover-bg);
+        color: var(--tab-link-active);
+    }
+
+    .nav-tabs > li.active > a,
+    .nav-tabs > li.active > a:hover,
+    .nav-tabs > li.active > a:focus {
+        background: var(--panel-bg);
+        color: var(--tab-link-active);
+        border-color: var(--tab-border);
+        border-bottom-color: var(--panel-bg);
+        cursor: default;
+    }
+
+    /* Department tabs are visually smaller/lighter */
+    .dept-tabs {
+        margin-top: 12px;
+        border-bottom: 1px dashed var(--tab-border);
+    }
+
+    .dept-tabs > li > a {
+        font-size: 12px;
+        padding: 6px 12px;
+        font-weight: 500;
+    }
+
+    /* Search match indicator (small dot on department tab) */
+    .has-search-indicator .search-indicator {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        background: #e0a030;
+        border-radius: 50%;
+        margin-left: 6px;
+        vertical-align: middle;
+        animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    /* ---------- Table ---------- */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .table-bordered-bottom-only th,
+    .table-bordered-bottom-only td {
+        border: none;
+        border-bottom: 1px solid var(--table-row-border);
+        padding: 9px 10px;
+        font-size: 13px;
+        color: #f35252;
+        transition: color 0.2s, border-color 0.2s;
+    }
+
+    .table-bordered-bottom-only thead th {
+        background: var(--table-head-bg);
+        color: var(--table-head-color);
+        font-weight: 600;
+        font-size: 12px;
+        text-align: left;
+        border-bottom: 2px solid var(--tab-border);
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .table-bordered-bottom-only tbody tr:hover {
+        background: var(--table-hover-bg);
+    }
+
+    .table-head-1,
+    .table-cont-1 {
+        text-align: center;
+    }
+
+    .table-head-2,
+    .table-cont-2 {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Badges (Setup column: OS / HO) */
+    .label {
+        display: inline-block;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 10px;
+        color: #fff;
+        line-height: 1.2;
+    }
+
+    .label-primary { background: #4b79a1; }
+    .label-warning { background: #c98a2b; }
+
+    /* Small action buttons in row */
+    .btn-xs {
+        padding: 3px 7px;
+        font-size: 11px;
+        border-radius: 5px;
+        margin: 1px;
+        display: inline-block;
+        text-decoration: none;
+    }
+
+    /* ---------- Download dropdown ---------- */
+    .btn-group {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-toggle {
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        display: none;
+        min-width: 280px;
+        padding: 6px 0;
+        margin: 4px 0 0;
+        background: var(--dropdown-bg);
+        border: 1px solid var(--dropdown-border);
+        border-radius: 10px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        list-style: none;
+        transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-group.open .dropdown-menu {
+        display: block;
+    }
+
+    .dropdown-menu > li > a {
+        display: block;
+        padding: 8px 16px;
+        color: var(--dropdown-text);
+        text-decoration: none;
+        font-size: 13px;
+        transition: background 0.12s, color 0.12s;
+    }
+
+    .dropdown-menu > li > a:hover {
+        background: var(--dropdown-hover);
+        color: var(--dropdown-text);
+    }
+
+    .dropdown-header {
+        padding: 8px 16px 4px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--dropdown-header);
+        transition: color 0.2s;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        margin: 4px 0;
+        background: var(--dropdown-border);
+        transition: background 0.2s;
+    }
+
+    /* ---------- Action buttons row ---------- */
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* ---------- Loading overlay ---------- */
+    .download-loading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(0, 0, 0, 0.55);
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(3px);
+    }
+
+    .download-loading-box {
+        background: var(--panel-bg);
+        border-radius: 14px;
+        padding: 32px 40px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        max-width: 360px;
+        transition: background 0.2s;
+    }
+
+    .download-loading-box p {
+        margin: 12px 0 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+        transition: color 0.2s;
+    }
+
+    .download-loading-box .sub-text {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--sub-color);
+        margin-top: 6px;
+        line-height: 1.5;
+    }
+
+    .spinner {
+        width: 44px;
+        height: 44px;
+        margin: 0 auto;
+        border: 4px solid var(--input-border);
+        border-top-color: #4b79a1;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ====== LIGHT MODE DEFAULTS ====== */
+    :root {
+        --panel-bg: #fff;
+        --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        --panel-heading-bg: #283e51;
+        --input-bg: #fff;
+        --input-border: #d9dee5;
+        --input-text: #222;
+        --tab-border: #e2e8f0;
+        --tab-link: #5a6b7c;
+        --tab-link-active: #283e51;
+        --tab-hover-bg: #f4f7fa;
+        --table-head-bg: #f5f7fa;
+        --table-head-color: #5a6b7c;
+        --table-row-border: #eef1f4;
+        --table-hover-bg: #f7f9fb;
+        --dropdown-bg: #fff;
+        --dropdown-border: #e2e8f0;
+        --dropdown-text: #222;
+        --dropdown-hover: #f2f6fa;
+        --dropdown-header: #8a99a8;
+        --sub-color: #666;
+    }
+
+    /* ====== DARK MODE OVERRIDES ====== */
+    .dark-mode {
+        --panel-bg: #1e2a36;
+        --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        --panel-heading-bg: #1a2530;
+        --input-bg: #12181f;
+        --input-border: #3a4a5a;
+        --input-text: #e8edf2;
+        --tab-border: #2a3a4a;
+        --tab-link: #8a9aa8;
+        --tab-link-active: #d0dae8;
+        --tab-hover-bg: #22303e;
+        --table-head-bg: #1a2530;
+        --table-head-color: #8a9aa8;
+        --table-row-border: #2a3a4a;
+        --table-hover-bg: #24323e;
+        --dropdown-bg: #1e2a36;
+        --dropdown-border: #2a3a4a;
+        --dropdown-text: #e8edf2;
+        --dropdown-hover: #2a3a4a;
+        --dropdown-header: #6a7a8a;
+        --sub-color: #8a9aa8;
+    }
+     .payroll-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .payroll-tabs > li {
+        margin: 0;
+    }
+
+    .payroll-tabs > li > a {
+        display: block;
+        padding: 8px 14px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        border-radius: 5px 5px 0 0;
+        cursor: pointer;
+    }
+
+    .payroll-tabs > li.active > a {
+        border: 2px solid #070505;
+        border-bottom-color: #fff;
+        font-weight: bold;
+    }
+
+    /* IMPORTANT:
+       Hide every tab pane by default.
+    */
+    .payroll-tab-content > .tab-pane {
+        display: none;
+    }
+
+    /* Only the active tab is displayed. */
+    .payroll-tab-content > .tab-pane.active {
+        display: block;
+    }
+
+    /* Department tabs */
+    .dept-tabs {
+        margin-top: 10px;
+    }
+
+    .dept-tabs > li > a {
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+
+    /* Search indicator */
+    .search-indicator {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        margin-left: 5px;
+        background: #dc3545;
+        vertical-align: middle;
+    }
+    /* Company + department tabs — use theme text color */
+    .company-tabs > li > a,
+    .dept-tabs > li > a {
+        color: var(--text-primary);
+        transition: color 0.2s;
+    }
+
+    .company-tabs > li > a:hover,
+    .dept-tabs > li > a:hover {
+        color: var(--text-primary);
+        opacity: 0.8;
+    }
+
+    .company-tabs > li.active > a,
+    .company-tabs > li.active > a:hover,
+    .company-tabs > li.active > a:focus,
+    .dept-tabs > li.active > a,
+    .dept-tabs > li.active > a:hover,
+    .dept-tabs > li.active > a:focus {
+        color: var(--text-primary);
+        font-weight: 700;
+    }

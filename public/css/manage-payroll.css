@@ -1,0 +1,181 @@
+    /* ---------- Page layout ---------- */
+    .centered-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px 0;
+        min-height: 60vh;
+    }
+
+    /* ---------- Card / panel ---------- */
+    .content-panel {
+        background: var(--panel-bg);
+        border-radius: 14px;
+        box-shadow: var(--panel-shadow);
+        overflow: hidden;
+        width: 100%;
+        max-width: 500px;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .panel-heading {
+        background: var(--panel-heading-bg);
+        color: #fff;
+        padding: 16px 20px;
+        transition: background 0.2s;
+    }
+
+    .panel-heading h4 {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin: 0;
+    }
+
+    .panel-body {
+        padding: 24px 20px;
+    }
+
+    /* ---------- Form fields ---------- */
+    .form-group {
+        margin: 10px;
+        margin-bottom: 30px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--label-color);
+        margin-bottom: 6px;
+        transition: color 0.2s;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: var(--input-text);
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 8px;
+        outline: none;
+        transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        border-color: #4b79a1;
+        box-shadow: 0 0 0 3px rgba(75, 121, 161, 0.15);
+    }
+
+    /* ---------- Custom select wrapper ---------- */
+    .custom-select-wrapper {
+        position: relative;
+    }
+
+    .custom-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding-right: 36px; /* space for the custom arrow */
+        cursor: pointer;
+    }
+
+    /* Hide native arrow in IE/Edge */
+    .custom-select::-ms-expand {
+        display: none;
+    }
+
+    .custom-dropdown-icon {
+        position: absolute;
+        top: 50%;
+        right: 14px;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 12px;
+        color: var(--dropdown-icon-color);
+        line-height: 1;
+        transition: color 0.2s;
+    }
+
+    /* Dropdown option colors — needed because <option> ignores CSS vars in some browsers */
+    .custom-select option {
+        background: var(--input-bg);
+        color: var(--input-text);
+    }
+
+    /* ---------- Validation errors ---------- */
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .invalid-feedback {
+        display: block;
+        color: var(--error-color);
+        font-size: 12px;
+        margin-top: 4px;
+        transition: color 0.2s;
+    }
+
+    /* ---------- Footer / submit button ---------- */
+    .panel-footer {
+        text-align: center;
+        margin: 10px;
+        padding-bottom: 8px;
+    }
+
+    .btn-success {
+        display: inline-block;
+        width: 300px;
+        height: 40px;
+        border: none;
+        border-radius: 20px;
+        background: #2f8f83;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.05s, box-shadow 0.2s;
+    }
+
+    .btn-success:hover {
+        background: #277a70;
+        box-shadow: 0 4px 12px rgba(47, 143, 131, 0.3);
+    }
+
+    .btn-success:active {
+        transform: translateY(1px);
+        box-shadow: none;
+    }
+
+    .btn-success:focus-visible {
+        outline: 2px solid #4b79a1;
+        outline-offset: 3px;
+    }
+
+    /* ====== LIGHT MODE DEFAULTS ====== */
+    :root {
+        --panel-bg: #fff;
+        --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        --panel-heading-bg: #283e51;
+        --label-color: #555;
+        --input-bg: #fff;
+        --input-border: #d9dee5;
+        --input-text: #222;
+        --dropdown-icon-color: #4b79a1;
+        --error-color: #dc3545;
+    }
+
+    /* ====== DARK MODE OVERRIDES ====== */
+    .dark-mode {
+        --panel-bg: #1e2a36;
+        --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        --panel-heading-bg: #1a2530;
+        --label-color: #a0b0c0;
+        --input-bg: #12181f;
+        --input-border: #3a4a5a;
+        --input-text: #e8edf2;
+        --dropdown-icon-color: #8ab4f0;
+        --error-color: #f0788a;
+    }

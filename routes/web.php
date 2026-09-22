@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SsoController;
 use App\Http\Controllers\AccountingAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PayrollController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -17,7 +18,21 @@ Route::post('/accounting/verify-code', [AccountingAuthController::class, 'verify
     ->name('accounting.verify.code');
 
 Route::middleware('accounting.auth')->group(function () {
+
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
+
+    Route::prefix('payroll')->name('payroll.')->group(function () {
+    Route::get('create', [PayrollController::class, 'create'])->name('create');
+    Route::post('create', [PayrollController::class, 'store'])->name('store');
+ 
+    Route::get('manage', [PayrollController::class, 'manageSelect'])->name('manage');
+    Route::post('manage', [PayrollController::class, 'manageSelectSubmit'])->name('manageSelectSubmit');
+ 
+    Route::get('manage/{payroll}', [PayrollController::class, 'show'])->name('show');
+    Route::post('manage/{payroll}/post', [PayrollController::class, 'postPayslip'])->name('postPayslip');
+    Route::post('manage/{payroll}/undo', [PayrollController::class, 'undoPostPayslip'])->name('undoPostPayslip');
+});
 });

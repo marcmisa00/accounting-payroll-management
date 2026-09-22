@@ -228,6 +228,48 @@
             opacity: 0.8;
             line-height: 1.5;
         }
+       .payroll-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.payroll-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.payroll-arrow {
+    margin-left: auto;
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+.payroll-submenu {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.payroll-submenu.show {
+    display: block;
+}
+
+.payroll-submenu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px 10px 45px;
+    text-decoration: none;
+}
+
+.payroll-arrow.rotate {
+    transform: rotate(180deg);
+}
     </style>
 <script>
         (function () {
@@ -244,27 +286,107 @@
     @yield('styles')
     
 </head>
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <body>
 
-    <aside class="sidebar">
-        <div class="brand">Accounting Portal</div>
-        <nav>
-            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <span class="icon">&#9632;</span> Dashboard
+   <aside class="sidebar">
+
+    <div class="brand">
+        Accounting Portal
+    </div>
+
+    <nav>
+
+        <a href="{{ route('dashboard') }}"
+           class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <span class="icon">
+                <i class="fa-solid fa-house"></i>
+            </span>
+            Dashboard
+        </a>
+
+
+        {{-- PAYROLL --}}
+      <li class="nav-item payroll-menu">
+
+            <a href="javascript:void(0);"
+            class="payroll-toggle {{ request()->routeIs('payroll.*') ? 'active' : '' }}">
+
+                <span class="icon">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </span>
+
+                <span>Payroll</span>
+
+                <i class="fa-solid fa-chevron-down payroll-arrow"></i>
             </a>
-            <a href="#"><span class="icon">&#9776;</span> Payroll</a>
-            <a href="#"><span class="icon">&#9679;</span> Expenses</a>
-            <a href="#"><span class="icon">&#9673;</span> Budgets</a>
-            <a href="#"><span class="icon">&#9636;</span> Reports</a>
-            <a href="#"><span class="icon">&#9881;</span> Settings</a>
-        </nav>
-        <div class="logout">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit">Log out</button>
-            </form>
-        </div>
-    </aside>
+
+            <ul class="payroll-submenu">
+
+                <li>
+                    <a href="{{ route('payroll.create') }}"
+                    class="{{ request()->routeIs('payroll.create') ? 'active' : '' }}">
+                        <i class="fa-solid fa-plus"></i>
+                        Create Payroll
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('payroll.manage') }}"
+                    class="{{ request()->routeIs('payroll.manage') ? 'active' : '' }}">
+                        <i class="fa-solid fa-list"></i>
+                        Manage Payroll
+                    </a>
+                </li>
+
+            </ul>
+
+        </li>
+        
+        <a href="#">
+            <span class="icon">
+                <i class="fa-solid fa-receipt"></i>
+            </span>
+            Expenses
+        </a>
+
+        <a href="#">
+            <span class="icon">
+                <i class="fa-solid fa-wallet"></i>
+            </span>
+            Budgets
+        </a>
+
+        <a href="#">
+            <span class="icon">
+                <i class="fa-solid fa-chart-line"></i>
+            </span>
+            Reports
+        </a>
+
+        <a href="#">
+            <span class="icon">
+                <i class="fa-solid fa-gear"></i>
+            </span>
+            Settings
+        </a>
+
+    </nav>
+
+
+    <div class="logout">
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+
+            <button type="submit">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Log out
+            </button>
+        </form>
+    </div>
+
+</aside>
 
     <div class="main">
         <header class="topbar">
@@ -329,6 +451,38 @@
                 }
             });
         })();
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const payrollToggle = document.querySelector('.payroll-toggle');
+            const payrollSubmenu = document.querySelector('.payroll-submenu');
+            const payrollArrow = document.querySelector('.payroll-arrow');
+
+            if (!payrollToggle || !payrollSubmenu) {
+                return;
+            }
+
+            // If we are already inside a Payroll page,
+            // keep the submenu open.
+            const payrollIsActive = payrollToggle.classList.contains('active');
+
+            if (payrollIsActive) {
+                payrollSubmenu.classList.add('show');
+                payrollArrow.classList.add('rotate');
+            }
+
+            // Click Payroll to open/close manually
+            payrollToggle.addEventListener('click', function (e) {
+
+                e.preventDefault();
+
+                payrollSubmenu.classList.toggle('show');
+                payrollArrow.classList.toggle('rotate');
+
+            });
+
+        });
     </script>
 
 </body>
