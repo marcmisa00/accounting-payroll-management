@@ -270,6 +270,42 @@
 .payroll-arrow.rotate {
     transform: rotate(180deg);
 }
+/* ----- Fullscreen Payroll Show ----- */
+
+body.payroll-show .sidebar {
+    display: none;
+}
+
+body.payroll-show .main {
+    width: 100%;
+}
+
+body.payroll-show .content {
+    padding: 20px;
+}
+
+/* Show sidebar button */
+.sidebar-show-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 9999;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: var(--sidebar-bg-start);
+    color: #fff;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+body.payroll-show .sidebar-show-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
     </style>
 <script>
         (function () {
@@ -288,10 +324,13 @@
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body>
+<body class="{{ request()->routeIs('payroll.show') ? 'payroll-show' : '' }}">
 
-   <aside class="sidebar">
+    <button type="button" class="sidebar-show-btn" id="sidebarShowBtn">
+        <i class="fa-solid fa-bars"></i>
+    </button>
 
+    <aside class="sidebar">
     <div class="brand">
         Accounting Portal
     </div>
@@ -484,6 +523,24 @@
 
         });
     </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
+    const showSidebarBtn = document.getElementById('sidebarShowBtn');
+    const sidebar = document.querySelector('.sidebar');
+
+    if (showSidebarBtn && sidebar) {
+
+        showSidebarBtn.addEventListener('click', function () {
+
+            sidebar.style.display = 'flex';
+            showSidebarBtn.style.display = 'none';
+
+        });
+
+    }
+
+});
+</script>
 </body>
 </html>

@@ -231,12 +231,14 @@
 
     .table-bordered-bottom-only th,
     .table-bordered-bottom-only td {
+        font-family:"Lucida Console", "Courier New", monospace;
         border: none;
         border-bottom: 1px solid var(--table-row-border);
         padding: 9px 10px;
         font-size: 13px;
-        color: #f35252;
+        color: #878080;
         transition: color 0.2s, border-color 0.2s;
+        font-weight:500; 
     }
 
     .table-bordered-bottom-only thead th {
