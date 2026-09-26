@@ -58,12 +58,104 @@
         .sidebar {
             width: 240px;
             flex-shrink: 0;
-            background: linear-gradient(180deg, var(--sidebar-bg-start), var(--sidebar-bg-end));
+            position: relative;
+            background: linear-gradient(
+                180deg,
+                var(--sidebar-bg-start),
+                var(--sidebar-bg-end)
+            );
             color: #fff;
             display: flex;
             flex-direction: column;
             padding: 28px 0;
-            transition: background 0.2s;
+            transition: width 0.25s ease, background 0.2s;
+        }
+
+                /* Sidebar collapse button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            right: -14px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            background: var(--sidebar-bg-end);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            transition: transform 0.25s ease, background 0.15s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--sidebar-bg-start);
+        }
+
+        /* Collapsed sidebar */
+        body.sidebar-collapsed .sidebar {
+            width: 0;
+            overflow: visible;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        /* Hide sidebar contents when collapsed */
+        body.sidebar-collapsed .sidebar > *:not(.sidebar-toggle) {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* Move arrow when collapsed */
+        body.sidebar-collapsed .sidebar-toggle {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        /* Main automatically expands because body is flex */
+        body.sidebar-collapsed .main {
+            flex: 1;
+        }
+
+        /* =========================================
+        TOPBAR SIDEBAR BUTTON
+        ========================================= */
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-sidebar-toggle {
+            width: 38px;
+            height: 38px;
+
+            border: 1px solid rgba(128, 128, 128, 0.35);
+            border-radius: 8px;
+
+            background: transparent;
+            color: var(--text-primary);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            cursor: pointer;
+
+            font-size: 17px;
+
+            transition:
+                background 0.15s,
+                border-color 0.15s;
+        }
+
+        .topbar-sidebar-toggle:hover {
+            background: rgba(128, 128, 128, 0.12);
+            border-color: rgba(128, 128, 128, 0.6);
         }
 
         .sidebar .brand {
@@ -229,83 +321,52 @@
             line-height: 1.5;
         }
        .payroll-menu {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
 
-.payroll-toggle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    cursor: pointer;
-}
+        .payroll-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            cursor: pointer;
+        }
 
-.payroll-arrow {
-    margin-left: auto;
-    font-size: 12px;
-    transition: transform 0.2s ease;
-}
+        .payroll-arrow {
+            margin-left: auto;
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
 
-.payroll-submenu {
-    display: none;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
+        .payroll-submenu {
+            display: none;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
 
-.payroll-submenu.show {
-    display: block;
-}
+        .payroll-submenu.show {
+            display: block;
+        }
 
-.payroll-submenu a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 15px 10px 45px;
-    text-decoration: none;
-}
+        .payroll-submenu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px 10px 45px;
+            text-decoration: none;
+        }
 
-.payroll-arrow.rotate {
-    transform: rotate(180deg);
-}
-/* ----- Fullscreen Payroll Show ----- */
+        .payroll-arrow.rotate {
+            transform: rotate(180deg);
+        }
 
-body.payroll-show .sidebar {
-    display: none;
-}
 
-body.payroll-show .main {
-    width: 100%;
-}
-
-body.payroll-show .content {
-    padding: 20px;
-}
-
-/* Show sidebar button */
-.sidebar-show-btn {
-    display: none;
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    z-index: 9999;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 8px;
-    background: var(--sidebar-bg-start);
-    color: #fff;
-    cursor: pointer;
-    font-size: 18px;
-}
-
-body.payroll-show .sidebar-show-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        body.payroll-show .content {
+            padding: 20px;
+        }
     </style>
 <script>
         (function () {
@@ -324,13 +385,13 @@ body.payroll-show .sidebar-show-btn {
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body class="{{ request()->routeIs('payroll.show') ? 'payroll-show' : '' }}">
-
-    <button type="button" class="sidebar-show-btn" id="sidebarShowBtn">
-        <i class="fa-solid fa-bars"></i>
-    </button>
-
+<body class="{{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
     <aside class="sidebar">
+
+            <button type="button" class="sidebar-toggle" id="sidebarToggle">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            
     <div class="brand">
         Accounting Portal
     </div>
@@ -428,15 +489,27 @@ body.payroll-show .sidebar-show-btn {
 </aside>
 
     <div class="main">
-        <header class="topbar">
-            <h1>@yield('page-title', 'Dashboard')</h1>
-            <div class="user">
-                <!-- Dark mode toggle button -->
-                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
-                <span>ID: {{ session('portal_idno') }}</span>
-                <div class="avatar">{{ strtoupper(substr(session('portal_idno', 'U'), 0, 1)) }}</div>
-            </div>
-        </header>
+       <header class="topbar">
+
+    <h1>@yield('page-title', '')</h1>
+
+    <div class="user">
+
+        <button class="theme-toggle"
+                id="themeToggle"
+                aria-label="Toggle dark mode">
+            🌙
+        </button>
+
+        <span>ID: {{ session('portal_idno') }}</span>
+
+        <div class="avatar">
+            {{ strtoupper(substr(session('portal_idno', 'U'), 0, 1)) }}
+        </div>
+
+    </div>
+
+</header>
 
         <div class="content">
             
@@ -523,24 +596,26 @@ body.payroll-show .sidebar-show-btn {
 
         });
     </script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
 
-    const showSidebarBtn = document.getElementById('sidebarShowBtn');
-    const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
 
-    if (showSidebarBtn && sidebar) {
+            if (!sidebarToggle) {
+                return;
+            }
 
-        showSidebarBtn.addEventListener('click', function () {
+            // Hide sidebar when entering Payroll Show
+            if (document.body.classList.contains('payroll-show')) {
+                document.body.classList.add('sidebar-collapsed');
+            }
 
-            sidebar.style.display = 'flex';
-            showSidebarBtn.style.display = 'none';
+            // Arrow opens/closes sidebar
+            sidebarToggle.addEventListener('click', function () {
+                document.body.classList.toggle('sidebar-collapsed');
+            });
 
         });
-
-    }
-
-});
-</script>
+    </script>
 </body>
 </html>

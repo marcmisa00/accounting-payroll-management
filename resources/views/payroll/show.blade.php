@@ -164,7 +164,7 @@
                                                         <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">{{ number_format($employee['deductions'], 2) }}</td>
                                                         <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">{{ number_format($employee['netpay'], 2) }}</td>
                                                         <td class="table-cont-1" style="background-color: {{ $employee['bg_color'] }};">
-                                                            <a href="/?editpayroll&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-primary btn-xs" title="Edit Payroll">
+                                                               <a href="{{ route('payroll.edit.show', ['payroll' => $payroll->id, 'idno' => $employee['idno'], 'company' => $company['code'], 'dept' => $dept['id']]) }}" class="btn btn-primary btn-xs" title="Edit Payroll">
                                                                 <i class="fa fa-pencil"></i>
                                                             </a>
                                                             @if ($employee['payroll_id'])
