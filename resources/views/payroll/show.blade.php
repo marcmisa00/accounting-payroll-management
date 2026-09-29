@@ -7,7 +7,7 @@
 @endif
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="{{ asset('css/show-payroll.css') }}">
+@vite(['resources/css/show-payroll.css'])
 <!-- Loading Overlay -->
 <div class="download-loading-overlay" id="downloadLoadingOverlay">
     <div class="download-loading-box">

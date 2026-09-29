@@ -19,7 +19,7 @@ function SubmitDetails() {
 }
 </script>
 
-<link rel="stylesheet" href="{{ asset('css/edit-payroll.css') }}">
+@vite(['resources/css/edit-payroll.css'])
 <div class="row">
     <div class="col-lg-12">
         <h4 style="display: flex; align-items: center; justify-content: space-between; text-indent: 10px;">

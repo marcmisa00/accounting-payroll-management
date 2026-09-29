@@ -4,7 +4,7 @@
 @section('page-title', $company . ' · ' . $bankLabel)
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/dashboard-d.css') }}">
+@vite(['resources/css/dashboard-d.css'])
     <div class="crumbs">
         <a href="{{ route('dashboard', ['period' => $period->id]) }}">&larr; Back to dashboard</a>
         <div class="period">

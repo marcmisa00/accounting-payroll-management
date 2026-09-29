@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/manage-payroll.css') }}">
+@vite(['resources/css/manage-payroll.css'])
 <div class="centered-container">
     <form class="form-horizontal style-form" method="POST" action="{{ route('payroll.manageSelectSubmit') }}" style="width: 100%; max-width: 500px;">
         @csrf

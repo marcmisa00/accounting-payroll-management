@@ -6,7 +6,13 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/css/app.css',
+                    'resources/css/dashboard.css',
+                    'resources/js/app.js',
+                    'resources/css/dashboard-d.css',
+                    'resources/css/manage-payroll.css',
+                    'resources/css/show-payroll.css',
+                    'resources/css/edit-payroll.css'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
@@ -19,6 +25,6 @@ export default defineConfig({
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],
-        },
+        }, 
     },
 });
