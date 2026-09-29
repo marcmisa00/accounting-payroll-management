@@ -76,4 +76,10 @@ class AccountingAuthController extends Controller
 
         return redirect()->route('dashboard');
     }    
+    public function logout()
+    {
+        session()->forget('accounting_authenticated');
+
+        return redirect()->away('https://www.nesistaff.com/hris/attendance/');
+    }
 }
