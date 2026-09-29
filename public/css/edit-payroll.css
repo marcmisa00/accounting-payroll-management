@@ -1,608 +1,1088 @@
+/* =========================================================
+   EDIT PAYROLL — STYLESHEET
+   Light + Dark mode ready
+   ========================================================= */
 
-    /* ---------- Page header row ---------- */
-    .edit-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-        padding: 10px 0 18px;
-        font-family: inherit;
+/* ====== LIGHT MODE DEFAULTS ====== */
+:root {
+    --link-color: #4b79a1;
+    --link-hover: #3c6389;
+    --heading-color: #283e51;
+    --text-primary: #2c3e50;
+    --text-secondary: #55606b;
+
+    --panel-bg: #ffffff;
+    --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    --panel-heading-bg: #283e51;
+    --panel-heading-text: #ffffff;
+
+    --card-bg: #ffffff;
+    --card-body-bg: #ffffff;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+
+    --input-bg: #ffffff;
+    --input-border: #dce4ec;
+    --input-addon-bg: #ecf0f1;
+    --input-text: #222222;
+    --input-placeholder: #9aa5b1;
+
+    --table-head-bg: #ecf0f1;
+    --table-head-color: #2c3e50;
+    --table-row-border: #eef1f4;
+    --table-border-strong: #d8e0e8;
+    --table-hover-bg: #f7f9fb;
+    --table-total-bg: #f0f3f6;
+    --table-total-text: #283e51;
+
+    --info-strip-bg: linear-gradient(135deg, #f8fafc 0%, #ecf0f1 100%);
+    --divider-color: #ecf0f1;
+    --muted-color: #7f8c8d;
+
+    --muted-btn-bg: #f1f3f5;
+    --muted-btn-text: #495057;
+
+    --danger: #dc3545;
+    --danger-hover: #c82333;
+    --success: #28a745;
+    --warning: #f0ad4e;
+
+    --scrollbar-track: #eef1f4;
+    --scrollbar-thumb: #c4cdd6;
+
+    --focus-ring: rgba(75, 121, 161, 0.18);
+}
+
+/* ====== DARK MODE OVERRIDES ====== */
+.dark-mode {
+    --link-color: #8ab4f0;
+    --link-hover: #a9c8f7;
+    --heading-color: #d0dae8;
+    --text-primary: #e2e8f0;
+    --text-secondary: #a8b4c0;
+
+    --panel-bg: #1e2a36;
+    --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    --panel-heading-bg: #1a2530;
+    --panel-heading-text: #e8edf2;
+
+    --card-bg: #1e2a36;
+    --card-body-bg: #1e2a36;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+    --input-bg: #12181f;
+    --input-border: #3a4a5a;
+    --input-addon-bg: #22303e;
+    --input-text: #e8edf2;
+    --input-placeholder: #7a8794;
+
+    --table-head-bg: #1a2530;
+    --table-head-color: #a0b0c0;
+    --table-row-border: #2a3a4a;
+    --table-border-strong: #2a3a4a;
+    --table-hover-bg: #24323e;
+    --table-total-bg: #22303e;
+    --table-total-text: #e8edf2;
+
+    --info-strip-bg: #22303e;
+    --divider-color: #2a3a4a;
+    --muted-color: #8a9aa8;
+
+    --muted-btn-bg: #22303e;
+    --muted-btn-text: #c0cbd8;
+
+    --scrollbar-track: #12181f;
+    --scrollbar-thumb: #3a4a5a;
+
+    --focus-ring: rgba(138, 180, 240, 0.25);
+}
+
+/* ====== BASE ====== */
+body {
+    background: var(--panel-bg);
+    color: var(--text-primary);
+    transition: background 0.2s, color 0.2s;
+}
+
+/* =========================================================
+   PAGE HEADER (row with BACK / title / prev-next)
+   ========================================================= */
+.row > .col-lg-12 > h4 {
+    color: var(--heading-color);
+    font-weight: 700;
+    border-bottom: 1px solid var(--divider-color);
+    padding-bottom: 12px;
+    margin-bottom: 0;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.row > .col-lg-12 > h4 a {
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.row > .col-lg-12 > h4 a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+}
+
+/* Optional clean header class (use instead of inline styles) */
+.edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 10px 0 18px;
+    font-family: inherit;
+    border-bottom: 1px solid var(--divider-color);
+    margin-bottom: 0;
+    transition: border-color 0.2s;
+}
+
+.edit-header .left,
+.edit-header .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.edit-header a {
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.edit-header a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+}
+
+.edit-header .title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--heading-color);
+}
+
+/* =========================================================
+   CONTAINER / PANEL
+   ========================================================= */
+.centered-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 0 24px;
+}
+
+.content-panel {
+    background: var(--panel-bg);
+    border-radius: 14px;
+    box-shadow: var(--panel-shadow);
+    overflow: hidden;
+    width: 100%;
+    margin-bottom: 24px;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.panel-heading {
+    background: var(--panel-heading-bg);
+    color: var(--panel-heading-text);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.panel-heading .employee-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--panel-heading-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-heading .employee-name i {
+    opacity: 0.85;
+}
+
+.panel-body {
+    padding: 20px 24px 24px;
+    background: var(--panel-bg);
+    transition: background 0.2s;
+}
+
+/* =========================================================
+   INFO BLOCK (period / salary type / shift / location)
+   ========================================================= */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+    padding: 0 20px 16px;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: color 0.2s;
+}
+
+@media (max-width: 768px) {
+    .info-grid { grid-template-columns: 1fr; }
+}
+
+.info-block span,
+.info-block label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: color 0.2s;
+}
+
+.info-block strong {
+    color: var(--heading-color);
+    margin-right: 4px;
+}
+
+.salary-type-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.salary-type-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.salary-type-group input[type="radio"] {
+    accent-color: #4b79a1;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.dark-mode .salary-type-group input[type="radio"] {
+    accent-color: #8ab4f0;
+}
+
+/* Inline radio labels in your header (radio-inline) */
+.radio-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.radio-inline input[type="radio"] {
+    accent-color: #4b79a1;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.dark-mode .radio-inline input[type="radio"] {
+    accent-color: #8ab4f0;
+}
+
+/* Previous rate is red on purpose — keep that semantic */
+.prev-rate {
+    color: #dc3545;
+    font-weight: 600;
+}
+.dark-mode .prev-rate {
+    color: #f0788a;
+}
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    background: transparent;
+}
+
+.table-bordered-bottom-only th,
+.table-bordered-bottom-only td {
+    border: none;
+    border-bottom: 1px solid var(--table-row-border);
+    padding: 9px 10px;
+    font-size: 13px;
+    color: var(--text-primary);
+    vertical-align: middle;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.table-bordered-bottom-only thead th {
+    background: var(--table-head-bg);
+    color: var(--table-head-color);
+    font-weight: 600;
+    font-size: 12px;
+    text-align: left;
+    border-bottom: 2px solid var(--table-border-strong);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.table-head-1, .table-cont-1 { text-align: center; }
+.table-head-2, .table-cont-2 {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.table-bordered-bottom-only tbody tr {
+    transition: background 0.15s;
+}
+
+.table-bordered-bottom-only tbody tr:hover {
+    background: var(--table-hover-bg);
+}
+
+/* Total row */
+.table-bordered-bottom-only tbody tr.total-row {
+    background: var(--table-total-bg);
+    color: var(--table-total-text);
+    transition: background 0.2s, color 0.2s;
+}
+.table-bordered-bottom-only tbody tr.total-row td {
+    color: var(--table-total-text);
+    border-bottom: none;
+    font-weight: 700;
+}
+
+/* Empty table state */
+.table-bordered-bottom-only td.text-center {
+    color: var(--muted-color);
+    font-style: italic;
+}
+
+/* OT inline editable cell */
+.ot-cell {
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+}
+
+.ot-cell:hover {
+    background: var(--table-hover-bg);
+}
+
+.ot-cell .ot-text {
+    display: inline-block;
+    min-width: 30px;
+}
+
+.ot-cell input[type="number"] {
+    width: 70px;
+    padding: 4px 6px;
+    font-size: 13px;
+    text-align: center;
+    background: var(--input-bg);
+    color: var(--input-text);
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.2s, color 0.2s;
+}
+
+.ot-cell input[type="number"]:focus {
+    border-color: #4b79a1;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.dark-mode .ot-cell input[type="number"]:focus {
+    border-color: #8ab4f0;
+}
+
+/* ND manual indicator */
+.nd-cell .nd-text {
+    display: inline-block;
+    min-width: 30px;
+}
+
+/* Action delete button inside table */
+.btn-link-icon {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-link-icon:hover {
+    background: rgba(220, 53, 69, 0.12);
+    color: var(--danger-hover);
+}
+
+.dark-mode .btn-link-icon {
+    color: #f0788a;
+}
+
+.dark-mode .btn-link-icon:hover {
+    background: rgba(240, 120, 138, 0.15);
+    color: #ff9aab;
+}
+
+/* =========================================================
+   SUB-CARDS (Deductions / Addons)
+   ========================================================= */
+.deduction-card,
+.addon-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.deduction-card .card-head,
+.addon-card .card-head {
+    padding: 12px 15px;
+    color: #ffffff;
+}
+
+.deduction-card .card-head h4,
+.addon-card .card-head h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.deduction-card .card-head p,
+.addon-card .card-head p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    opacity: 0.9;
+    color: #ffffff;
+}
+
+/* Blue variant (payroll-specific) */
+.card-head--blue {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+/* Navy variant (constant) */
+.card-head--navy {
+    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+}
+
+.card-body {
+    background: var(--card-body-bg);
+    padding: 15px;
+    flex: 1;
+    transition: background 0.2s;
+}
+
+/* =========================================================
+   FORMS INSIDE CARDS
+   ========================================================= */
+.card-body .form-group {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.card-body .control-label {
+    color: var(--heading-color);
+    font-size: 13px;
+    font-weight: 600;
+    padding-top: 8px;
+    transition: color 0.2s;
+}
+
+.card-body .form-control,
+.card-body select.form-control {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    border-radius: 20px;
+    font-size: 13px;
+    padding: 6px 12px;
+    height: auto;
+    box-shadow: none;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.card-body .form-control:focus,
+.card-body select.form-control:focus {
+    border-color: #4b79a1;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+    background: var(--input-bg);
+    color: var(--input-text);
+    outline: none;
+}
+
+.dark-mode .card-body .form-control:focus,
+.dark-mode .card-body select.form-control:focus {
+    border-color: #8ab4f0;
+}
+
+.card-body .form-control::placeholder {
+    color: var(--input-placeholder);
+}
+
+/* Native select arrow in dark mode */
+.dark-mode .card-body select.form-control {
+    background-image: linear-gradient(45deg, transparent 50%, #8a9aa8 50%),
+                      linear-gradient(135deg, #8a9aa8 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(50% - 2px),
+                         calc(100% - 13px) calc(50% - 2px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding-right: 32px;
+}
+
+.card-body .input-group-addon {
+    background: var(--input-addon-bg);
+    border: 1px solid var(--input-border);
+    color: var(--heading-color);
+    border-right: none;
+    border-radius: 20px 0 0 20px;
+    font-size: 13px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.card-body .input-group .form-control {
+    border-left: none;
+    border-radius: 0 20px 20px 0;
+}
+
+.btn-card-primary {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    transition: opacity 0.15s, box-shadow 0.15s;
+}
+.btn-card-primary:hover {
+    opacity: 0.92;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-card-navy {
+    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    transition: opacity 0.15s, box-shadow 0.15s;
+}
+.btn-card-navy:hover {
+    opacity: 0.92;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+}
+
+/* =========================================================
+   CARD DIVIDER / SUB HEADINGS
+   ========================================================= */
+.card-divider {
+    border: 0;
+    border-top: 1px solid var(--divider-color);
+    margin: 14px 0;
+    transition: border-color 0.2s;
+}
+
+.card-body h5 {
+    color: var(--heading-color);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+}
+
+/* =========================================================
+   INFO STRIP
+   ========================================================= */
+.info-strip {
+    background: var(--info-strip-bg);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    transition: background 0.2s;
+}
+
+.info-strip span {
+    color: var(--heading-color);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+}
+
+.info-strip .btn-generate {
+    background: var(--panel-heading-bg);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.15s;
+}
+.info-strip .btn-generate:hover {
+    background: var(--link-hover);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(75, 121, 161, 0.3);
+}
+
+.dark-mode .info-strip .btn-generate {
+    background: #2a3a4a;
+    color: #e8edf2;
+}
+.dark-mode .info-strip .btn-generate:hover {
+    background: #35485a;
+    color: #ffffff;
+}
+
+/* =========================================================
+   MINI TABLES
+   ========================================================= */
+.mini-table-wrap {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--table-border-strong);
+    border-radius: 8px;
+    transition: border-color 0.2s;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Webkit scrollbars for mini-table-wrap */
+.mini-table-wrap::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.mini-table-wrap::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 8px;
+}
+.mini-table-wrap::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 8px;
+}
+.mini-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: var(--link-color);
+}
+
+table.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    table-layout: fixed;
+}
+
+table.mini-table thead {
+    background: var(--table-head-bg);
+    color: var(--heading-color);
+    transition: background 0.2s, color 0.2s;
+}
+
+table.mini-table th {
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid var(--table-border-strong);
+    color: var(--table-head-color);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+table.mini-table th:first-child { text-align: left; }
+table.mini-table th:nth-child(2) { text-align: right; }
+table.mini-table th:last-child { text-align: center; }
+
+table.mini-table td {
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--table-row-border);
+    word-wrap: break-word;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+table.mini-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+table.mini-table tbody tr:hover {
+    background: var(--table-hover-bg);
+}
+
+table.mini-table td:nth-child(2) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+table.mini-table td:last-child {
+    text-align: center;
+    white-space: nowrap;
+}
+
+table.mini-table td strong {
+    color: var(--heading-color);
+}
+
+/* Row total inside mini-table */
+table.mini-table tbody tr.row-total {
+    background: var(--info-strip-bg);
+    font-weight: 700;
+}
+table.mini-table tbody tr.row-total td {
+    border-bottom: none;
+    color: var(--heading-color);
+}
+
+/* Empty state inside mini-table */
+table.mini-table td.empty-cell {
+    text-align: center;
+    padding: 30px;
+    color: var(--muted-color);
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* =========================================================
+   BUTTONS (small / action)
+   ========================================================= */
+.btn-xs {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 15px;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.btn-xs:hover {
+    opacity: 0.9;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+.btn-xs:active {
+    transform: translateY(0);
+}
+
+.btn-danger.btn-xs {
+    background: var(--danger);
+}
+.btn-danger.btn-xs:hover {
+    background: var(--danger-hover);
+}
+
+/* =========================================================
+   BOTTOM HELPER TEXT
+   ========================================================= */
+.card-help {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+}
+
+/* =========================================================
+   MAIN SAVE BUTTON
+   ========================================================= */
+.btn-save {
+    background: #4b79a1;
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 22px;
+    font-weight: 600;
+    font-size: 14px;
+    float: right;
+    transition: background 0.15s, box-shadow 0.2s, transform 0.1s;
+}
+.btn-save:hover {
+    background: #3c6389;
+    box-shadow: 0 4px 12px rgba(75, 121, 161, 0.3);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+.btn-save:active {
+    transform: translateY(0);
+}
+
+/* Your form uses .btn-primary for the save button — harmonize it */
+.content-panel .panel-body > .btn-primary {
+    background: #4b79a1;
+    border: none;
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 8px 22px;
+    font-weight: 600;
+    font-size: 14px;
+    float: right;
+    transition: background 0.15s, box-shadow 0.2s, transform 0.1s;
+}
+.content-panel .panel-body > .btn-primary:hover {
+    background: #3c6389;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(75, 121, 161, 0.3);
+    transform: translateY(-1px);
+}
+
+/* =========================================================
+   PREV / NEXT + EXPORT BUTTONS IN HEADER
+   ========================================================= */
+.btn-secondary,
+.btn-primary {
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.btn-secondary {
+    background: var(--muted-btn-bg);
+    color: var(--muted-btn-text);
+    border: 1px solid var(--input-border);
+}
+.btn-secondary:hover {
+    background: var(--input-border);
+    color: var(--heading-color);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: #4b79a1;
+    border: none;
+    color: #ffffff;
+}
+.btn-primary:hover {
+    background: #3c6389;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(75, 121, 161, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Export buttons in panel heading */
+.panel-heading .btn-warning,
+.panel-heading .btn-success {
+    border-radius: 20px;
+    border: none;
+    color: #ffffff;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.panel-heading .btn-warning {
+    background: var(--warning);
+}
+.panel-heading .btn-success {
+    background: var(--success);
+}
+.panel-heading .btn-warning:hover,
+.panel-heading .btn-success:hover {
+    opacity: 0.92;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================================
+   TWO-COLUMN LAYOUT INSIDE DEDUCTION / ADDON PANELS
+   ========================================================= */
+.deduction-layout .row,
+.addon-layout .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 0;
+}
+
+.deduction-layout .row > [class*="col-"],
+.addon-layout .row > [class*="col-"] {
+    flex: 1 1 calc(50% - 8px);
+    max-width: calc(50% - 8px);
+    padding: 0;
+    float: none;
+}
+
+@media (max-width: 991px) {
+    .deduction-layout .row > [class*="col-"],
+    .addon-layout .row > [class*="col-"] {
+        flex: 1 1 100%;
+        max-width: 100%;
     }
+}
 
-    .edit-header .left,
-    .edit-header .right {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+.deduction-layout .deduction-card,
+.addon-layout .addon-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
 
-    .edit-header a {
-        color: var(--link-color);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 14px;
-        transition: color 0.2s;
-    }
+.deduction-layout .deduction-card .card-body,
+.addon-layout .addon-card .card-body {
+    flex: 1;
+}
 
-    .edit-header a:hover {
-        text-decoration: underline;
-    }
+/* =========================================================
+   DARK MODE — EXTRA FIXES
+   ========================================================= */
 
-    .edit-header .title {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--heading-color);
-    }
+/* Keep panel heading text visible */
+.dark-mode .panel-heading,
+.dark-mode .panel-heading * {
+    color: var(--panel-heading-text);
+}
 
-    /* ---------- Centered container / panel ---------- */
-    .centered-container {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 0 0 24px;
-    }
+/* Fix any leftover inline color:#333 text */
+.dark-mode [style*="color: #333"],
+.dark-mode [style*="color:#333"] {
+    color: var(--text-primary) !important;
+}
 
-    .content-panel {
-        background: var(--panel-bg);
-        border-radius: 14px;
-        box-shadow: var(--panel-shadow);
-        overflow: hidden;
-        width: 100%;
-        margin-bottom: 24px;
-        transition: background 0.2s, box-shadow 0.2s;
-    }
+/* Fix inline red text to be softer in dark */
+.dark-mode [style*="color: #FF0000"],
+.dark-mode [style*="color:#FF0000"],
+.dark-mode [style*="color: red"] {
+    color: #f0788a !important;
+}
 
-    .panel-heading {
-        background: var(--panel-heading-bg);
-        color: #fff;
-        padding: 14px 20px;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        transition: background 0.2s;
-    }
+/* Form labels inside cards */
+.dark-mode .card-body label,
+.dark-mode .card-body .control-label {
+    color: var(--heading-color);
+}
 
-    .panel-heading .employee-name {
-        font-size: 16px;
-        font-weight: 700;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
+/* Select dropdown options in dark mode (browser dependent) */
+.dark-mode select.form-control option {
+    background: var(--input-bg);
+    color: var(--input-text);
+}
 
-    .panel-heading .employee-name i {
-        opacity: 0.85;
-    }
+/* Table head sticky background in dark */
+.dark-mode table.mini-table th,
+.dark-mode .table-bordered-bottom-only thead th {
+    background: var(--table-head-bg);
+    color: var(--table-head-color);
+}
 
+/* Input number spinners in dark mode */
+.dark-mode input[type="number"]::-webkit-inner-spin-button,
+.dark-mode input[type="number"]::-webkit-outer-spin-button {
+    filter: invert(0.8);
+}
+
+/* Confirm dialog / alert fallback (no-op, but here for completeness) */
+.dark-mode body {
+    background: var(--panel-bg);
+}
+
+/* =========================================================
+   RESPONSIVE TWEAKS
+   ========================================================= */
+@media (max-width: 768px) {
     .panel-body {
-        padding: 20px 24px 24px;
-    }
-
-    /* ---------- Info block (period, salary type, shift, location) ---------- */
-    .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px 32px;
-        padding: 0 20px 16px;
-        font-size: 14px;
-        color: var(--text-primary);
-        transition: color 0.2s;
-    }
-
-    @media (max-width: 768px) {
-        .info-grid { grid-template-columns: 1fr; }
-    }
-
-    .info-block span,
-    .info-block label {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 14px;
-        color: var(--text-primary);
-        transition: color 0.2s;
-    }
-
-    .info-block strong {
-        color: var(--heading-color);
-        margin-right: 4px;
-    }
-
-    .salary-type-group {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 6px;
-    }
-
-    .salary-type-group label {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        margin: 0;
-        font-size: 14px;
-        color: var(--text-primary);
-        cursor: pointer;
-    }
-
-    .salary-type-group input[type="radio"] {
-        accent-color: #4b79a1;
-        cursor: pointer;
-    }
-
-    /* Previous rate is red on purpose — keep that semantic */
-    .prev-rate {
-        color: #dc3545;
-        font-weight: 600;
-    }
-    .dark-mode .prev-rate {
-        color: #f0788a;
-    }
-
-    /* ---------- Tables ---------- */
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0;
+        padding: 16px;
     }
 
     .table-bordered-bottom-only th,
     .table-bordered-bottom-only td {
-        border: none;
-        border-bottom: 1px solid var(--table-row-border);
-        padding: 9px 10px;
-        font-size: 13px;
-        color: var(--text-primary);
-        transition: color 0.2s, border-color 0.2s, background 0.2s;
-    }
-
-    .table-bordered-bottom-only thead th {
-        background: var(--table-head-bg);
-        color: var(--table-head-color);
-        font-weight: 600;
+        padding: 7px 6px;
         font-size: 12px;
-        text-align: left;
-        border-bottom: 2px solid var(--table-border-strong);
-        transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
 
-    .table-head-1, .table-cont-1 { text-align: center; }
-    .table-head-2, .table-cont-2 {
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .table-bordered-bottom-only tbody tr:hover {
-        background: var(--table-hover-bg);
-    }
-
-    /* Total row */
-    .table-bordered-bottom-only tbody tr.total-row {
-        background: var(--table-total-bg);
-        color: var(--table-total-text);
-        transition: background 0.2s, color 0.2s;
-    }
-    .table-bordered-bottom-only tbody tr.total-row td {
-        color: var(--table-total-text);
-        border-bottom: none;
-    }
-
-    /* ---------- Sub-cards for deductions / addons ---------- */
-    .deduction-card,
-    .addon-card {
-        background: var(--card-bg);
-        border-radius: 8px;
-        box-shadow: var(--card-shadow);
-        overflow: hidden;
-        transition: background 0.2s, box-shadow 0.2s;
-    }
-
-    .deduction-card .card-head,
-    .addon-card .card-head {
-        padding: 12px 15px;
-        color: #fff;
-    }
-
-    .deduction-card .card-head h4,
-    .addon-card .card-head h4 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 700;
-    }
-
-    .deduction-card .card-head p,
-    .addon-card .card-head p {
-        margin: 2px 0 0;
-        font-size: 11px;
-        opacity: 0.9;
-    }
-
-    /* Blue variant (payroll-specific) */
-    .card-head--blue {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    }
-    /* Navy variant (constant) */
-    .card-head--navy {
-        background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    }
-
-    .card-body {
-        background: var(--card-body-bg);
-        padding: 15px;
-        transition: background 0.2s;
-    }
-
-    /* ---------- Forms inside cards ---------- */
-    .card-body .form-group {
-        margin-bottom: 12px;
-    }
-
-    .card-body .control-label {
-        color: var(--heading-color);
-        font-size: 13px;
-        padding-top: 8px;
-        transition: color 0.2s;
-    }
-
-    .card-body .form-control {
-        background: var(--input-bg);
-        border: 1px solid var(--input-border);
-        color: var(--input-text);
-        border-radius: 20px;
-        font-size: 13px;
-        padding: 6px 12px;
-        height: auto;
-        transition: background 0.2s, border-color 0.2s, color 0.2s;
-    }
-
-    .card-body .form-control:focus {
-        border-color: #4b79a1;
-        box-shadow: 0 0 0 3px rgba(75, 121, 161, 0.15);
-        background: var(--input-bg);
-        color: var(--input-text);
-    }
-
-    .card-body .form-control::placeholder {
-        color: var(--muted-color);
-    }
-
-    .card-body .input-group-addon {
-        background: var(--input-addon-bg);
-        border: 1px solid var(--input-border);
-        color: var(--heading-color);
-        border-right: none;
-        border-radius: 20px 0 0 20px;
-        font-size: 13px;
-        transition: background 0.2s, border-color 0.2s, color 0.2s;
-    }
-
-    .card-body .input-group .form-control {
-        border-left: none;
-        border-radius: 0 20px 20px 0;
-    }
-
-    .btn-card-primary {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        color: #fff;
-        border: none;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 6px 12px;
-        transition: opacity 0.15s;
-    }
-    .btn-card-primary:hover { opacity: 0.9; color: #fff; }
-
-    .btn-card-navy {
-        background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-        color: #fff;
-        border: none;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 6px 12px;
-        transition: opacity 0.15s;
-    }
-    .btn-card-navy:hover { opacity: 0.9; color: #fff; }
-
-    /* ---------- Card divider ---------- */
-    .card-divider {
-        border: 0;
-        border-top: 1px solid var(--divider-color);
-        margin: 14px 0;
-        transition: border-color 0.2s;
-    }
-
-    /* ---------- Sub headings inside cards ---------- */
-    .card-body h5 {
-        color: var(--heading-color);
-        font-size: 14px;
-        font-weight: 600;
-        margin: 0 0 10px;
-        transition: color 0.2s;
-    }
-
-    /* ---------- Info strip (Generate all constants) ---------- */
-    .info-strip {
-        background: var(--info-strip-bg);
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .info-strip span {
-        color: var(--heading-color);
-        font-size: 13px;
-        transition: color 0.2s;
-    }
-
-    .info-strip .btn-generate {
-        background: var(--panel-heading-bg);
-        color: #fff;
-        border: none;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 5px 15px;
-        transition: background 0.2s;
-    }
-    .info-strip .btn-generate:hover {
-        background: var(--heading-color);
-        color: #fff;
-    }
-    .dark-mode .info-strip .btn-generate:hover {
-        background: #2a3a4a;
-    }
-
-    /* ---------- Inner mini tables ---------- */
-    .mini-table-wrap {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid var(--table-border-strong);
-        border-radius: 8px;
-        transition: border-color 0.2s;
-    }
-
-    table.mini-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0;
-        table-layout: fixed;
-    }
-
-    table.mini-table thead {
-        background: var(--table-head-bg);
-        color: var(--heading-color);
-        transition: background 0.2s, color 0.2s;
-    }
-
-    table.mini-table th {
-        padding: 10px;
-        font-size: 12px;
-        font-weight: 600;
-        text-align: left;
-        border-bottom: 1px solid var(--table-border-strong);
-    }
-
-    table.mini-table th:first-child { text-align: left; }
-    table.mini-table th:nth-child(2) { text-align: right; }
-    table.mini-table th:last-child { text-align: center; }
-
-    table.mini-table td {
-        padding: 8px 10px;
-        font-size: 13px;
-        color: var(--text-primary);
-        border-bottom: 1px solid var(--table-row-border);
-        word-wrap: break-word;
-        transition: color 0.2s, border-color 0.2s;
-    }
-
-    table.mini-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    table.mini-table tbody tr:hover {
-        background: var(--table-hover-bg);
-    }
-
-    table.mini-table td:nth-child(2) {
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-    }
-
-    table.mini-table td:last-child {
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    table.mini-table td strong {
-        color: var(--heading-color);
-    }
-
-    /* Row total inside mini-table */
-    table.mini-table tbody tr.row-total {
-        background: var(--info-strip-bg);
-        font-weight: 700;
-    }
-    table.mini-table tbody tr.row-total td {
-        border-bottom: none;
-    }
-
-    /* Empty state inside mini-table */
-    table.mini-table td.empty-cell {
-        text-align: center;
-        padding: 30px;
-        color: var(--muted-color);
-        font-size: 13px;
-    }
-
-    /* ---------- Action buttons (small) ---------- */
-    .btn-xs {
-        padding: 3px 8px;
-        font-size: 11px;
-        border-radius: 15px;
-        border: none;
-        color: #fff;
-        cursor: pointer;
-        transition: opacity 0.15s;
-    }
-    .btn-xs:hover { opacity: 0.85; color: #fff; }
-
-    .btn-danger.btn-xs {
-        background: #dc3545;
-    }
-
-    /* ---------- Bottom helper text ---------- */
-    .card-help {
-        margin-top: 10px;
-        font-size: 12px;
-        color: var(--muted-color);
-        transition: color 0.2s;
-    }
-
-    /* ---------- Main save button ---------- */
-    .btn-save {
-        background: #4b79a1;
-        color: #fff;
-        border: none;
-        border-radius: 20px;
-        padding: 8px 22px;
-        font-weight: 600;
-        font-size: 14px;
-        float: right;
-        transition: background 0.15s, box-shadow 0.2s;
-    }
-    .btn-save:hover {
-        background: #3c6389;
-        box-shadow: 0 4px 12px rgba(75, 121, 161, 0.3);
-        color: #fff;
-    }
-
-    /* ---------- Prev/Next buttons in header ---------- */
-    .btn-secondary,
-    .btn-primary {
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 6px 16px;
-        transition: background 0.15s;
-    }
-    .btn-secondary {
-        background: var(--muted-btn-bg);
-        color: var(--muted-btn-text);
-        border: 1px solid var(--input-border);
-    }
-    .btn-secondary:hover {
-        background: var(--input-border);
-        color: var(--heading-color);
-    }
-    .btn-primary {
-        background: #4b79a1;
-        border: none;
-        color: #fff;
-    }
-    .btn-primary:hover {
-        background: #3c6389;
-        color: #fff;
-    }
-
-    /* ====== LIGHT MODE DEFAULTS ====== */
-    :root {
-        --link-color: #4b79a1;
-        --heading-color: #283e51;
-        --panel-bg: #fff;
-        --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-        --panel-heading-bg: #283e51;
-        --card-bg: #fff;
-        --card-body-bg: #fff;
-        --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        --input-bg: #fff;
-        --input-border: #dce4ec;
-        --input-addon-bg: #ecf0f1;
-        --input-text: #222;
-        --table-head-bg: #ecf0f1;
-        --table-head-color: #2c3e50;
-        --table-row-border: #eef1f4;
-        --table-border-strong: #d8e0e8;
-        --table-hover-bg: #f7f9fb;
-        --table-total-bg: #f0f3f6;
-        --table-total-text: #283e51;
-        --info-strip-bg: linear-gradient(135deg, #f8fafc 0%, #ecf0f1 100%);
-        --divider-color: #ecf0f1;
-        --muted-color: #7f8c8d;
-        --muted-btn-bg: #f1f3f5;
-        --muted-btn-text: #495057;
-    }
-
-    /* ====== DARK MODE OVERRIDES ====== */
-    .dark-mode {
-        --link-color: #8ab4f0;
-        --heading-color: #d0dae8;
-        --panel-bg: #1e2a36;
-        --panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-        --panel-heading-bg: #1a2530;
-        --card-bg: #1e2a36;
-        --card-body-bg: #1e2a36;
-        --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-        --input-bg: #12181f;
-        --input-border: #3a4a5a;
-        --input-addon-bg: #22303e;
-        --input-text: #e8edf2;
-        --table-head-bg: #1a2530;
-        --table-head-color: #a0b0c0;
-        --table-row-border: #2a3a4a;
-        --table-border-strong: #2a3a4a;
-        --table-hover-bg: #24323e;
-        --table-total-bg: #22303e;
-        --table-total-text: #e8edf2;
-        --info-strip-bg: #22303e;
-        --divider-color: #2a3a4a;
-        --muted-color: #8a9aa8;
-        --muted-btn-bg: #22303e;
-        --muted-btn-text: #c0cbd8;
-    }
-    /* ---------- Force two-column layout inside deduction/addon panels ---------- */
-    .deduction-layout .row,
-    .addon-layout .row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin: 0;
-    }
-
-    .deduction-layout .row > [class*="col-"],
-    .addon-layout .row > [class*="col-"] {
-        flex: 1 1 calc(50% - 8px);
-        max-width: calc(50% - 8px);
-        padding: 0;
-        float: none;
-    }
-
-    @media (max-width: 991px) {
-        .deduction-layout .row > [class*="col-"],
-        .addon-layout .row > [class*="col-"] {
-            flex: 1 1 100%;
-            max-width: 100%;
-        }
-    }
-
-    /* Make the two cards match height visually */
-    .deduction-layout .deduction-card,
-    .addon-layout .addon-card {
-        display: flex;
+    .row > .col-lg-12 > h4 {
         flex-direction: column;
-        height: 100%;
+        align-items: flex-start !important;
+        gap: 10px;
     }
 
-    .deduction-layout .deduction-card .card-body,
-    .addon-layout .addon-card .card-body {
-        flex: 1;
+    .row > .col-lg-12 > h4 > span:last-child {
+        margin-right: 0 !important;
     }
+}
+
+/* =========================================================
+   PRINT — hide action buttons and chrome
+   ========================================================= */
+@media print {
+    .panel-heading .export-btn,
+    .btn-link-icon,
+    .btn-xs,
+    .btn-save,
+    .btn-primary,
+    .btn-secondary,
+    .row > .col-lg-12 > h4 a {
+        display: none !important;
+    }
+
+    .content-panel {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+
+    body {
+        background: #fff;
+        color: #000;
+    }
+}

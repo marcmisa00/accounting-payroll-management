@@ -126,9 +126,6 @@ function SubmitDetails() {
             </script>
 
             <div class="panel-body">
-                {{-- The per-day attendance/calculation table is being ported in a follow-up pass
-                     (base pay/OT, then night differential, then holidays, then leave types).
-                     Meanwhile this shows the period's saved totals, if any. --}}
                 <table class="table table-bordered-bottom-only">
                     <thead>
                         <tr>
@@ -154,11 +151,46 @@ function SubmitDetails() {
                     </thead>
                     <tbody>
                         @forelse ($rows as $row)
-                            {{-- populated once the calculation engine is ported --}}
+                            <tr @if ($row['style']) style="{{ $row['style'] }}" @endif>
+                                <td class="table-cont-1">{{ $row['date'] }}</td>
+                                @if ($row['show_times'])
+                                    <td class="table-cont-1">{{ $row['loginam'] ?? '0' }}</td>
+                                    <td class="table-cont-1">{{ $row['logoutam'] ?? '0' }}</td>
+                                    <td class="table-cont-1">{{ $row['loginpm'] ?? '0' }}</td>
+                                    <td class="table-cont-1">{{ $row['logoutpm'] ?? '0' }}</td>
+                                @else
+                                    <td class="table-cont-1">-</td>
+                                    <td class="table-cont-1">-</td>
+                                    <td class="table-cont-1">-</td>
+                                    <td class="table-cont-1">-</td>
+                                @endif
+                                <td class="table-cont-1">{{ $row['totalwo'] }}</td>
+                                <td class="table-cont-1">{{ $row['reghrs'] }}</td>
+                                <td class="table-cont-1 ot-cell" data-attendance="{{ $row['ot_attendance_id'] }}" data-value="{{ $row['ot_minutes'] }}">
+                                    <span class="ot-text">{{ $row['ot'] }}</span>
+                                </td>
+                                <td class="table-cont-1 nd-cell">
+                                    <span class="nd-text">{{ $row['nd_is_manual'] ? $row['nd'] . '*' : $row['nd'] }}</span>
+                                </td>
+                                <td class="table-cont-2">{{ $row['ratday'] }}</td>
+                                <td class="table-cont-2">{{ $row['regdaysot'] }}</td>
+                                <td class="table-cont-2">{{ $row['ndrate'] }}</td>
+                                <td class="table-cont-2">{{ $row['spholiday'] }}</td>
+                                <td class="table-cont-2">{{ $row['spholidayot'] }}</td>
+                                <td class="table-cont-2">{{ $row['regholidayot'] }}</td>
+                                <td class="table-cont-2">{{ $row['regholiday'] }}</td>
+                                <td class="table-cont-2">{{ $row['totalpay'] }}</td>
+                                <td class="table-cont-1">
+                                    <form method="POST" action="{{ route('payroll.edit.time.destroy', ['payroll' => $payroll->id, 'idno' => $idno, 'attendance' => $row['attendance_id'], 'company' => $company, 'dept' => $deptId]) }}" style="display:inline" onsubmit="return confirm('Do you wish to remove this attendance?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn-link-icon" title="Delete Time"><i class="fa fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
                         @empty
                             <tr>
                                 <td colspan="18" class="text-center" style="padding: 20px; color: #7f8c8d;">
-                                    <i class="fa fa-info-circle"></i> Day-by-day attendance calculation isn't ported yet — showing saved totals below only.
+                                    <i class="fa fa-info-circle"></i> No attendance records found for this payroll period.
                                 </td>
                             </tr>
                         @endforelse
@@ -182,9 +214,6 @@ function SubmitDetails() {
 
                 <input type="submit" name="submitPayroll" class="btn btn-primary" value="Save Details" style="float:right;">
 
-                {{-- Every total the legacy page tracked, carried through as hidden inputs
-                     so save() has a stable field set to persist once the calculation
-                     engine is wired up. --}}
                 @foreach ($totals as $field => $value)
                     <input type="hidden" name="{{ $field }}" value="{{ $value }}">
                 @endforeach
@@ -530,6 +559,49 @@ function SubmitDetails() {
 </div>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<script>
+document.addEventListener('click', function (e) {
+    const cell = e.target.closest('.ot-cell');
+    if (!cell || cell.querySelector('input')) return;
+
+    const attendanceId = cell.getAttribute('data-attendance');
+    const currentMinutes = cell.getAttribute('data-value') || 0;
+
+    cell.innerHTML = `<input type="number" step="1" value="${currentMinutes}" style="width:70px;">`;
+    const input = cell.querySelector('input');
+    input.focus();
+
+    function saveOt() {
+        const minutes = parseInt(input.value) || 0;
+
+        fetch(`{{ url('/payroll/manage/' . $payroll->id . '/edit/' . $idno . '/time') }}/${attendanceId}/ot`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ ot_minutes: minutes }),
+        })
+        .then((res) => res.json())
+        .then(() => {
+            const hours = (minutes / 60).toFixed(2);
+            cell.setAttribute('data-value', minutes);
+            cell.innerHTML = `<span class="ot-text">${hours}</span>`;
+        })
+        .catch(() => {
+            cell.innerHTML = `<span style="color:red;">Error</span>`;
+        });
+    }
+
+    input.addEventListener('blur', saveOt);
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') input.blur();
+    });
+});
+</script>
+
 <script>
 document.addEventListener('keydown', function (e) {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;

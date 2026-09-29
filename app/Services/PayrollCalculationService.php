@@ -6,36 +6,62 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Ports the attendance-based payroll calculation loop from the legacy
- * editpayroll.php.
+ * editpayroll.php. All four planned passes are now implemented:
+ *   1. Base pay + overtime (before/after 8 hrs, OB/idle deductions)
+ *   2. Night differential (auto-detected + manual override)
+ *   3. Holiday pay (regular + special non-working, worked + not-worked)
+ *   4. Leave types (VL/SL/BL/BLP/SPL/PTL + tenure-based BL eligibility)
  *
- * STATUS — staged port, pass 1 of 4:
- *   1. Base pay + overtime (before/after 8 hrs, OB/idle deductions)  <-- THIS PASS
- *   2. Night differential (including manual ND overrides)            <-- not yet ported
- *   3. Holiday pay (regular + special non-working, worked + not-worked) <-- not yet ported
- *   4. Leave types (VL/SL/BL/BLP/SPL/PTL + tenure-based BL eligibility)  <-- not yet ported
+ * This has NOT been run against real payroll data side-by-side with the
+ * legacy system yet. Given how tightly interdependent these rules are
+ * (a single mis-ordered condition changes someone's pay), treat this as
+ * a first complete draft to verify, not a drop-in replacement — diff its
+ * output against the legacy page for at least one full payroll period,
+ * ideally one that includes a holiday, a rate change mid-period, and a
+ * few different leave types, before trusting it for real payroll.
  *
- * Until passes 2-4 land:
- *   - $ndhrs / $ndrate always compute to 0 (no night differential pay yet).
- *   - Holiday detection is not run at all — regholiday/spholiday and every
- *     holiday-specific multiplier stay 0, even on a day whose stored
- *     `status` already contains an "rh"/"snwh" flag, and a holiday actually
- *     WORKED will be paid as a normal day for now (under-paid until pass 3).
- *   - The remarks-based leave cascade (VL/SL/BL/BLP/SPL/PTL tracking and
- *     BL tenure-eligibility zeroing) is not run. A leave day whose `status`
- *     contains the "leave" token still gets its full daily rate via the
- *     $leave>0 shortcut in the legacy code (ported below), so ordinary
- *     leave days are usually already paid correctly — but BL-ineligible
- *     employees are NOT yet zeroed out, and the paidVLhrs/paidSLhrs/etc.
- *     reporting totals stay 0 until pass 4.
+ * Things worth your explicit sign-off, found while porting:
  *
- * Two pieces of the legacy file were dropped entirely because they were
- * dead code (computed but never read anywhere downstream):
- *   - The top-level movement_tracker/dlsTop/adjustedEffectivity block
- *   - $hasDlsChange, and the standalone isNightShift($dls) function
- * A number of unused intermediate hour-difference variables
- * (eogybefore/eogyafter/difference_eo/difference_ott/diff_gylu/diff_gyam/
- * totalstart/totalam/shiftdiff/wfhhrs/wfhnotgy/sevendif/onedif) were
- * dropped for the same reason. Flag if any of those turn out to matter.
+ * - BUG PRESERVED: `if ($salary_type != 'Fixed' || $salary_type != 'Daily')`
+ *   in the legacy file is always true (needed `&&`, not `||`, to actually
+ *   exclude Fixed/Daily), so the holiday/leave cascade below runs for
+ *   every salary type in the live system today, and the "else" branch
+ *   that would have reset holiday vars for Fixed employees never
+ *   executes. This port reproduces the actual (always-runs) behavior.
+ *
+ * - BUG PRESERVED: manual ND overrides (`attendance_nd_override`) change
+ *   the number used in pay, but the legacy code unconditionally resets
+ *   `$is_manual` to false immediately before rendering the row, so the
+ *   "*" indicator that's supposed to flag a manual value never appears.
+ *   Ported as-is; `nd_is_manual` will always be false here too.
+ *
+ * - DEVIATION (flagged, not silently reproduced): in the legacy file,
+ *   $spholiday/$regholiday/$reghoursnwamount/$holidaypay/etc. are
+ *   initialized once before the attendance loop, not reset each
+ *   iteration — so in the live system, a day with no holiday/leave
+ *   branch match could display a stale value left over from an earlier
+ *   day that did match. That looks like an unintentional bug rather
+ *   than intended carry-forward, so this port resets those to 0 at the
+ *   top of every iteration instead of reproducing the leak. If the
+ *   legacy output you compare against actually shows that carry-forward
+ *   behavior, this is the line that explains the difference.
+ *
+ * - `regholidaywork1/regholidayworkamount1/regholidaywork2/regholidayworkamount2`
+ *   and `regholidayothrs/regholidayotamount/spholidayhours1/spholidayamount1/
+ *   spholidayhours2/spholidayamount2/spholidayothrs/spholidayotamount` are
+ *   submitted as hidden inputs in the legacy page but are never assigned
+ *   inside the loop (or only ever hold one iteration's leftover value,
+ *   never summed) — they appear to be vestigial/dead fields. Left at 0
+ *   here rather than guessing at intended semantics.
+ *
+ * Two pieces of the legacy file were dropped entirely as genuinely dead
+ * code (computed but never read anywhere downstream): the top-level
+ * movement_tracker/dlsTop/adjustedEffectivity block, and $hasDlsChange
+ * plus the standalone isNightShift($dls) function. A number of unused
+ * intermediate hour-difference variables (eogybefore/eogyafter/
+ * difference_eo/difference_ott/diff_gylu/diff_gyam/totalstart/totalam/
+ * shiftdiff/wfhhrs/wfhnotgy/sevendif/onedif) were dropped for the same
+ * reason. Flag if any of those turn out to matter after all.
  */
 class PayrollCalculationService
 {
@@ -70,7 +96,14 @@ class PayrollCalculationService
         $previousSalary    = $employeePayroll->previous_salary ?? 0;
         $effectivityRaw    = $employeePayroll->effective_date ?? null;
 
-        $attendanceStart = date('Y-m-d', strtotime($periodStart . ' -1 day'));
+       $attendanceStart = $periodStart;
+
+        if (($employeeDetails->dls ?? 0) == 1) {
+            $attendanceStart = date(
+                'Y-m-d H:i:s',
+                strtotime($periodStart . ' -1 day')
+            );
+        }
 
         $attendanceRows = $conn->table('attendance')
             ->where('idno', $idno)
@@ -83,17 +116,17 @@ class PayrollCalculationService
         $t = $this->emptyTotals(); // running totals accumulator
 
         foreach ($attendanceRows as $attendance) {
-            $logindate      = $attendance->logindate;
-            $attendanceDls  = $attendance->attendance_dls ?? 0;
+          $logindate = $attendance->logindate;
+$attendanceDls = $attendance->attendance_dls ?? 0;
 
-            $payrollDate = $attendanceDls == 1
-                ? date('Y-m-d', strtotime($logindate . ' +1 day'))
-                : $logindate;
+$payrollDate = $attendanceDls == 1
+    ? date('Y-m-d', strtotime($logindate . ' +1 day'))
+    : date('Y-m-d', strtotime($logindate));
 
-            if ($payrollDate < $periodStart || $payrollDate > $periodEnd) {
-                continue;
-            }
-
+if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
+    $payrollDate > date('Y-m-d', strtotime($periodEnd))) {
+    continue;
+}
             $dayOfWeek = date('l', strtotime($logindate));
 
             [$startshift, $endshift, $dls] = $this->resolveShiftForDate(
@@ -269,11 +302,14 @@ class PayrollCalculationService
                 };
             }
 
-            $ndhrs = 0;    // pass 2
-            $ndrate = 0;   // pass 2
-            $spholiday = $spholidayot = $regholiday = $regholidayot = 0;      // pass 3
-            $reghoursnwamount = 0;                                            // pass 3
-            $isRegularHoliday = false;                                        // pass 3 will compute this for real
+            // Placeholder inits; overwritten for real further down (ND in the
+            // pass-2 section, holiday/leave amounts in the pass-3/4 cascade).
+            // Needed here because $isEOEEO / $isRegularHoliday etc. below
+            // reference $ndhrs before the ND section runs on some branches.
+            $ndhrs = 0;
+            $ndrate = 0;
+            $spholiday = $spholidayot = $regholiday = $regholidayot = 0;
+            $reghoursnwamount = 0;
 
             $effectivity = $effectivityRaw
                 ? ($dls == 1 ? date('Y-m-d', strtotime($effectivityRaw . ' -1 day')) : $effectivityRaw)
@@ -331,14 +367,42 @@ class PayrollCalculationService
                 $totalwo -= $remainingOb;
 
                 $regdaysot = (($missingsal / 8) * 1.25) * $overtime;
+                    if ($idleHours > 0) {
+                        // Use overtime first to cover idle hours
+                        if ($overtime > 0) {
+                            if ($overtime >= $idleHours) {
+                                // OT is enough to cover all idle hours
+                                $idleHours = 0;
+                            } else {
+                                // OT is not enough to cover all idle hours
+                                $overtime = 0;
+                            }
+                        }
+                        // If there is still idle time after using overtime,
+                        // deduct the remaining idle hours from totalwo
+                        if ($idleHours > 0) {
+                            $totalwo = $totalwo - $idleHours;
+                            $totalwo = round($totalwo, 2);
+
+                            $empsalary = ($empsalary / 8) * $totalwo;
+                        }
+                    }
             } else {
+                  if ($idleHours > 0) {
+                            $totalwo = $totalwo - $idleHours;
+                            $totalwo = round($totalwo, 2);
+
+                            $empsalary = ($empsalary / 8) * $totalwo;
+                        }
                 $obDeduct = ($obbreak > 1) ? $obbreak - 1 : 0;
                 $totalwo -= $obDeduct;
                 if ($totalwo < 0) {
                     $totalwo = 0;
                 }
                 $obsubsal = ($missingsal / 8) * $obDeduct;
+             
             }
+            
 
             $reghrs = 8;
 
@@ -406,23 +470,7 @@ class PayrollCalculationService
                 $overtime = ($totalwo <= 8) ? 0 : ($overtimeafter + $overtimebefore);
             }
 
-            if ($idleHours > 0) {
-                if ($overtime > 0) {
-                    $totalwo = round($totalwo - $idleHours, 2);
-                    if ($overtime >= $idleHours) {
-                        $overtime -= $idleHours;
-                        $idleHours = 0;
-                    } else {
-                        $idleHours -= $overtime;
-                        $overtime = 0;
-                    }
-                }
-                if ($idleHours > 0) {
-                    $totalwo = round($totalwo - $idleHours, 2);
-                }
-
-                $empsalary = ($totalwo > 7.98) ? (($missingsal / 8) * 8) : (($missingsal / 8) * $totalwo);
-            }
+          
 
             // Manual OT override (attendance_ot_override), same as legacy.
             $otOverride = $conn->table('attendance_ot_override')->where('attendance_id', $attendance->id)->value('ot_adjustment');
@@ -432,7 +480,255 @@ class PayrollCalculationService
 
             $regdaysot = (($missingsal / 8) * 1.25) * $overtime;
 
+            // ================= PASS 2: NIGHT DIFFERENTIAL =================
+            $employeeCompany = $employeeDetails->company ?? $company;
+
+            if (($employeeCompany === 'NESI2' || $employeeCompany === 'NEWIND')
+                && in_array($startshift, ['23:00:00', '00:00:00', '01:00:00', '02:00:00', '03:00:00'], true)) {
+                $computed_nd = min($totalwo, 8);
+            } elseif (in_array($startshift, ['23:00:00', '00:00:00', '01:00:00'], true)) {
+                $computed_nd = min($totalwo, 8);
+            } elseif ($startshift === '03:00:00') {
+                $computed_nd = 0;
+                if ($loginam_ts > 0) {
+                    $nd_end = strtotime(date('Y-m-d', $loginam_ts) . ' 06:00:00');
+                    $computed_nd_temp = round(abs($loginam_ts - $nd_end) / 3600, 2);
+                    $computed_nd = ($computed_nd_temp >= 3) ? 3 : max(0, $computed_nd_temp);
+                    if (in_array($location, ['WFH', 'Hybrid'], true)) {
+                        $computed_nd += $overtimebefore;
+                    }
+                    $computed_nd = min($computed_nd, $totalwo);
+                }
+            } elseif ($startshift === '04:00:00') {
+                $computed_nd = min(2, $totalwo);
+            } else {
+                $computed_nd = 0;
+            }
+            $ndhrs = $computed_nd;
+
+            $ndOverride = $conn->table('attendance_nd_override')
+                ->where('attendance_id', $attendance->id)
+                ->orderByDesc('created_at')
+                ->value('manual_nd');
+            if ($ndOverride !== null) {
+                $ndhrs = $ndOverride;
+            }
+
+            // ================= PASS 3: HOLIDAY DETECTION =================
+            $previousDay = $conn->table('attendance')
+                ->where('idno', $idno)
+                ->where('logindate', '<', $logindate)
+                ->orderByDesc('logindate')
+                ->first();
+            $previousRemarks = $previousDay->remarks ?? null;
+            $previousStatus  = $previousDay->status ?? null;
+
+            $holidayToday = null;
+            $holidayNextDay = null;
+            $holidayRows = $conn->table('holidays')
+                ->where(function ($q) use ($employeeWorkArea) {
+                    $q->where('location', 'allbranch')->orWhere('location', $employeeWorkArea);
+                })
+                ->where(function ($q) use ($logindate) {
+                    $q->where('date', $logindate)->orWhereRaw('date = DATE_ADD(?, INTERVAL 1 DAY)', [$logindate]);
+                })
+                ->get();
+            foreach ($holidayRows as $hRow) {
+                if ($hRow->date == $logindate) {
+                    $holidayToday = $hRow->type;
+                } elseif ($hRow->date == date('Y-m-d', strtotime($logindate . ' +1 day'))) {
+                    $holidayNextDay = $hRow->type;
+                }
+            }
+
+            $rh_auto = $rh_auto_nextday = false;
+            $snwh_auto = $snwh_auto_nextday = false;
+            $obDeductedFromHoliday = false;
+
+            if ($isNightShift) {
+                if ($holidayNextDay === 'rh')   { $rh_auto = true;   $rh_auto_nextday = true; }
+                if ($holidayNextDay === 'snwh') { $snwh_auto = true; $snwh_auto_nextday = true; }
+            } else {
+                if ($holidayToday === 'rh')   { $rh_auto = true; }
+                if ($holidayToday === 'snwh') { $snwh_auto = true; }
+            }
+
+            // ================= PASS 3+4: HOLIDAY PAY + LEAVE CASCADE =================
+            // NOTE: the legacy `if ($salary_type != 'Fixed' || $salary_type != 'Daily')`
+            // guarding this whole block is always true (needed `&&` to actually
+            // exclude Fixed/Daily), so this cascade runs for every salary type in
+            // the live system, not just Rated — the matching "else" that would
+            // reset holiday vars for Fixed employees is dead code. Porting the
+            // actual (always-runs) behavior, not the apparent intent.
+            //
+            // NOTE: in the legacy file, $spholiday/$regholiday/$reghoursnwamount/
+            // $holidaypay (and a few others) are initialized ONCE before the
+            // attendance loop, not reset each iteration — so a day that doesn't
+            // hit any holiday/leave branch below would, in the legacy system,
+            // display whatever value was left over from a previous day that did.
+            // That looks like an unintentional bug rather than a business rule,
+            // so I reset these to 0 at the top of every iteration here instead
+            // of reproducing the leak. Flagging in case the leak was somehow
+            // relied upon.
+            $paidVLhrs = $paidVLamount = 0;
+            $paidSLhrs = $paidSLamount = 0;
+            $paidBLhrs = $paidBLamount = 0;
+            $paidsplhrs = $paidsplamount = 0;
+            $paidptlhrs = $paidptlamount = 0;
+            $bdayleavehrs = $bdayleaveamount = 0;
+            $reghoursnw = 0;
+            $holidaypay = 0;
+            $regholidayhr = 0;
+            $spholidayhr = 0;
+
+            $totalhrs = ($totalwo >= 8.17) ? 8.17 : $totalwo;
+            $tothours = 8;
+            $baseRate = ($totalwo < 8) ? ((($empsalary / 8) * $totalwo) / 8) : $empsalary / 8;
+            $isRegularHoliday = ($rh > 0 || $rh_auto);
+            $leaveamount = $empsalary;
+
+            if ($remarks === 'VL' && !$isRegularHoliday) {
+                $paidVLhrs += $tothours; $paidVLamount += $leaveamount;
+                $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+            }
+            if ($remarks === 'BLP' && !$isRegularHoliday) {
+                $bdayleavehrs += $tothours; $bdayleaveamount += $leaveamount;
+                $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+            }
+            if ($remarks === 'BL' && !$isRegularHoliday) {
+                if ($blEligible) {
+                    $paidBLhrs += $tothours; $paidBLamount += $leaveamount;
+                } else {
+                    $leaveamount = 0; $empsalary = 0;
+                }
+                $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+            }
+            if ($remarks === 'SPL' && !$isRegularHoliday) {
+                $paidsplhrs += $tothours; $paidsplamount += $leaveamount;
+                $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+            }
+            if ($remarks === 'PTL' && !$isRegularHoliday) {
+                $paidptlhrs += $tothours; $paidptlamount += $leaveamount;
+                $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+            }
+            if (in_array($remarks, ['Code SL', 'SL-A', 'SL-B', 'SL-C', 'Code SL-A', 'SL', 'SL-IO', 'SL-NC', 'SL-PO', 'SL-TI', 'SL-TP'], true) && !$isRegularHoliday) {
+                $paidSLhrs += $tothours; $paidSLamount += $leaveamount;
+                $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+            }
+
+            if ($work > 0 && ($rh > 0 || $rh_auto)) {
+                $empsalary = ($totalwo > 7.98) ? (($missingsal / 8) * 8) : (($missingsal / 8) * $totalwo);
+                $baseRate = $missingsal / 8;
+
+                if (in_array($remarks, ['P/EO', 'P/EEO', 'EEO-IO', 'EEO-PO', 'EEO-PcP', 'P-TD', 'EEO-NC', 'EEO-GS'], true)) {
+                    $hrs = $totalwo;
+                } elseif ($logoutam == 0 && $loginpm == 0) {
+                    $hrs = $halfday;
+                } else {
+                    $hrs = $totalwo;
+                }
+
+                if ($isEOEEO || $totalwo < 8) {
+                    $reghoursnw = 8 - $hrs;
+                    $reghoursnwamount = ($missingsal / 8) * $reghoursnw;
+                    $regholidayot = 0;
+                } else {
+                    $regholidayot = (($baseRate * 2) * 1.3) * $overtime;
+                }
+
+                if ($status === 'work') {
+                    $regholidayworkamount1 = $empsalary * 2;
+                } elseif ($status === 'nd/work') {
+                    $regholidayworkamount1 = ($ndhrs > 8)
+                        ? $empsalary * 2.2
+                        : 2 * (($baseRate * $ndhrs * 0.1) + $empsalary);
+                } else {
+                    $regholidayworkamount1 = 0;
+                }
+
+                $regholiday = $regholidayworkamount1;
+                $t['totalhoursnotworked']  += $reghoursnw;
+                $t['hoursnotworkedamount'] += $reghoursnwamount;
+
+                $empsalary = 0; $ndhrs = 0; $regdaysot = 0; $reghrs = 0;
+            } elseif ($rh > 0 || $rh_auto) {
+                $wasPresentBeforeHoliday = in_array($previousRemarks, ['P', 'VL', 'SL', 'PTL', 'RD', 'BLP', 'BL', 'SL-C', 'SL-A'], true)
+                    || $previousStatus === 'work' || $previousStatus === 'nd/work';
+
+                if (in_array($remarks, ['VL', 'BLP', 'SPL', 'PTL', 'SL-A', 'BL', 'SL', 'SL-IO', 'SL-NC', 'Code SL', 'Code SL-A', 'SL-PO', 'SL-TP'], true)) {
+                    $reghoursnwamount = $empsalary;
+                    $reghoursnw = 8;
+
+                    if ($remarks === 'BL') {
+                        if ($blEligible) {
+                            $paidBLhrs += $tothours; $paidBLamount += $missingsal;
+                            $holidaypay = $reghoursnwamount;
+                        } else {
+                            $holidaypay = 0; $empsalary = 0; $reghoursnwamount = 0;
+                        }
+                        $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+                    }
+                    if ($remarks === 'SPL') {
+                        $paidsplhrs += $tothours; $paidsplamount += $missingsal;
+                        $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+                        $holidaypay = $reghoursnwamount;
+                    }
+                    if ($remarks === 'BLP') {
+                        $bdayleavehrs += $tothours; $bdayleaveamount += $missingsal;
+                        $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+                        $holidaypay = $reghoursnwamount;
+                    }
+                    if ($remarks === 'VL') {
+                        $paidVLhrs += $tothours; $paidVLamount += $missingsal;
+                        $totalwo = 0; $reghrs = 0;
+                        $holidaypay = $reghoursnwamount;
+                    }
+                    if ($remarks === 'PTL') {
+                        $paidptlamount += $missingsal; $paidptlhrs += $tothours;
+                        $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+                        $holidaypay = $reghoursnwamount;
+                    }
+                    if (in_array($remarks, ['Code SL', 'SL-A', 'Code SL-A', 'SL', 'SL-IO', 'SL-NC', 'SL-PO', 'SL-TI', 'SL-TP'], true)) {
+                        $paidSLhrs += $tothours; $paidSLamount += $missingsal;
+                        $totalwo = 0; $reghrs = 0; $ndhrs = 0; $ndrate = 0;
+                        $holidaypay = $reghoursnwamount;
+                    }
+                } elseif ($wasPresentBeforeHoliday) {
+                    $reghoursnwamount = $empsalary;
+                    $reghoursnw = 8;
+                } else {
+                    $reghoursnwamount = 0;
+                }
+
+                $empsalary = 0; $ndhrs = 0; $regdaysot = 0; $reghrs = 0;
+                $t['totalhoursnotworked']  += $reghoursnw;
+                $t['hoursnotworkedamount'] += $reghoursnwamount;
+            }
+
+            if ($work > 0 && ($snwh > 0 || $snwh_auto) && ($nd > 0 || $isEOEEO)) {
+                $baseRate = $empsalary / 8;
+                $spholiday = (($baseRate * 8) * 1.43) - $obsubsal;
+                $obDeductedFromHoliday = true;
+                $spholidayot = (($baseRate * 1.3) * 1.3) * $overtime;
+
+                $empsalary = 0; $ndhrs = 0; $regdaysot = 0; $reghrs = 0;
+            } elseif ($work > 0 && ($snwh > 0 || $snwh_auto)) {
+                $baseRate = $empsalary / 8;
+                $spholiday = 1.3 * $empsalary;
+                $spholidayot = (($baseRate * 1.3) * 1.3) * $overtime;
+
+                $empsalary = 0; $ndhrs = 0; $regdaysot = 0; $reghrs = 0;
+            }
+
+            if (($rh > 0 || $rh_auto) && $work > 0) {
+                $regholidayhr = min($totalwo, 8);
+            } elseif (($snwh > 0 || $snwh_auto) && $work > 0) {
+                $spholidayhr = min($totalwo, 8);
+            }
+
             // Simple unpaid-absence remarks: zero everything for the day.
+            // Runs AFTER the holiday/leave cascade, same order as legacy,
+            // so an absence remark wins over any holiday/leave pay above.
             if (in_array($remarks, ['CI', 'CI-A', 'Code A', 'CI-C', 'CI-NC', 'CI-B', 'CI-IO', 'CI-PO', 'AA', '-'], true)) {
                 $empsalary = 0; $totalwo = 0; $reghrs = 0; $ndhrs = 0;
             }
@@ -448,13 +744,18 @@ class PayrollCalculationService
             }
 
             if ($totalwo > 8) {
-                $reghrs = 8;
+                if ($rh_auto || $snwh_auto) { $reghrs = 0; $totalwo = 8; } else { $reghrs = 8; }
             } else {
-                $reghrs = $totalwo;
+                if ($rh_auto || $snwh_auto) { $reghrs = 0; } else { $reghrs = $totalwo; }
             }
 
-            // Manual ND override lookup is skipped in this pass — ND stays
-            // at 0 until pass 2 — but keep the display placeholder shape.
+            $ndrate = ($ndhrs == 0)
+                ? 0
+                : ($salaryType === 'Fixed' ? ($empsalary * 0.1) : (($missingsal / 8) * $ndhrs * 0.1));
+
+            // Legacy bug, preserved: the manual-ND flag is unconditionally
+            // reset to false right before the row is rendered, so the "*"
+            // indicator never shows even though the overridden value is used.
             $final_nd = $ndhrs;
             $is_manual_nd = false;
 
@@ -462,7 +763,7 @@ class PayrollCalculationService
                 $salaryType, $empsalary, $regdaysot, $ndrate, $spholiday, $spholidayot,
                 $regholiday, $regholidayot, $reghoursnwamount, $obsubsal, $salary,
                 $ab_count, $pto_count, $mtl_count, $mdl_count, $ltl_count, $suspended_count,
-                $ab
+                $ab, $obDeductedFromHoliday
             );
 
             // Row coloring, same precedence order as legacy.
@@ -473,10 +774,10 @@ class PayrollCalculationService
             if ($otremarks === 'OT') {
                 $style = 'color: #8F00FF;';
             }
-            if ($rh > 0) { // rh_auto/rh_auto_nextday come from holiday detection, pass 3
+            if ($rh > 0 || $rh_auto_nextday || $rh_auto) {
                 $style = 'color: orange;';
             }
-            if ($snwh > 0) { // snwh_auto comes from holiday detection, pass 3
+            if ($snwh > 0 || $snwh_auto_nextday || $snwh_auto) {
                 $style = 'color: #f50a50;';
             }
 
@@ -511,22 +812,57 @@ class PayrollCalculationService
             if (($nd > 0 || $work > 0) && $rh == 0 && $snwh == 0 && $leave == 0) {
                 $t['regular_hours'] += $reghrs;
             }
-            $t['totalhours']      += $totalwo;
-            $t['regularhours']    += $reghrs;
-            $t['totalovertime']   += $overtime;
-            $t['totalregdaysot']  += $regdaysot;
-            $t['totalbasesalary'] += $empsalary;
+            $t['totalhours']        += $totalwo;
+            $t['regularhours']      += $reghrs;
+            $t['totalovertime']     += $overtime;
+            $t['totalregdaysot']    += $regdaysot;
+            $t['totalbasesalary']   += $empsalary;
+            $t['totalndhrs']        += $ndhrs;
+            $t['totalndrate']       += $ndrate;
+            $t['totalspholiday']    += $spholiday;
+            $t['totalspholidayot']  += $spholidayot;
+            $t['totalregholidayot'] += $regholidayot;
+            $t['totalregholiday']   += $regholiday;
+            $t['regholidayhrs']     += $regholidayhr;
+            $t['spholidayhrs']      += $spholidayhr;
+            $t['paidSLhrs']         += $paidSLhrs;
+            $t['paidSLamount']      += $paidSLamount;
+            $t['paidVLhrs']         += $paidVLhrs;
+            $t['paidVLamount']      += $paidVLamount;
+            $t['paidptlhrs']        += $paidptlhrs;
+            $t['paidptlamount']     += $paidptlamount;
+            $t['paidsplhrs']        += $paidsplhrs;
+            $t['paidsplamount']     += $paidsplamount;
+            $t['paidBLhrs']         += $paidBLhrs;
+            $t['paidBLamount']      += $paidBLamount;
+            $t['bdayleavehrs']      += $bdayleavehrs;
+            $t['bdayleaveamount']   += $bdayleaveamount;
+            if ($holidaypay > 0) {
+                $t['doubleholidaypay'] = $holidaypay; // legacy assigns (last value), not a running sum
+            }
 
             if ($effectivity !== 'N/A' && $effectivity > $logindate) {
-                $t['reghours_prev']         += $reghrs;
-                $t['reghoursot_prev']       += $overtime;
-                $t['reghoursotamount_prev'] += $regdaysot;
-                $t['totalbasesalary_prev']  += $empsalary;
-                $t['totalpay_prev']         += $totalpay;
+                $t['reghours_prev']           += $reghrs;
+                $t['reghoursot_prev']         += $overtime;
+                $t['reghoursotamount_prev']   += $regdaysot;
+                $t['regholidayhrs_prev']      += $regholidayhr;
+                $t['regholidayamount_prev']   += $regholiday;
+                $t['regholidayotamount_prev'] += $regholidayot;
+                $t['spholidayhrs_prev']       += $spholidayhr;
+                $t['spholidayamount_prev']    += $spholiday;
+                $t['spholidayotamount_prev']  += $spholidayot;
+                $t['ndhrs_prev']              += $ndhrs;
+                $t['ndamount_prev']           += $ndrate;
+                $t['totalbasesalary_prev']    += $empsalary;
+                $t['totalpay_prev']           += $totalpay;
+                $t['paidVLhrs_prev']          += $paidVLhrs;
+                $t['paidVLamount_prev']       += $paidVLamount;
+                $t['bdayleavehrs_prev']       += $bdayleavehrs;
+                $t['bdayleaveamount_prev']    += $bdayleaveamount;
             }
 
             if ($salaryType === 'Rated') {
-                $t['grandtotal'] += $totalpay;
+                $t['grandtotal'] += $totalpay + $holidaypay;
             } elseif ($salaryType === 'Fixed') {
                 $totalDeductions = $t['_ab_total'] + $t['_pto_total'] + $t['_mtl_total'] + $t['_mdl_total'] + $t['_ltl_total'] + $t['_suspended_total'];
                 if ($workdays <= 10) {
@@ -656,7 +992,8 @@ class PayrollCalculationService
     private function computeDailyTotalPay(
         string $salaryType, float $empsalary, float $regdaysot, float $ndrate, float $spholiday,
         float $spholidayot, float $regholiday, float $regholidayot, float $reghoursnwamount,
-        float $obsubsal, float $salary, int $ab, int $pto, int $mtl, int $mdl, int $ltl, int $sus, int $abFlag
+        float $obsubsal, float $salary, int $ab, int $pto, int $mtl, int $mdl, int $ltl, int $sus,
+        int $abFlag, bool $obDeductedFromHoliday
     ): float {
         if ($salaryType === 'Fixed') {
             $totalDeductionsCount = $ab + $pto + $mtl + $mdl + $ltl + $sus;
@@ -670,7 +1007,8 @@ class PayrollCalculationService
 
         // Rated (default)
         $totalpay = $empsalary + $regdaysot + $ndrate + $spholiday + $spholidayot + $regholiday + $regholidayot + $reghoursnwamount;
-        return $totalpay - $obsubsal;
+
+        return $obDeductedFromHoliday ? $totalpay : $totalpay - $obsubsal;
     }
 
     private function hoursWithMidnight($in, $out): float
@@ -758,5 +1096,7 @@ class PayrollCalculationService
             'bdayleavehrs_prev'       => 0,
             'bdayleaveamount_prev'    => 0,
         ];
+        
     }
+    
 }
