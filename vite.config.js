@@ -12,7 +12,9 @@ export default defineConfig({
                     'resources/css/dashboard-d.css',
                     'resources/css/manage-payroll.css',
                     'resources/css/show-payroll.css',
-                    'resources/css/edit-payroll.css'],
+                    'resources/css/edit-payroll.css',
+                    'resources/css/edit-time-payroll.css',
+                    'resources/css/payroll-history.css'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

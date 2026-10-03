@@ -29,12 +29,6 @@ use Illuminate\Support\Facades\DB;
  *   that would have reset holiday vars for Fixed employees never
  *   executes. This port reproduces the actual (always-runs) behavior.
  *
- * - BUG PRESERVED: manual ND overrides (`attendance_nd_override`) change
- *   the number used in pay, but the legacy code unconditionally resets
- *   `$is_manual` to false immediately before rendering the row, so the
- *   "*" indicator that's supposed to flag a manual value never appears.
- *   Ported as-is; `nd_is_manual` will always be false here too.
- *
  * - DEVIATION (flagged, not silently reproduced): in the legacy file,
  *   $spholiday/$regholiday/$reghoursnwamount/$holidaypay/etc. are
  *   initialized once before the attendance loop, not reset each
@@ -42,9 +36,7 @@ use Illuminate\Support\Facades\DB;
  *   branch match could display a stale value left over from an earlier
  *   day that did match. That looks like an unintentional bug rather
  *   than intended carry-forward, so this port resets those to 0 at the
- *   top of every iteration instead of reproducing the leak. If the
- *   legacy output you compare against actually shows that carry-forward
- *   behavior, this is the line that explains the difference.
+ *   top of every iteration instead of reproducing the leak.
  *
  * - `regholidaywork1/regholidayworkamount1/regholidaywork2/regholidayworkamount2`
  *   and `regholidayothrs/regholidayotamount/spholidayhours1/spholidayamount1/
@@ -53,6 +45,13 @@ use Illuminate\Support\Facades\DB;
  *   inside the loop (or only ever hold one iteration's leftover value,
  *   never summed) — they appear to be vestigial/dead fields. Left at 0
  *   here rather than guessing at intended semantics.
+ *
+ * MANUAL OVERRIDES: every day's OT, ND, and pay components can be
+ * manually overridden from one place — the `attendance_pay_override`
+ * table (one row per attendance day, every column nullable). Whichever
+ * fields are set there replace the calculated value for that field;
+ * totalpay is recomputed from the resulting mix unless totalpay itself
+ * was also overridden directly, which wins outright.
  *
  * Two pieces of the legacy file were dropped entirely as genuinely dead
  * code (computed but never read anywhere downstream): the top-level
@@ -96,7 +95,7 @@ class PayrollCalculationService
         $previousSalary    = $employeePayroll->previous_salary ?? 0;
         $effectivityRaw    = $employeePayroll->effective_date ?? null;
 
-       $attendanceStart = $periodStart;
+        $attendanceStart = $periodStart;
 
         if (($employeeDetails->dls ?? 0) == 1) {
             $attendanceStart = date(
@@ -116,17 +115,23 @@ class PayrollCalculationService
         $t = $this->emptyTotals(); // running totals accumulator
 
         foreach ($attendanceRows as $attendance) {
-          $logindate = $attendance->logindate;
-$attendanceDls = $attendance->attendance_dls ?? 0;
+            $logindate = $attendance->logindate;
+            $attendanceDls = $attendance->attendance_dls ?? 0;
 
-$payrollDate = $attendanceDls == 1
-    ? date('Y-m-d', strtotime($logindate . ' +1 day'))
-    : date('Y-m-d', strtotime($logindate));
+            $payrollDate = $attendanceDls == 1
+                ? date('Y-m-d', strtotime($logindate . ' +1 day'))
+                : date('Y-m-d', strtotime($logindate));
 
-if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
-    $payrollDate > date('Y-m-d', strtotime($periodEnd))) {
-    continue;
-}
+            if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
+                $payrollDate > date('Y-m-d', strtotime($periodEnd))) {
+                continue;
+            }
+
+            // One fetch covers every manual override for this day: OT/ND
+            // (applied inline where they're calculated below) and the pay
+            // components (applied together near the end of the loop).
+            $payOverride = $conn->table('attendance_pay_override')->where('attendance_id', $attendance->id)->first();
+
             $dayOfWeek = date('l', strtotime($logindate));
 
             [$startshift, $endshift, $dls] = $this->resolveShiftForDate(
@@ -285,7 +290,7 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
             }
 
             // Status-token flags (parsed once; work/rh/snwh/leave are also
-            // needed by the ND/holiday/leave passes still to come).
+            // needed by the ND/holiday/leave passes).
             $nd = $work = $rh = $snwh = $leave = $ot = $pot = $ab = $sus = 0;
             foreach (explode('/', (string) $status) as $token) {
                 match ($token) {
@@ -326,7 +331,7 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 // Legacy shortcut: a "leave" status day is paid the full
                 // daily rate as-is (unless OT-adjusted above). The
                 // remarks-specific VL/SL/BL/etc. tracking + BL-eligibility
-                // zeroing is pass 4.
+                // zeroing happens in the cascade further down.
                 $ndhrs = 0;
                 $ndrate = 0;
             } else {
@@ -367,42 +372,41 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 $totalwo -= $remainingOb;
 
                 $regdaysot = (($missingsal / 8) * 1.25) * $overtime;
-                    if ($idleHours > 0) {
-                        // Use overtime first to cover idle hours
-                        if ($overtime > 0) {
-                            if ($overtime >= $idleHours) {
-                                // OT is enough to cover all idle hours
-                                $idleHours = 0;
-                            } else {
-                                // OT is not enough to cover all idle hours
-                                $overtime = 0;
-                            }
-                        }
-                        // If there is still idle time after using overtime,
-                        // deduct the remaining idle hours from totalwo
-                        if ($idleHours > 0) {
-                            $totalwo = $totalwo - $idleHours;
-                            $totalwo = round($totalwo, 2);
 
-                            $empsalary = ($empsalary / 8) * $totalwo;
+                if ($idleHours > 0) {
+                    // Use overtime first to cover idle hours
+                    if ($overtime > 0) {
+                        if ($overtime >= $idleHours) {
+                            // OT is enough to cover all idle hours
+                            $idleHours = 0;
+                        } else {
+                            // OT is not enough to cover all idle hours
+                            $overtime = 0;
                         }
                     }
-            } else {
-                  if ($idleHours > 0) {
-                            $totalwo = $totalwo - $idleHours;
-                            $totalwo = round($totalwo, 2);
+                    // If there is still idle time after using overtime,
+                    // deduct the remaining idle hours from totalwo
+                    if ($idleHours > 0) {
+                        $totalwo = $totalwo - $idleHours;
+                        $totalwo = round($totalwo, 2);
 
-                            $empsalary = ($empsalary / 8) * $totalwo;
-                        }
+                        $empsalary = ($empsalary / 8) * $totalwo;
+                    }
+                }
+            } else {
+                if ($idleHours > 0) {
+                    $totalwo = $totalwo - $idleHours;
+                    $totalwo = round($totalwo, 2);
+
+                    $empsalary = ($empsalary / 8) * $totalwo;
+                }
                 $obDeduct = ($obbreak > 1) ? $obbreak - 1 : 0;
                 $totalwo -= $obDeduct;
                 if ($totalwo < 0) {
                     $totalwo = 0;
                 }
                 $obsubsal = ($missingsal / 8) * $obDeduct;
-             
             }
-            
 
             $reghrs = 8;
 
@@ -470,11 +474,15 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 $overtime = ($totalwo <= 8) ? 0 : ($overtimeafter + $overtimebefore);
             }
 
-          
+            // Baseline (pre-override) overtime, in hours — kept so the
+            // override editor can show what the engine would have produced
+            // before any manual OT minutes were added.
+            $autoOvertimeHours = $overtime;
 
-            // Manual OT override (attendance_ot_override), same as legacy.
-            $otOverride = $conn->table('attendance_ot_override')->where('attendance_id', $attendance->id)->value('ot_adjustment');
-            $ot_minutes = $otOverride ?? 0;
+            // Manual OT override: minutes ADDED to the calculated overtime
+            // above (not a replacement), same as legacy — now read from the
+            // unified attendance_pay_override row instead of a separate table.
+            $ot_minutes = ($payOverride && $payOverride->ot_minutes !== null) ? (int) $payOverride->ot_minutes : 0;
             $final_ot = round($overtime + ($ot_minutes / 60), 2);
             $overtime = $final_ot;
 
@@ -506,12 +514,15 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
             }
             $ndhrs = $computed_nd;
 
-            $ndOverride = $conn->table('attendance_nd_override')
-                ->where('attendance_id', $attendance->id)
-                ->orderByDesc('created_at')
-                ->value('manual_nd');
-            if ($ndOverride !== null) {
-                $ndhrs = $ndOverride;
+            // Baseline (pre-override) auto-detected ND hours, for the
+            // override editor's "calculated" reference column.
+            $autoNdHrs = $computed_nd;
+
+            // Manual ND override: REPLACES the auto-detected value (unlike
+            // OT above, which adds to it) — same as legacy, now read from
+            // the unified attendance_pay_override row.
+            if ($payOverride && $payOverride->ndhrs !== null) {
+                $ndhrs = (float) $payOverride->ndhrs;
             }
 
             // ================= PASS 3: HOLIDAY DETECTION =================
@@ -560,16 +571,6 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
             // the live system, not just Rated — the matching "else" that would
             // reset holiday vars for Fixed employees is dead code. Porting the
             // actual (always-runs) behavior, not the apparent intent.
-            //
-            // NOTE: in the legacy file, $spholiday/$regholiday/$reghoursnwamount/
-            // $holidaypay (and a few others) are initialized ONCE before the
-            // attendance loop, not reset each iteration — so a day that doesn't
-            // hit any holiday/leave branch below would, in the legacy system,
-            // display whatever value was left over from a previous day that did.
-            // That looks like an unintentional bug rather than a business rule,
-            // so I reset these to 0 at the top of every iteration here instead
-            // of reproducing the leak. Flagging in case the leak was somehow
-            // relied upon.
             $paidVLhrs = $paidVLamount = 0;
             $paidSLhrs = $paidSLamount = 0;
             $paidBLhrs = $paidBLamount = 0;
@@ -753,11 +754,7 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 ? 0
                 : ($salaryType === 'Fixed' ? ($empsalary * 0.1) : (($missingsal / 8) * $ndhrs * 0.1));
 
-            // Legacy bug, preserved: the manual-ND flag is unconditionally
-            // reset to false right before the row is rendered, so the "*"
-            // indicator never shows even though the overridden value is used.
             $final_nd = $ndhrs;
-            $is_manual_nd = false;
 
             $totalpay = $this->computeDailyTotalPay(
                 $salaryType, $empsalary, $regdaysot, $ndrate, $spholiday, $spholidayot,
@@ -765,6 +762,72 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 $ab_count, $pto_count, $mtl_count, $mdl_count, $ltl_count, $suspended_count,
                 $ab, $obDeductedFromHoliday
             );
+
+            // Snapshot of every pay-component field BEFORE the override
+            // block below touches them, so the override editor can show a
+            // true "calculated" baseline even on a day that already has an
+            // override applied.
+            $calculated = [
+                'totalwo'      => $totalwo,
+                'reghrs'       => $reghrs,
+                'ratday'       => number_format($empsalary, 2),
+                'regdaysot'    => number_format($regdaysot, 2),
+                'ndrate'       => number_format($ndrate, 2),
+                'spholiday'    => number_format($spholiday, 2),
+                'spholidayot'  => number_format($spholidayot, 2),
+                'regholidayot' => number_format($regholidayot, 2),
+                'regholiday'   => number_format($regholiday, 2),
+                'totalpay'     => number_format($totalpay, 2),
+                'ot_minutes'   => round($autoOvertimeHours * 60),
+                'ndhrs'        => $autoNdHrs,
+            ];
+
+            // ================= MANUAL PER-DAY OVERRIDE (pay components) =================
+            // OT and ND were already applied above (inline, where they're
+            // calculated); this applies the rest. Only fields someone
+            // actually edited are non-null here. If any underlying figure
+            // changed, totalpay is recomputed from the resulting mix —
+            // unless totalpay itself was overridden directly, which wins.
+            $isOverridden = false;
+
+            if ($payOverride) {
+                $applyIfSet = function ($value, &$target) use (&$isOverridden) {
+                    if ($value !== null) {
+                        $target = (float) $value;
+                        $isOverridden = true;
+                    }
+                };
+
+                $applyIfSet($payOverride->totalwo, $totalwo);
+                $applyIfSet($payOverride->reghrs, $reghrs);
+                $applyIfSet($payOverride->ratday, $empsalary);
+                $applyIfSet($payOverride->regdaysot, $regdaysot);
+                $applyIfSet($payOverride->ndrate, $ndrate);
+                $applyIfSet($payOverride->spholiday, $spholiday);
+                $applyIfSet($payOverride->spholidayot, $spholidayot);
+                $applyIfSet($payOverride->regholidayot, $regholidayot);
+                $applyIfSet($payOverride->regholiday, $regholiday);
+
+                if ($isOverridden) {
+                    $totalpay = $this->computeDailyTotalPay(
+                        $salaryType, $empsalary, $regdaysot, $ndrate, $spholiday, $spholidayot,
+                        $regholiday, $regholidayot, $reghoursnwamount, $obsubsal, $salary,
+                        $ab_count, $pto_count, $mtl_count, $mdl_count, $ltl_count, $suspended_count,
+                        $ab, $obDeductedFromHoliday
+                    );
+                }
+
+                if ($payOverride->totalpay !== null) {
+                    $totalpay = (float) $payOverride->totalpay;
+                    $isOverridden = true;
+                }
+
+                // OT/ND also count as "overridden" for the row's indicator,
+                // even though they were already applied earlier above.
+                if ($payOverride->ot_minutes !== null || $payOverride->ndhrs !== null) {
+                    $isOverridden = true;
+                }
+            }
 
             // Row coloring, same precedence order as legacy.
             $style = '';
@@ -793,10 +856,8 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 'totalwo'      => $totalwo,
                 'reghrs'       => $reghrs,
                 'ot'           => number_format($final_ot, 2),
-                'ot_attendance_id' => $attendance->id,
                 'ot_minutes'   => $ot_minutes,
                 'nd'           => $final_nd,
-                'nd_is_manual' => $is_manual_nd,
                 'ratday'       => number_format($empsalary, 2),
                 'regdaysot'    => number_format($regdaysot, 2),
                 'ndrate'       => number_format($ndrate, 2),
@@ -807,6 +868,8 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
                 'totalpay'     => number_format($totalpay, 2),
                 'style'        => $style,
                 'attendance_id'=> $attendance->id,
+                'is_overridden'=> $isOverridden,
+                'calculated'   => $calculated,
             ];
 
             if (($nd > 0 || $work > 0) && $rh == 0 && $snwh == 0 && $leave == 0) {
@@ -1025,8 +1088,7 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
 
     /**
      * Every field the legacy page's hidden inputs (and payroll_details
-     * columns) expect. Fields owned by passes 2-4 (ND/holiday/leave) stay
-     * at 0 until those are ported.
+     * columns) expect.
      */
     public function emptyTotals(): array
     {
@@ -1096,7 +1158,5 @@ if ($payrollDate < date('Y-m-d', strtotime($periodStart)) ||
             'bdayleavehrs_prev'       => 0,
             'bdayleaveamount_prev'    => 0,
         ];
-        
     }
-    
 }

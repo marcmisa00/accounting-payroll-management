@@ -13,6 +13,16 @@ class EditPayrollController extends Controller
 {
     private const HRIS_CONNECTION = 'hris';
 
+    /**
+     * Every field attendance_pay_override can hold, in the order they're
+     * shown on the override editor. OT and ND live here too now — the same
+     * table and the same page handle every manual adjustment for a day.
+     */
+    private const OVERRIDE_FIELDS = [
+        'ot_minutes', 'ndhrs', 'totalwo', 'reghrs', 'ratday', 'regdaysot',
+        'ndrate', 'spholiday', 'spholidayot', 'regholidayot', 'regholiday', 'totalpay',
+    ];
+
     public function __construct(private readonly PayrollCalculationService $calculator)
     {
     }
@@ -153,6 +163,9 @@ class EditPayrollController extends Controller
             'amount'       => $validated['amount'],
         ]);
 
+        $description = $conn->table('deductions')->where('id', $validated['deduction_id'])->value('deduction') ?? 'Deduction';
+        $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'constant', 'INSERT', $description, 0, $validated['amount'], $request);
+
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant deduction added successfully!');
     }
 
@@ -203,11 +216,20 @@ class EditPayrollController extends Controller
      */
     public function destroyConstantDeduction(Request $request, Payroll $payroll, string $idno, int $employeeDeduction): RedirectResponse
     {
-        DB::connection(self::HRIS_CONNECTION)
-            ->table('employee_deductions')
-            ->where('id', $employeeDeduction)
-            ->where('idno', $idno)
-            ->delete();
+        $conn = DB::connection(self::HRIS_CONNECTION);
+
+        $old = $conn->table('employee_deductions as ed')
+            ->join('deductions as d', 'ed.deduction_id', '=', 'd.id')
+            ->where('ed.id', $employeeDeduction)
+            ->where('ed.idno', $idno)
+            ->select('ed.amount', 'd.deduction as description')
+            ->first();
+
+        $conn->table('employee_deductions')->where('id', $employeeDeduction)->where('idno', $idno)->delete();
+
+        if ($old) {
+            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'constant', 'DELETE', $old->description, $old->amount, 0, $request);
+        }
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant deduction removed successfully!');
     }
@@ -218,11 +240,15 @@ class EditPayrollController extends Controller
      */
     public function destroyDeduction(Request $request, Payroll $payroll, string $idno, int $payrollDeduction): RedirectResponse
     {
-        DB::connection(self::HRIS_CONNECTION)
-            ->table('payroll_deductions')
-            ->where('id', $payrollDeduction)
-            ->where('idno', $idno)
-            ->delete();
+        $conn = DB::connection(self::HRIS_CONNECTION);
+
+        $old = $conn->table('payroll_deductions')->where('id', $payrollDeduction)->where('idno', $idno)->first();
+
+        $conn->table('payroll_deductions')->where('id', $payrollDeduction)->where('idno', $idno)->delete();
+
+        if ($old) {
+            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'DELETE', $old->description, $old->amount, 0, $request);
+        }
 
         return $this->backToEdit($request, $payroll, $idno);
     }
@@ -262,6 +288,7 @@ class EditPayrollController extends Controller
                 'description'   => $const->description,
                 'amount'        => $const->amount,
             ]);
+            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
             $inserted++;
         }
 
@@ -329,6 +356,9 @@ class EditPayrollController extends Controller
             'amount'   => $validated['amount'],
         ]);
 
+        $description = $conn->table('addons')->where('id', $validated['addon_id'])->value('addons') ?? 'Addon';
+        $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'INSERT', $description, 0, $validated['amount'], $request);
+
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant addon added successfully!');
     }
 
@@ -371,11 +401,20 @@ class EditPayrollController extends Controller
 
     public function destroyConstantAddon(Request $request, Payroll $payroll, string $idno, int $employeeAddon): RedirectResponse
     {
-        DB::connection(self::HRIS_CONNECTION)
-            ->table('employee_addons')
-            ->where('id', $employeeAddon)
-            ->where('idno', $idno)
-            ->delete();
+        $conn = DB::connection(self::HRIS_CONNECTION);
+
+        $old = $conn->table('employee_addons as ea')
+            ->join('addons as a', 'ea.addon_id', '=', 'a.id')
+            ->where('ea.id', $employeeAddon)
+            ->where('ea.idno', $idno)
+            ->select('ea.amount', 'a.addons as description')
+            ->first();
+
+        $conn->table('employee_addons')->where('id', $employeeAddon)->where('idno', $idno)->delete();
+
+        if ($old) {
+            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'DELETE', $old->description, $old->amount, 0, $request);
+        }
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant addon removed successfully!');
     }
@@ -428,6 +467,7 @@ class EditPayrollController extends Controller
                 'description'   => $const->description,
                 'amount'        => $const->amount,
             ]);
+            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
             $inserted++;
         }
 
@@ -450,34 +490,369 @@ class EditPayrollController extends Controller
     }
 
     /**
-     * Save a manual OT override (in minutes) for one attendance row.
-     * (was: update_ot.php)
+     * Show the manual-override editor for one attendance day: every field
+     * the calculation engine produced for that day, editable, defaulting
+     * to the calculated value. Only fields actually changed get stored.
      */
-    public function updateOtOverride(Request $request, Payroll $payroll, string $idno, int $attendance): \Illuminate\Http\JsonResponse
+    public function editTime(Request $request,Payroll $payroll, string $idno, int $attendance): View 
     {
-        $validated = $request->validate([
-            'ot_minutes' => ['required', 'integer'],
-        ]);
+        
+        [$company, $deptId] = $this->context($request);
 
         $conn = DB::connection(self::HRIS_CONNECTION);
 
-        $conn->table('attendance_ot_override')->updateOrInsert(
-            ['attendance_id' => $attendance],
-            ['ot_adjustment' => $validated['ot_minutes']]
+        $employeeDetails = $conn->table('employee_details')
+            ->where('idno', $idno)
+            ->first();
+
+        abort_unless($employeeDetails, 404);
+
+        $employeePayroll = $conn->table('employee_payroll')
+            ->where('idno', $idno)
+            ->first();
+
+        $salaryType = $employeePayroll->salary_type ?? 'Rated';
+
+        $designation = $employeeDetails->designation ?? 0;
+        $department  = $employeeDetails->department ?? 0;
+
+        $blockOtBefore =
+            ($designation == 71) ||
+            ($designation == 46 && $department == 1);
+
+        $blEligible = $this->isBereavementLeaveEligible(
+            $employeeDetails->dateofhired ?? null,
+            $payroll->periodto
         );
 
-        return response()->json(['ok' => true]);
+        $calculation = $this->calculator->calculate(
+            $idno,
+            $payroll->id,
+            (string) $payroll->periodfrom,
+            (string) $payroll->periodto,
+            $company,
+            $salaryType,
+            (int) $payroll->days,
+            $blockOtBefore,
+            $blEligible
+        );
+
+        $row = collect($calculation['rows'])
+            ->firstWhere('attendance_id', $attendance);
+
+        abort_unless(
+            $row,
+            404,
+            'That attendance day was not found in this payroll period.'
+        );
+
+        /*
+        * Actual attendance record.
+        *
+        * Idle belongs to this table.
+        */
+        $attendanceRecord = $conn->table('attendance')
+            ->where('id', $attendance)
+            ->first();
+
+        abort_unless($attendanceRecord, 404);
+
+        /*
+        * Manual payroll overrides.
+        *
+        * OT minutes, ND, totalwo, etc. belong here.
+        */
+        $override = $conn->table('attendance_pay_override')
+            ->where('attendance_id', $attendance)
+            ->first();
+
+        return view('payroll.edit-time', [
+            'payroll'          => $payroll,
+            'idno'             => $idno,
+            'company'          => $company,
+            'deptId'           => $deptId,
+            'attendance'       => $attendance,
+            'row'              => $row,
+            'calculated'       => $row['calculated'],
+            'override'         => $override,
+
+            // Actual attendance values
+            'attendanceRecord' => $attendanceRecord,
+            'idle'             => $attendanceRecord->idle,
+            'otTime'           => $attendanceRecord->ottime ?? 0,
+        ]);
+    }
+    public function updateTimeOverride(Request $request, Payroll $payroll, string $idno,int $attendance): RedirectResponse 
+    {
+        
+            $validated = $request->validate(
+                collect(self::OVERRIDE_FIELDS)
+                    ->mapWithKeys(fn ($f) => [
+                        $f => ['nullable', 'numeric']
+                    ])
+                    ->all()
+                + [
+                    'idle' => ['nullable', 'numeric'],
+                ]
+            );
+
+            $conn = DB::connection(self::HRIS_CONNECTION);
+
+            /*
+            * ============================================================
+            * 1. HANDLE IDLE
+            * ============================================================
+            *
+            * Idle belongs directly to attendance.idle.
+            */
+            $attendanceRecord = $conn->table('attendance')
+                ->where('id', $attendance)
+                ->first();
+
+            abort_unless($attendanceRecord, 404);
+
+            $oldIdle = $attendanceRecord->idle;
+            $newIdle = $validated['idle'] ?? null;
+
+            /*
+            * Only write/log when the value actually changed.
+            */
+            if ((string) $oldIdle !== (string) $newIdle) {
+
+                $logindate = $attendanceRecord->logindate;
+
+                $this->logAdjustment(
+                    $conn,
+                    $idno,
+                    $payroll->id,
+                    'payroll',
+                    'attendance',
+                    $oldIdle === null
+                        ? 'INSERT'
+                        : ($newIdle === null ? 'DELETE' : 'UPDATE'),
+                    'day ' . date('M d, Y', strtotime($logindate)) . ' — Idle',
+                    $oldIdle,
+                    $newIdle,
+                    $request
+                );
+
+                $conn->table('attendance')
+                    ->where('id', $attendance)
+                    ->update([
+                        'idle' => $newIdle,
+                    ]);
+            }
+
+            /*
+            * ============================================================
+            * 2. HANDLE EXISTING PAYROLL OVERRIDES
+            * ============================================================
+            */
+            $existing = $conn->table('attendance_pay_override')
+                ->where('attendance_id', $attendance)
+                ->first();
+
+            $newValues = collect(self::OVERRIDE_FIELDS)
+                ->mapWithKeys(fn ($f) => [
+                    $f => $validated[$f] ?? null
+                ])
+                ->all();
+
+            foreach (self::OVERRIDE_FIELDS as $field) {
+
+                $old = $existing->{$field} ?? null;
+                $new = $newValues[$field];
+
+                if ((string) $old !== (string) $new) {
+
+                    $this->logAdjustment(
+                        $conn,
+                        $idno,
+                        $payroll->id,
+                        'payroll',
+                        'attendance_override',
+                        $old === null
+                            ? 'INSERT'
+                            : ($new === null ? 'DELETE' : 'UPDATE'),
+                        'day ' .
+                            date(
+                                'M d, Y',
+                                strtotime($attendanceRecord->logindate)
+                            ) .
+                            " — {$field}",
+                        $old,
+                        $new,
+                        $request
+                    );
+                }
+            }
+
+            /*
+            * Save the payroll override values.
+            */
+            $conn->table('attendance_pay_override')->updateOrInsert(
+                ['attendance_id' => $attendance],
+                $newValues + [
+                    'updated_by' => $request->user()?->name
+                        ?? auth()->user()?->name,
+                    'updated_at' => now(),
+                ]
+            );
+
+            return $this->backToEdit(
+                $request,
+                $payroll,
+                $idno
+            )->with(
+                'success',
+                'Edit Time changes saved successfully.'
+            );
     }
 
     /**
-     * Persist the computed totals for this employee/period.
-     * (was: submitPayroll)
-     *
-     * NOTE: until PayrollCalculationService is fully ported, the values
-     * saved here are whatever the form submitted (currently the
-     * already-stored totals, since the calculation loop isn't wired up
-     * yet) rather than a freshly computed result.
+     * Drop the override row entirely, reverting the day to fully
+     * calculated — logging a DELETE for every field that had a value.
      */
+    public function clearTimeOverride(Request $request, Payroll $payroll, string $idno, int $attendance): RedirectResponse
+    {
+        $conn = DB::connection(self::HRIS_CONNECTION);
+        $existing = $conn->table('attendance_pay_override')->where('attendance_id', $attendance)->first();
+
+        if ($existing) {
+            $logindate = $conn->table('attendance')->where('id', $attendance)->value('logindate');
+
+            foreach (self::OVERRIDE_FIELDS as $field) {
+                if ($existing->{$field} !== null) {
+                    $this->logAdjustment(
+                        $conn, $idno, $payroll->id, 'payroll', 'attendance_override', 'DELETE',
+                        "day " . date('M d, Y', strtotime($logindate)) . " — {$field}",
+                        $existing->{$field}, null, $request
+                    );
+                }
+            }
+
+            $conn->table('attendance_pay_override')->where('attendance_id', $attendance)->delete();
+        }
+
+        return $this->backToEdit($request, $payroll, $idno)->with('success', 'Override cleared — that day is back to the calculated values.');
+    }
+
+    /**
+     * The audit trail of every payroll override, deduction, and addon
+     * change for this employee's period — no approval workflow, just a
+     * visible history of who changed what and when.
+     */
+    public function historyIndex(Request $request): View
+    {
+        [$company, $deptId] = $this->context($request);
+
+        $payrolls = Payroll::query()
+            ->orderByDesc('periodfrom')
+            ->get();
+
+        return view('payroll.history-index', [
+            'payrolls' => $payrolls,
+            'company'  => $company,
+            'deptId'   => $deptId,
+        ]);
+    }
+    public function history(Request $request, Payroll $payroll): View
+    {
+            [$company, $deptId] = $this->context($request);
+
+            $employees = DB::connection(self::HRIS_CONNECTION)
+                ->table('payroll_adjustment_history as h')
+                ->leftJoin(
+                    'employee_profile as ep',
+                    'ep.idno',
+                    '=',
+                    'h.idno'
+                )
+                ->where('h.payrollperiod', (string) $payroll->id)
+                ->select(
+                    'h.idno',
+                    'ep.firstname',
+                    'ep.middlename',
+                    'ep.lastname'
+                )
+                ->distinct()
+                ->orderBy('ep.lastname')
+                ->orderBy('ep.firstname')
+                ->get();
+
+            $employee = $request->input('employee');
+            $type     = $request->input('type');
+            $action   = $request->input('action');
+
+            $hasFilter = !empty($employee)
+                || !empty($type)
+                || !empty($action);
+
+            $entries = collect();
+
+            if ($hasFilter) {
+                $query = DB::connection(self::HRIS_CONNECTION)
+                    ->table('payroll_adjustment_history as h')
+
+
+                    ->leftJoin(
+                        'employee_profile as ep',
+                        'ep.idno',
+                        '=',
+                        'h.idno'
+                    )
+                    ->leftJoin(
+                        'employee_profile as cb',
+                        'cb.idno',
+                        '=',
+                        'h.changed_by'
+                    )
+                    ->where(
+                        'h.payrollperiod',
+                        (string) $payroll->id
+                    )
+                    ->select(
+                        'h.*',
+                        'ep.firstname',
+                        'ep.middlename',
+                        'ep.lastname',
+                        'cb.firstname as changed_by_firstname',
+                        'cb.middlename as changed_by_middlename',
+                        'cb.lastname as changed_by_lastname'
+                    );
+
+               if (!empty($employee)) {
+                    $query->where(function ($q) use ($employee) {
+                        $q->where('h.idno', 'like', "%{$employee}%")
+                        ->orWhere('ep.firstname', 'like', "%{$employee}%")
+                        ->orWhere('ep.middlename', 'like', "%{$employee}%")
+                        ->orWhere('ep.lastname', 'like', "%{$employee}%");
+                    });
+                }
+                if (!empty($type)) {
+                    $query->where('h.type', $type);
+                }
+                if (!empty($action)) {
+                    $query->where('h.action', $action);
+                }
+                $entries = $query
+                    ->orderByDesc('h.changed_at')
+                    ->orderByDesc('h.id')
+                    ->get();
+            }
+            return view('payroll.history', [
+                'payroll'   => $payroll,
+                'company'   => $company,
+                'deptId'    => $deptId,
+                'employee'  => $employee,
+                'type'      => $type,
+                'action'    => $action,
+                'hasFilter' => $hasFilter,
+                'entries'   => $entries,
+            ]);
+    }
+
+
     public function save(Request $request, Payroll $payroll, string $idno): RedirectResponse
     {
         $validated = $request->validate([

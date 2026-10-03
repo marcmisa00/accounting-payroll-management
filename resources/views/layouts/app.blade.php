@@ -465,11 +465,14 @@
             Reports
         </a>
 
-        <a href="#">
+        <a href="{{ route('payroll.history.index') }}"
+            class="{{ request()->routeIs('payroll.history*') ? 'active' : '' }}">
+
             <span class="icon">
-                <i class="fa-solid fa-gear"></i>
+                <i class="fa-solid fa-clock-rotate-left"></i>
             </span>
-            Settings
+
+            History
         </a>
 
     </nav>
