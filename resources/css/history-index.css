@@ -1,0 +1,386 @@
+
+/* =========================================================
+   PAYROLL HISTORY - SELECTION PAGE
+   ========================================================= */
+
+/* ---------- Page layout ---------- */
+
+.centered-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 20px;
+    min-height: 60vh;
+}
+
+
+/* ---------- Card / Panel ---------- */
+
+.content-panel {
+    width: 100%;
+    max-width: 600px;
+
+    background: var(--panel-bg);
+    border-radius: 14px;
+    box-shadow: var(--panel-shadow);
+
+    overflow: hidden;
+
+    transition:
+        background 0.2s,
+        box-shadow 0.2s;
+}
+
+
+/* ---------- Panel heading ---------- */
+
+.panel-heading {
+    background: var(--panel-heading-bg);
+    color: #fff;
+
+    padding: 20px 24px;
+
+    transition: background 0.2s;
+}
+
+.panel-heading h4 {
+    margin: 0;
+
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.panel-heading p {
+    margin: 6px 0 0;
+
+    font-size: 12px;
+    line-height: 1.5;
+
+    color: rgba(255, 255, 255, 0.75);
+}
+
+
+/* ---------- Panel body ---------- */
+
+.panel-body {
+    padding: 28px 24px;
+}
+
+
+/* =========================================================
+   PAYROLL PERIOD SELECTION
+   ========================================================= */
+
+.history-selection {
+    width: 100%;
+}
+
+.history-selection label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: var(--label-color);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+/* ---------- Select wrapper ---------- */
+
+.history-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+
+/* ---------- Select ---------- */
+
+.history-selection select {
+    display: block;
+
+    width: 100%;
+    height: 44px;
+
+    padding: 0 42px 0 14px;
+
+    color: var(--input-text);
+    background: var(--input-bg);
+
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 14px;
+
+    outline: none;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s,
+        border-color 0.2s,
+        color 0.2s,
+        box-shadow 0.2s;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+
+/* ---------- Select hover ---------- */
+
+.history-selection select:hover {
+    border-color: #9aa8b5;
+}
+
+
+/* ---------- Select focus ---------- */
+
+.history-selection select:focus {
+    border-color: #4b79a1;
+
+    box-shadow:
+        0 0 0 3px rgba(75, 121, 161, 0.15);
+}
+
+
+/* ---------- Select options ---------- */
+
+.history-selection select option {
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+
+/* =========================================================
+   DROPDOWN ARROW
+   ========================================================= */
+
+.history-select-wrapper::after {
+    content: "\f078";
+
+    position: absolute;
+
+    top: 50%;
+    right: 15px;
+
+    transform: translateY(-50%);
+
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+
+    font-size: 11px;
+
+    color: var(--dropdown-icon-color);
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   ACTION BUTTON
+   ========================================================= */
+
+.history-selection-actions {
+    display: flex;
+    justify-content: center;
+
+    margin-top: 24px;
+}
+
+
+/* ---------- View History button ---------- */
+
+.history-view-button {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    width: 220px;
+    height: 42px;
+
+    border: none;
+    border-radius: 21px;
+
+    background: #2f8f83;
+    color: #fff;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s,
+        transform 0.05s,
+        box-shadow 0.2s;
+}
+
+
+/* ---------- Button hover ---------- */
+
+.history-view-button:hover {
+    background: #277a70;
+
+    box-shadow:
+        0 4px 12px rgba(47, 143, 131, 0.3);
+}
+
+
+/* ---------- Button active ---------- */
+
+.history-view-button:active {
+    transform: translateY(1px);
+
+    box-shadow: none;
+}
+
+
+/* ---------- Button focus ---------- */
+
+.history-view-button:focus-visible {
+    outline: 2px solid #4b79a1;
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.history-empty {
+    display: flex;
+
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px 20px;
+
+    text-align: center;
+
+    color: var(--label-color);
+}
+
+.history-empty i {
+    margin-bottom: 10px;
+
+    font-size: 28px;
+
+    color: var(--dropdown-icon-color);
+}
+
+.history-empty p {
+    margin: 0;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   VALIDATION ERROR
+   ========================================================= */
+
+.history-selection select.is-invalid {
+    border-color: #dc3545;
+}
+
+.invalid-feedback {
+    display: block;
+
+    margin-top: 5px;
+
+    color: var(--error-color);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   LIGHT MODE
+   ========================================================= */
+
+:root {
+    --panel-bg: #ffffff;
+
+    --panel-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.06);
+
+    --panel-heading-bg: #283e51;
+
+    --label-color: #555;
+
+    --input-bg: #ffffff;
+
+    --input-border: #d9dee5;
+
+    --input-text: #222;
+
+    --dropdown-icon-color: #4b79a1;
+
+    --error-color: #dc3545;
+}
+
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+.dark-mode {
+    --panel-bg: #1e2a36;
+
+    --panel-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.35);
+
+    --panel-heading-bg: #1a2530;
+
+    --label-color: #a0b0c0;
+
+    --input-bg: #12181f;
+
+    --input-border: #3a4a5a;
+
+    --input-text: #e8edf2;
+
+    --dropdown-icon-color: #8ab4f0;
+
+    --error-color: #f0788a;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .centered-container {
+        padding: 20px 12px;
+    }
+
+    .content-panel {
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    .panel-heading {
+        padding: 18px 18px;
+    }
+
+    .panel-body {
+        padding: 22px 18px;
+    }
+
+    .history-view-button {
+        width: 100%;
+    }
+}
+

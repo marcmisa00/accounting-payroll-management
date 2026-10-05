@@ -16,7 +16,12 @@
         'dept'    => $deptId
     ]);
 
+    // OT and ND live in the same override table/page as everything else now
+    // — no separate mechanism. OT adds minutes to the calculated overtime;
+    // ND replaces the auto-detected hours outright.
     $fields = [
+        ['ot_minutes',   'OT Override (minutes)',       'Minutes added to the calculated overtime for this day'],
+        ['ndhrs',        'ND Override (hours)',         'Replaces the auto-detected night differential hours for this day'],
         ['totalwo',      'Total Hrs',                    null],
         ['reghrs',       'Reg Hrs',                      null],
         ['ratday',       'Rate/Day',                     'Base pay for this day'],
@@ -35,8 +40,22 @@
      * idle  = editable
      * ottime = display only
      */
-    $idleValue = $attendanceRecord->idle ?? 0;
-    $otTime    = $attendanceRecord->ottime ?? 0;
+    $idleRaw = $attendanceRecord->idle ?? null;
+    $otTime  = $attendanceRecord->ottime ?? 0;
+
+    $idleValue = 0;
+
+    if ($idleRaw) {
+        [$hours, $minutes, $seconds] = array_map(
+            'intval',
+            explode(':', $idleRaw)
+        );
+
+        $idleValue =
+            $hours +
+            ($minutes / 60) +
+            ($seconds / 3600);
+    }
 @endphp
 
 <div class="page-header-row">
@@ -69,15 +88,15 @@
                     <thead>
                         <tr>
                             <th>Field</th>
-                            <th>Value</th>
+                            <th>Calculated</th>
                         </tr>
                     </thead>
 
                     <tbody>
 
-                        {{-- OT TIME --}}
+                        {{-- OT TIME (raw attendance.ottime — not the same as the OT override above) --}}
                         <tr>
-                            <td>OT Time</td>
+                            <td>OT Time (attendance record)</td>
                             <td>
                                 {{ number_format((float) $otTime, 2) }}
                             </td>
@@ -94,7 +113,7 @@
                         @foreach ($fields as [$key, $label, $help])
                             <tr>
                                 <td>{{ $label }}</td>
-                                <td>{{ $row[$key] ?? '-' }}</td>
+                                <td>{{ $calculated[$key] ?? '-' }}</td>
                             </tr>
                         @endforeach
 
@@ -119,11 +138,11 @@
                         {{-- OT TIME - READ ONLY --}}
                         <div class="form-group">
                             <label class="control-label">
-                                OT Time
+                                OT Time (attendance record)
                             </label>
 
                             <small class="help-text">
-                                This value cannot be edited here.
+                                This value cannot be edited here. Use "OT Override (minutes)" below to adjust overtime.
                             </small>
 
                             <input
@@ -157,7 +176,7 @@
                         </div>
 
 
-                        {{-- EXISTING PAYROLL OVERRIDES --}}
+                        {{-- OT / ND + EXISTING PAYROLL OVERRIDES — ONE UNIFIED LIST --}}
                         @foreach ($fields as [$key, $label, $help])
 
                             <div class="form-group {{ $help ? 'full-width' : '' }}">
@@ -177,7 +196,7 @@
                                     step="0.01"
                                     name="{{ $key }}"
                                     class="form-control"
-                                    placeholder="Calculated: {{ $row[$key] ?? '-' }}"
+                                    placeholder="Calculated: {{ $calculated[$key] ?? '-' }}"
                                     value="{{ old($key, $override->{$key} ?? '') }}"
                                 >
 
@@ -219,7 +238,7 @@
                               'company'    => $company,
                               'dept'       => $deptId
                           ]) }}"
-                          onsubmit="return confirm('Clear every payroll override on this day and go back to fully calculated values?')">
+                          onsubmit="return confirm('Clear every payroll override on this day (including OT and ND) and go back to fully calculated values?')">
 
                         @csrf
                         @method('DELETE')

@@ -2,7 +2,7 @@
 
 @section('content')
 
-@vite(['resources/css/payroll-history.css'])
+@vite(['resources/css/history-index.css'])
 
 <div class="page-header-row">
     <span class="title">
@@ -13,75 +13,78 @@
 
 <div class="centered-container">
 
-    <div class="content-panel">
+<div class="content-panel">
 
-        <div class="panel-heading">
-            <h4>Select Payroll Period</h4>
+    <div class="panel-heading">
+        <h4>Select Payroll Period</h4>
 
-            <p>
-                Select a payroll period to view all Add-on, Deduction,
-                and Edit Time changes made during that payroll.
-            </p>
-        </div>
+        <p>
+            Select a payroll period to view all Add-on, Deduction,
+            and Edit Time changes made during that payroll.
+        </p>
+    </div>
 
-        <div class="panel-body">
+    <div class="panel-body">
 
-            @if ($payrolls->isEmpty())
+        @if ($payrolls->isEmpty())
 
-                <div class="history-empty">
-                    <i class="fa-solid fa-circle-info"></i>
+            <div class="history-empty">
+                <i class="fa-solid fa-circle-info"></i>
 
-                    <p>
-                        No payroll periods found.
-                    </p>
-                </div>
+                <p>
+                    No payroll periods found.
+                </p>
+            </div>
 
-            @else
+        @else
 
-                <div class="history-payroll-list">
+            <form method="POST" action="{{ route('payroll.history.select') }}">
 
-                    @foreach ($payrolls as $payroll)
+                @csrf
 
-                        <a href="{{ route('payroll.history', [
-                            'payroll' => $payroll->id,
-                            'company' => $company,
-                            'dept'    => $deptId,
-                        ]) }}"
-                           class="history-payroll-item">
+                <div class="history-selection">
 
-                            <div class="history-payroll-icon">
-                                <i class="fa-solid fa-calendar-days"></i>
-                            </div>
+                    <label for="period">
+                        Payroll Period
+                    </label>
 
-                            <div class="history-payroll-info">
+                    <div class="history-select-wrapper">
+                        <select name="period" id="period" required>
+                            <option value="">
+                                -- Select Payroll Period --
+                            </option>
 
-                                <strong>
+                            @foreach ($payrolls as $payroll)
+                                <option value="{{ $payroll->id }}">
                                     Payroll #{{ $payroll->id }}
-                                </strong>
-
-                                <span>
+                                    —
                                     {{ date('M d, Y', strtotime($payroll->periodfrom)) }}
                                     -
                                     {{ date('M d, Y', strtotime($payroll->periodto)) }}
-                                </span>
-
-                            </div>
-
-                            <div class="history-payroll-arrow">
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </div>
-
-                        </a>
-
-                    @endforeach
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
                 </div>
 
-            @endif
+                <div class="history-selection-actions">
 
-        </div>
+                    <button type="submit" class="history-view-button">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        View History
+                    </button>
+
+                </div>
+
+            </form>
+
+        @endif
 
     </div>
+
+</div>
+
 
 </div>
 

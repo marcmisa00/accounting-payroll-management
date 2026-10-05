@@ -612,7 +612,9 @@ class EditPayrollController extends Controller
             abort_unless($attendanceRecord, 404);
 
             $oldIdle = $attendanceRecord->idle;
-            $newIdle = $validated['idle'] ?? null;
+            $newIdleDecimal = $validated['idle'] ?? null;
+
+            $newIdle = $this->decimalToTime($newIdleDecimal);
 
             /*
             * Only write/log when the value actually changed.
@@ -631,8 +633,8 @@ class EditPayrollController extends Controller
                         ? 'INSERT'
                         : ($newIdle === null ? 'DELETE' : 'UPDATE'),
                     'day ' . date('M d, Y', strtotime($logindate)) . ' — Idle',
-                    $oldIdle,
-                    $newIdle,
+                    $this->timeToDecimal($oldIdle),
+                    $this->timeToDecimal($newIdle),
                     $request
                 );
 
@@ -690,14 +692,18 @@ class EditPayrollController extends Controller
             /*
             * Save the payroll override values.
             */
-            $conn->table('attendance_pay_override')->updateOrInsert(
-                ['attendance_id' => $attendance],
-                $newValues + [
-                    'updated_by' => $request->user()?->name
-                        ?? auth()->user()?->name,
-                    'updated_at' => now(),
-                ]
-            );
+            $updatedBy = session('portal_idno')
+            ?? session('accounting_idno')
+            ?? $request->user()?->idno
+            ?? $request->user()?->id;
+
+        $conn->table('attendance_pay_override')->updateOrInsert(
+            ['attendance_id' => $attendance],
+            $newValues + [
+                'updated_by' => $updatedBy,
+                'updated_at' => now(),
+            ]
+        );
 
             return $this->backToEdit(
                 $request,
@@ -708,7 +714,52 @@ class EditPayrollController extends Controller
                 'Edit Time changes saved successfully.'
             );
     }
+    private function decimalToTime($hours): ?string
+    {
+        if ($hours === null || $hours === '') {
+            return null;
+        }
 
+        $hours = (float) $hours;
+
+        if ($hours < 0) {
+            $hours = 0;
+        }
+
+        $totalSeconds = (int) round($hours * 3600);
+
+        $h = intdiv($totalSeconds, 3600);
+        $m = intdiv($totalSeconds % 3600, 60);
+        $s = $totalSeconds % 60;
+
+        return sprintf('%02d:%02d:%02d', $h, $m, $s);
+    }
+
+    private function timeToDecimal($time): ?float
+    {
+        if ($time === null || $time === '') {
+            return null;
+        }
+
+        if (is_numeric($time)) {
+            return (float) $time;
+        }
+
+        $parts = explode(':', (string) $time);
+
+        if (count($parts) !== 3) {
+            return null;
+        }
+
+        [$hours, $minutes, $seconds] = array_map('intval', $parts);
+
+        return round(
+            $hours +
+            ($minutes / 60) +
+            ($seconds / 3600),
+            2
+        );
+    }
     /**
      * Drop the override row entirely, reverting the day to fully
      * calculated — logging a DELETE for every field that had a value.
@@ -756,6 +807,16 @@ class EditPayrollController extends Controller
             'deptId'   => $deptId,
         ]);
     }
+    public function historySelect(Request $request)
+        {
+            $request->validate([
+                'period' => 'required|integer',
+            ]);
+
+            return redirect()->route('payroll.history', [
+                'payroll' => $request->period,
+            ]);
+        }
     public function history(Request $request, Payroll $payroll): View
     {
             [$company, $deptId] = $this->context($request);
@@ -1032,9 +1093,12 @@ class EditPayrollController extends Controller
         return $tenureMonths >= 18;
     }
 
-    private function logAdjustment($conn, string $idno, int $periodId, string $type, string $category, string $action, string $description, $oldValue, $newValue, Request $request): void
+    private function logAdjustment( $conn,string $idno,int $periodId,string $type,string $category,string $action,string $description,$oldValue,$newValue,Request $request): void
     {
-        $changedBy = optional($request->user())->idno ?? optional($request->user())->id;
+        $changedBy = session('portal_idno')
+            ?? session('accounting_idno')
+            ?? $request->user()?->idno
+            ?? $request->user()?->id;
 
         $conn->table('payroll_adjustment_history')->insert([
             'idno'          => $idno,
@@ -1049,7 +1113,6 @@ class EditPayrollController extends Controller
             'changed_at'    => now(),
         ]);
     }
-
     private function deductionPanelData($conn, string $idno, int $periodId): array
     {
         $payrollDeductions = $conn->table('payroll_deductions')

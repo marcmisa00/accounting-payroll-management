@@ -471,7 +471,6 @@
             <span class="icon">
                 <i class="fa-solid fa-clock-rotate-left"></i>
             </span>
-
             History
         </a>
 
