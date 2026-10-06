@@ -88,7 +88,7 @@
                         <tr>
                             <td>OT Time (attendance record)</td>
                             <td>
-                                {{ date('g:i A', strtotime($otTime)) }}
+                                {{$otTime && $otTime !== '00:00:00' ?  date('g:i A', strtotime($otTime)) : '—' }}
                             </td>
                         </tr>
 
