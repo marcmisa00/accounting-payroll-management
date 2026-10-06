@@ -42,8 +42,15 @@ function SubmitDetails() {
 </div>
 
 <div class="centered-container">
-    <form class="form-horizontal style-form" method="POST" action="{{ route('payroll.edit.save', ['payroll' => $payroll->id, 'idno' => $idno, 'company' => $company, 'dept' => $deptId]) }}" onsubmit="return SubmitDetails();">
-        @csrf
+    <form class="form-horizontal style-form"
+      method="POST"
+      action="{{ route('payroll.edit.save', [
+          'payroll' => $payroll->id,
+          'idno' => $idno,
+          'company' => $company,
+          'dept' => $deptId
+      ]) }}">
+    @csrf
 
         <div class="content-panel">
             <div class="panel-heading">
@@ -190,10 +197,12 @@ function SubmitDetails() {
                                     <a href="{{ route('payroll.edit.time.edit', ['payroll' => $payroll->id, 'idno' => $idno, 'attendance' => $row['attendance_id'], 'company' => $company, 'dept' => $deptId]) }}" class="btn-link-icon" title="Edit / Override">
                                         <i class="fa fa-pencil"></i>
                                     </a>
-                                    <form method="POST" action="{{ route('payroll.edit.time.destroy', ['payroll' => $payroll->id, 'idno' => $idno, 'attendance' => $row['attendance_id'], 'company' => $company, 'dept' => $deptId]) }}" style="display:inline" onsubmit="return confirm('Do you wish to remove this attendance?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn-link-icon" title="Delete Time"><i class="fa fa-trash"></i></button>
-                                    </form>
+                                   <button type="button"
+                                            class="btn-link-icon"
+                                            title="Delete Time"
+                                            onclick="deleteAttendance({{ $row['attendance_id'] }})">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
                                 </td>
                             </tr>
                         @empty
@@ -583,5 +592,18 @@ document.addEventListener('keydown', function (e) {
         }
     @endif
 });
+</script>
+<script>
+function deleteAttendance(attendanceId) {
+    if (!confirm('Do you wish to remove this attendance?')) {
+        return;
+    }
+
+    const form = document.getElementById('delete-attendance-form');
+
+    form.action = "{{ url('/payroll/manage/' . $payroll->id . '/edit/' . $idno . '/time') }}/" + attendanceId;
+
+    form.submit();
+}
 </script>
 @endsection

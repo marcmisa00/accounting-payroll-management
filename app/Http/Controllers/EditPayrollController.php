@@ -582,6 +582,33 @@ class EditPayrollController extends Controller
             'otTime'           => $attendanceRecord->ottime ?? 0,
         ]);
     }
+    private function minutesToTime($minutes): ?string
+        {
+            if ($minutes === null || $minutes === '') {
+                return null;
+            }
+
+            $minutes = (int) $minutes;
+
+            $hours = intdiv($minutes, 60);
+            $mins = $minutes % 60;
+
+            return sprintf('%02d:%02d:00', $hours, $mins);
+        }
+
+   private function timeToMinutes($time): ?int
+{
+    if ($time === null || $time === '') {
+        return null;
+    }
+
+    [$hours, $minutes, $seconds] = array_map(
+        'intval',
+        explode(':', (string) $time)
+    );
+
+    return ($hours * 60) + $minutes;
+}
     public function updateTimeOverride(Request $request, Payroll $payroll, string $idno,int $attendance): RedirectResponse 
     {
         
@@ -592,7 +619,7 @@ class EditPayrollController extends Controller
                     ])
                     ->all()
                 + [
-                    'idle' => ['nullable', 'numeric'],
+                    'idle' => ['nullable', 'integer', 'min:0'],
                 ]
             );
 
@@ -611,16 +638,12 @@ class EditPayrollController extends Controller
 
             abort_unless($attendanceRecord, 404);
 
-            $oldIdle = $attendanceRecord->idle;
-            $newIdleDecimal = $validated['idle'] ?? null;
+           $oldIdle = $attendanceRecord->idle;
 
-            $newIdle = $this->decimalToTime($newIdleDecimal);
+            $newIdleMinutes = $validated['idle'] ?? null;
+            $newIdle = $this->minutesToTime($newIdleMinutes);
 
-            /*
-            * Only write/log when the value actually changed.
-            */
             if ((string) $oldIdle !== (string) $newIdle) {
-
                 $logindate = $attendanceRecord->logindate;
 
                 $this->logAdjustment(
@@ -633,8 +656,8 @@ class EditPayrollController extends Controller
                         ? 'INSERT'
                         : ($newIdle === null ? 'DELETE' : 'UPDATE'),
                     'day ' . date('M d, Y', strtotime($logindate)) . ' — Idle',
-                    $this->timeToDecimal($oldIdle),
-                    $this->timeToDecimal($newIdle),
+                    $this->timeToMinutes($oldIdle),
+                    $this->timeToMinutes($newIdle),
                     $request
                 );
 
@@ -714,80 +737,90 @@ class EditPayrollController extends Controller
                 'Edit Time changes saved successfully.'
             );
     }
-    private function decimalToTime($hours): ?string
-    {
-        if ($hours === null || $hours === '') {
-            return null;
-        }
+   
 
-        $hours = (float) $hours;
 
-        if ($hours < 0) {
-            $hours = 0;
-        }
-
-        $totalSeconds = (int) round($hours * 3600);
-
-        $h = intdiv($totalSeconds, 3600);
-        $m = intdiv($totalSeconds % 3600, 60);
-        $s = $totalSeconds % 60;
-
-        return sprintf('%02d:%02d:%02d', $h, $m, $s);
-    }
-
-    private function timeToDecimal($time): ?float
-    {
-        if ($time === null || $time === '') {
-            return null;
-        }
-
-        if (is_numeric($time)) {
-            return (float) $time;
-        }
-
-        $parts = explode(':', (string) $time);
-
-        if (count($parts) !== 3) {
-            return null;
-        }
-
-        [$hours, $minutes, $seconds] = array_map('intval', $parts);
-
-        return round(
-            $hours +
-            ($minutes / 60) +
-            ($seconds / 3600),
-            2
-        );
-    }
     /**
      * Drop the override row entirely, reverting the day to fully
      * calculated — logging a DELETE for every field that had a value.
      */
-    public function clearTimeOverride(Request $request, Payroll $payroll, string $idno, int $attendance): RedirectResponse
-    {
-        $conn = DB::connection(self::HRIS_CONNECTION);
-        $existing = $conn->table('attendance_pay_override')->where('attendance_id', $attendance)->first();
+   public function clearTimeOverride(
+    Request $request,
+    Payroll $payroll,
+    string $idno,
+    int $attendance
+): RedirectResponse {
+    $conn = DB::connection(self::HRIS_CONNECTION);
 
-        if ($existing) {
-            $logindate = $conn->table('attendance')->where('id', $attendance)->value('logindate');
+    $attendanceRecord = $conn->table('attendance')
+        ->where('id', $attendance)
+        ->first();
 
-            foreach (self::OVERRIDE_FIELDS as $field) {
-                if ($existing->{$field} !== null) {
-                    $this->logAdjustment(
-                        $conn, $idno, $payroll->id, 'payroll', 'attendance_override', 'DELETE',
-                        "day " . date('M d, Y', strtotime($logindate)) . " — {$field}",
-                        $existing->{$field}, null, $request
-                    );
-                }
-            }
+    if ($attendanceRecord) {
+        $logindate = $attendanceRecord->logindate;
 
-            $conn->table('attendance_pay_override')->where('attendance_id', $attendance)->delete();
+        // Clear Idle override
+        if ($attendanceRecord->idle !== null) {
+            $this->logAdjustment(
+                $conn,
+                $idno,
+                $payroll->id,
+                'payroll',
+                'attendance',
+                'DELETE',
+                'day ' . date('M d, Y', strtotime($logindate)) . ' — Idle',
+                $this->timeToMinutes($attendanceRecord->idle),
+                null,
+                $request
+            );
+
+            $conn->table('attendance')
+                ->where('id', $attendance)
+                ->update([
+                    'idle' => null,
+                ]);
         }
-
-        return $this->backToEdit($request, $payroll, $idno)->with('success', 'Override cleared — that day is back to the calculated values.');
     }
 
+    // Clear payroll field overrides
+    $existing = $conn->table('attendance_pay_override')
+        ->where('attendance_id', $attendance)
+        ->first();
+
+    if ($existing) {
+        $logindate = $attendanceRecord?->logindate;
+
+        foreach (self::OVERRIDE_FIELDS as $field) {
+            if ($existing->{$field} !== null) {
+                $this->logAdjustment(
+                    $conn,
+                    $idno,
+                    $payroll->id,
+                    'payroll',
+                    'attendance_override',
+                    'DELETE',
+                    'day ' . date('M d, Y', strtotime($logindate)) . " — {$field}",
+                    $existing->{$field},
+                    null,
+                    $request
+                );
+            }
+        }
+
+        $conn->table('attendance_pay_override')
+            ->where('attendance_id', $attendance)
+            ->delete();
+    }
+
+    return $this->backToEdit(
+        $request,
+        $payroll,
+        $idno
+    )->with(
+        'success',
+        'Override cleared — that day is back to the calculated values.'
+    );
+}
     /**
      * The audit trail of every payroll override, deduction, and addon
      * change for this employee's period — no approval workflow, just a

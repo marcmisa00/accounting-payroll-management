@@ -34,27 +34,17 @@
         ['totalpay',     'Total Pay',                    'Overriding this directly wins over everything else on this day'],
     ];
 
-    /*
-     * These values come directly from attendance.
-     *
-     * idle  = editable
-     * ottime = display only
-     */
-    $idleRaw = $attendanceRecord->idle ?? null;
-    $otTime  = $attendanceRecord->ottime ?? 0;
+     $idleValue = $attendanceRecord->idle ?? null;
 
-    $idleValue = 0;
+    $idleMinutes = 0;
 
-    if ($idleRaw) {
+    if ($idleValue) {
         [$hours, $minutes, $seconds] = array_map(
             'intval',
-            explode(':', $idleRaw)
+            explode(':', $idleValue)
         );
 
-        $idleValue =
-            $hours +
-            ($minutes / 60) +
-            ($seconds / 3600);
+        $idleMinutes = ($hours * 60) + $minutes;
     }
 @endphp
 
@@ -156,24 +146,24 @@
 
 
                         {{-- IDLE - EDITABLE --}}
-                        <div class="form-group">
-                            <label class="control-label">
-                                Idle
-                            </label>
+                    <div class="form-group">
+                        <label class="control-label">
+                            Idle (minutes)
+                        </label>
 
-                            <small class="help-text">
-                                Idle hours recorded for this attendance day.
-                            </small>
+                        <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            name="idle"
+                            class="form-control"
+                            value="{{ old('idle', $idleMinutes) }}"
+                        >
 
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                name="idle"
-                                class="form-control"
-                                value="{{ old('idle', $idleValue) }}"
-                            >
-                        </div>
+                        <small class="form-text text-muted">
+                            Enter idle time in minutes. Example: 30 = 00:30.
+                        </small>
+                    </div>
 
 
                         {{-- OT / ND + EXISTING PAYROLL OVERRIDES — ONE UNIFIED LIST --}}
