@@ -88,7 +88,7 @@
                         <tr>
                             <td>OT Time (attendance record)</td>
                             <td>
-                                {{ number_format((float) $otTime, 2) }}
+                                {{ date('g:i A', strtotime($otTime)) }}
                             </td>
                         </tr>
 
@@ -136,14 +136,12 @@
                             </small>
 
                             <input
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 class="form-control"
-                                value="{{ number_format((float) $otTime, 2, '.', '') }}"
+                                value="{{ $otTime && $otTime !== '00:00:00' ? date('g:i A', strtotime($otTime)) : '—' }}"
                                 readonly
                             >
-                        </div>
-
+                    </div>
 
                         {{-- IDLE - EDITABLE --}}
                     <div class="form-group">
