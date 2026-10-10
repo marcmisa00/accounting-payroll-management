@@ -246,7 +246,7 @@
         color: var(--table-head-color);
         font-weight: 600;
         font-size: 12px;
-        text-align: left;
+        /* text-align: left; */
         border-bottom: 2px solid var(--tab-border);
         transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
@@ -262,7 +262,7 @@
 
     .table-head-2,
     .table-cont-2 {
-        text-align: right;
+        text-align: center;
         font-variant-numeric: tabular-nums;
     }
 

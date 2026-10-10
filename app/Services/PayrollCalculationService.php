@@ -3,65 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-
-/**
- * Ports the attendance-based payroll calculation loop from the legacy
- * editpayroll.php. All four planned passes are now implemented:
- *   1. Base pay + overtime (before/after 8 hrs, OB/idle deductions)
- *   2. Night differential (auto-detected + manual override)
- *   3. Holiday pay (regular + special non-working, worked + not-worked)
- *   4. Leave types (VL/SL/BL/BLP/SPL/PTL + tenure-based BL eligibility)
- *
- * This has NOT been run against real payroll data side-by-side with the
- * legacy system yet. Given how tightly interdependent these rules are
- * (a single mis-ordered condition changes someone's pay), treat this as
- * a first complete draft to verify, not a drop-in replacement — diff its
- * output against the legacy page for at least one full payroll period,
- * ideally one that includes a holiday, a rate change mid-period, and a
- * few different leave types, before trusting it for real payroll.
- *
- * Things worth your explicit sign-off, found while porting:
- *
- * - BUG PRESERVED: `if ($salary_type != 'Fixed' || $salary_type != 'Daily')`
- *   in the legacy file is always true (needed `&&`, not `||`, to actually
- *   exclude Fixed/Daily), so the holiday/leave cascade below runs for
- *   every salary type in the live system today, and the "else" branch
- *   that would have reset holiday vars for Fixed employees never
- *   executes. This port reproduces the actual (always-runs) behavior.
- *
- * - DEVIATION (flagged, not silently reproduced): in the legacy file,
- *   $spholiday/$regholiday/$reghoursnwamount/$holidaypay/etc. are
- *   initialized once before the attendance loop, not reset each
- *   iteration — so in the live system, a day with no holiday/leave
- *   branch match could display a stale value left over from an earlier
- *   day that did match. That looks like an unintentional bug rather
- *   than intended carry-forward, so this port resets those to 0 at the
- *   top of every iteration instead of reproducing the leak.
- *
- * - `regholidaywork1/regholidayworkamount1/regholidaywork2/regholidayworkamount2`
- *   and `regholidayothrs/regholidayotamount/spholidayhours1/spholidayamount1/
- *   spholidayhours2/spholidayamount2/spholidayothrs/spholidayotamount` are
- *   submitted as hidden inputs in the legacy page but are never assigned
- *   inside the loop (or only ever hold one iteration's leftover value,
- *   never summed) — they appear to be vestigial/dead fields. Left at 0
- *   here rather than guessing at intended semantics.
- *
- * MANUAL OVERRIDES: every day's OT, ND, and pay components can be
- * manually overridden from one place — the `attendance_pay_override`
- * table (one row per attendance day, every column nullable). Whichever
- * fields are set there replace the calculated value for that field;
- * totalpay is recomputed from the resulting mix unless totalpay itself
- * was also overridden directly, which wins outright.
- *
- * Two pieces of the legacy file were dropped entirely as genuinely dead
- * code (computed but never read anywhere downstream): the top-level
- * movement_tracker/dlsTop/adjustedEffectivity block, and $hasDlsChange
- * plus the standalone isNightShift($dls) function. A number of unused
- * intermediate hour-difference variables (eogybefore/eogyafter/
- * difference_eo/difference_ott/diff_gylu/diff_gyam/totalstart/totalam/
- * shiftdiff/wfhhrs/wfhnotgy/sevendif/onedif) were dropped for the same
- * reason. Flag if any of those turn out to matter after all.
- */
 class PayrollCalculationService
 {
     private const HRIS_CONNECTION = 'hris';

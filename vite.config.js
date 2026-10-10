@@ -15,7 +15,9 @@ export default defineConfig({
                     'resources/css/edit-payroll.css',
                     'resources/css/edit-time-payroll.css',
                     'resources/css/payroll-history.css',
-                    'resources/css/history-index.css'],
+                    'resources/css/history-index.css',
+                    'resources/js/show-payroll.js',
+                    'resources/js/edit-payroll.js'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
