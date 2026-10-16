@@ -75,7 +75,7 @@
         .sidebar-toggle {
             position: absolute;
             top: 50%;
-            right: -14px;
+            right: -16px;
             transform: translateY(-50%);
             width: 28px;
             height: 28px;
