@@ -6,6 +6,7 @@ use App\Http\Controllers\AccountingAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\EditPayrollController;
+use App\Http\Controllers\PayslipController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -30,9 +31,11 @@ Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::get('history', [EditPayrollController::class, 'historyIndex'])->name('history.index');
         Route::post('history', [EditPayrollController::class, 'historySelect'])->name('history.select');
         Route::get('manage/{payroll}/history', [EditPayrollController::class, 'history'])->name('history');
+        Route::get('payslip/rated/{detail}', [PayslipController::class, 'rated'])->whereNumber('detail')->name('payslip.rated');
         Route::prefix('manage/{payroll}/edit/{idno}') ->name('edit.') 
             ->group(function () {
                 Route::get('/', [EditPayrollController::class, 'show'])->name('show');
+                Route::get('payslip/rated/{detail}', [PayslipController::class, 'ratedFromEdit'])->whereNumber('detail')->name('payslip.rated');
                 Route::post('save', [EditPayrollController::class, 'save'])->name('save');
                 Route::delete('time/{attendance}', [EditPayrollController::class, 'deleteTime'])->name('time.destroy');
                 Route::get('time/{attendance}/edit', [EditPayrollController::class, 'editTime'])->name('time.edit');

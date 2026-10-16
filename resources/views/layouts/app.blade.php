@@ -71,14 +71,14 @@
             transition: width 0.25s ease, background 0.2s;
         }
 
-                /* Sidebar collapse button */
+        /* Sidebar collapse button */
         .sidebar-toggle {
             position: absolute;
             top: 50%;
             right: -16px;
             transform: translateY(-50%);
-            width: 28px;
-            height: 28px;
+            width: 31px;
+            height: 31px;
             border: none;
             border-radius: 50%;
             background: var(--sidebar-bg-end);
@@ -96,26 +96,64 @@
             background: var(--sidebar-bg-start);
         }
 
-        /* Collapsed sidebar */
+        /* Collapsed sidebar: slimmer and cleaner for payroll pages */
         body.sidebar-collapsed .sidebar {
-            width: 0;
-            overflow: visible;
+            width: 62px;
             padding-left: 0;
             padding-right: 0;
+            overflow: visible;
         }
 
-        /* Hide sidebar contents when collapsed */
-        body.sidebar-collapsed .sidebar > *:not(.sidebar-toggle) {
-            opacity: 0;
-            visibility: hidden;
+        body.sidebar-collapsed .sidebar .brand-text,
+        body.sidebar-collapsed .sidebar .nav-text,
+        body.sidebar-collapsed .sidebar .logout-text,
+        body.sidebar-collapsed .sidebar .payroll-submenu,
+        body.sidebar-collapsed .sidebar .payroll-arrow {
+            display: none !important;
         }
 
-        /* Move arrow when collapsed */
+        body.sidebar-collapsed .sidebar nav a,
+        body.sidebar-collapsed .sidebar .logout button {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+            text-align: center;
+        }
+
+        body.sidebar-collapsed .sidebar nav a {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            gap: 0;
+        }
+
+        body.sidebar-collapsed .sidebar .icon {
+            width: 20px;
+            height: 20px;
+            font-size: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.sidebar-collapsed .sidebar .brand {
+            padding: 0 0 18px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        body.sidebar-collapsed .sidebar .logout {
+            padding: 12px 0;
+        }
+
+        body.sidebar-collapsed .sidebar .logout button {
+            width: 100%;
+            padding: 10px 0;
+        }
+
         body.sidebar-collapsed .sidebar-toggle {
             transform: translateY(-50%) rotate(180deg);
         }
 
-        /* Main automatically expands because body is flex */
         body.sidebar-collapsed .main {
             flex: 1;
         }
@@ -385,7 +423,7 @@
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body class="{{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
+<body class="{{ request()->routeIs('payroll.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
     <aside class="sidebar">
 
             <button type="button" class="sidebar-toggle" id="sidebarToggle">
@@ -393,7 +431,7 @@
             </button>
             
     <div class="brand">
-        Accounting Portal
+        <span class="brand-text">Accounting Portal</span>
     </div>
 
     <nav>
@@ -403,7 +441,7 @@
             <span class="icon">
                 <i class="fa-solid fa-house"></i>
             </span>
-            Dashboard
+            <span class="nav-text">Dashboard</span>
         </a>
 
 
@@ -417,7 +455,7 @@
                     <i class="fa-solid fa-money-bill-wave"></i>
                 </span>
 
-                <span>Payroll</span>
+                <span class="nav-text">Payroll</span>
 
                 <i class="fa-solid fa-chevron-down payroll-arrow"></i>
             </a>
@@ -428,7 +466,7 @@
                     <a href="{{ route('payroll.create') }}"
                     class="{{ request()->routeIs('payroll.create') ? 'active' : '' }}">
                         <i class="fa-solid fa-plus"></i>
-                        Create Payroll
+                        <span class="nav-text">Create Payroll</span>
                     </a>
                 </li>
 
@@ -436,7 +474,7 @@
                     <a href="{{ route('payroll.manage') }}"
                     class="{{ request()->routeIs('payroll.manage') ? 'active' : '' }}">
                         <i class="fa-solid fa-list"></i>
-                        Manage Payroll
+                        <span class="nav-text">Manage Payroll</span>
                     </a>
                 </li>
 
@@ -448,21 +486,21 @@
             <span class="icon">
                 <i class="fa-solid fa-receipt"></i>
             </span>
-            Expenses
+            <span class="nav-text">Expenses</span>
         </a>
 
         <a href="#">
             <span class="icon">
                 <i class="fa-solid fa-wallet"></i>
             </span>
-            Budgets
+            <span class="nav-text">Budgets</span>
         </a>
 
         <a href="#">
             <span class="icon">
                 <i class="fa-solid fa-chart-line"></i>
             </span>
-            Reports
+            <span class="nav-text">Reports</span>
         </a>
 
         <a href="{{ route('payroll.history.index') }}"
@@ -471,7 +509,7 @@
             <span class="icon">
                 <i class="fa-solid fa-clock-rotate-left"></i>
             </span>
-            History
+            <span class="nav-text">History</span>
         </a>
 
     </nav>
@@ -483,7 +521,7 @@
 
             <button type="submit">
                 <i class="fa-solid fa-right-from-bracket"></i>
-                Log out
+            <span class="logout-text">Log out</span>
             </button>
         </form>
     </div>
@@ -607,12 +645,12 @@
                 return;
             }
 
-            // Hide sidebar when entering Payroll Show
-            if (document.body.classList.contains('payroll-show')) {
+            const isPayrollPage = document.body.classList.contains('payroll-page');
+
+            if (isPayrollPage && !document.body.classList.contains('sidebar-collapsed')) {
                 document.body.classList.add('sidebar-collapsed');
             }
 
-            // Arrow opens/closes sidebar
             sidebarToggle.addEventListener('click', function () {
                 document.body.classList.toggle('sidebar-collapsed');
             });

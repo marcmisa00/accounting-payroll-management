@@ -1,0 +1,192 @@
+@php $f = fn ($v) => number_format($v, 2); @endphp
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payslip</title>
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/iconhris_2.png') }}">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        .header-table td { border: none; padding: 8px; vertical-align: middle; }
+        .highlight { background-color: #b0bfc5; font-weight: bold; }
+        .num { text-align: right; white-space: nowrap; }
+        .indent { padding-left: 20px !important; }
+        .bar { text-align: center; background-color: #1d2437; color: white; padding: 5px; }
+        .row2 { display: flex; justify-content: space-between; }
+        .col { width: 49%; }
+        .background { position: relative; }
+        .background::before {
+            content: ""; position: absolute; inset: 0;
+            background: url('{{ asset('img/3.png') }}') center/cover no-repeat;
+            opacity: 0.1; z-index: -1;
+        }
+    </style>
+</head>
+<body>
+<div class="background" style="border:2px solid black; padding:30px; width:50%; font-size:70%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.90);">
+
+    {{-- Header --}}
+    <div class="row2">
+        <div class="col">
+            <table class="header-table">
+                <tr><td><strong>EMPLOYEE NAME:</strong></td><td style="padding-left:70px"><strong>{{ $fullname }}</strong></td></tr>
+                <tr><td><strong>TEAM:</strong></td><td style="padding-left:70px"><strong>{{ $team }}</strong></td></tr>
+            </table>
+        </div>
+        <div class="col">
+            <table class="header-table">
+                <tr><td><strong>BASIC MONTHLY SALARY:</strong></td><td class="num"><strong>{{ $f($monthly) }}</strong></td></tr>
+                <tr><td><strong>PAY PER DAY:</strong></td><td class="num"><strong>{{ $f($baseRate) }}</strong></td></tr>
+                <tr><td><strong>Pay Period:</strong></td>
+                    <td class="num"><strong>{{ date('M j, Y', strtotime($periodFrom)) }} to {{ date('M j, Y', strtotime($periodTo)) }}</strong></td></tr>
+            </table>
+        </div>
+    </div>
+
+    {{-- Gross / Take home --}}
+    @php
+        $grossRows = [
+            ['Basic Salary', $basic],
+            ['Allowances', $allowance],
+            ['Incentives', $incentive],
+            ['Reimbursements', $reimbursement],
+            ['Company Paid Government Benefits', $govTotal],
+            ['Other Company Paid Benefits', $otherTotal],
+        ];
+        $takeRows = [
+            ['Basic Salary', $f($basic)],
+            ['Add On Pay', $f($totalAddons)],
+            ['Deductions', '- ' . $f($totalDeductions)],
+        ];
+    @endphp
+    <div class="row2">
+        <div class="col">
+            <h4 class="bar">GROSS EARNINGS AND BENEFITS FOR THIS PAY PERIOD</h4>
+            <table class="header-table">
+                @foreach ($grossRows as [$label, $amt])
+                    <tr><td class="indent">{{ $label }}</td><td class="num">{{ $f($amt) }}</td></tr>
+                @endforeach
+                <tr class="highlight">
+                    <td><strong>TOTAL GROSS EARNINGS & BENEFITS FOR THIS PAY PERIOD</strong></td>
+                    <td class="num" style="font-size:15px"><strong>{{ $f($gross) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col">
+            <h4 class="bar">TAKE HOME PAY COMPUTATION</h4>
+            <table class="header-table">
+                @for ($i = 0; $i < count($grossRows); $i++)
+                    <tr>
+                        <td class="indent">{!! $takeRows[$i][0] ?? '&nbsp;' !!}</td>
+                        <td class="num">{!! $takeRows[$i][1] ?? '&nbsp;' !!}</td>
+                    </tr>
+                @endfor
+                <tr class="highlight">
+                    <td><strong>TOTAL TAKE HOME PAY FOR THIS PAY PERIOD</strong></td>
+                    <td class="num" style="font-size:15px"><strong>{{ $f($takeHome) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    {{-- Breakdown --}}
+    <h4 class="bar">BREAKDOWN OF SALARY AND BENEFITS</h4>
+    <div class="row2">
+        <div class="col">
+            <table class="header-table">
+                <tr>
+                    <td><strong>Basic Salary Breakdown</strong></td>
+                    <td style="text-align:center"><strong>Total No. of Hours</strong></td>
+                    <td class="num"><strong>Base Rate {{ $f($baseRate) }}/day</strong></td>
+                </tr>
+                @foreach ($rows as [$label, $hrs, $amt])
+                    <tr>
+                        <td class="indent">{{ $label }}</td>
+                        <td style="text-align:center">{{ $f($hrs) }}</td>
+                        <td class="num">{{ $f($amt) }}</td>
+                    </tr>
+                @endforeach
+
+                @if (count($prevRows))
+                    <tr>
+                        <td><strong>Basic Salary Breakdown</strong></td>
+                        <td style="text-align:center"><strong>Total No. of Hours</strong></td>
+                        <td class="num"><strong>Prev Rate {{ $f($basePrev) }}/day</strong></td>
+                    </tr>
+                    @foreach ($prevRows as [$label, $hrs, $amt])
+                        <tr>
+                            <td class="indent">{{ $label }}</td>
+                            <td style="text-align:center">{{ $f($hrs) }}</td>
+                            <td class="num">{{ $f($amt) }}</td>
+                        </tr>
+                    @endforeach
+                @endif
+
+                <tr class="highlight">
+                    <td><strong>TOTAL BASIC SALARY</strong></td><td></td>
+                    <td class="num"><strong>{{ $f($basic) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col">
+            <table class="header-table">
+                <tr><td colspan="2"><strong>Add On Pay Breakdown</strong></td></tr>
+                @forelse ($addons as $a)
+                    <tr><td class="indent">{{ $a->description }}</td><td class="num">{{ $f($a->amount) }}</td></tr>
+                @empty
+                    <tr><td colspan="2" class="indent"><i style="color:#555">NO ADD-ONS FOR THIS PAYROLL</i></td></tr>
+                @endforelse
+                <tr class="highlight">
+                    <td><strong>TOTAL ADD ON PAY</strong></td>
+                    <td class="num" style="font-size:15px"><strong>{{ $f($totalAddons) }}</strong></td>
+                </tr>
+
+                <tr><td colspan="2"><strong>Deductions Breakdown</strong></td></tr>
+                @forelse ($deductions as $d)
+                    <tr><td class="indent">{{ $d->description }}</td><td class="num">{{ $f($d->amount) }}</td></tr>
+                @empty
+                    <tr><td colspan="2" class="indent"><i style="color:#555">NO DEDUCTIONS FOR THIS PAYROLL</i></td></tr>
+                @endforelse
+                <tr class="highlight">
+                    <td><strong>TOTAL DEDUCTIONS</strong></td>
+                    <td class="num" style="font-size:15px"><strong>{{ $f($totalDeductions) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    {{-- Benefits --}}
+    <div class="row2" style="margin-top:20px">
+        <div class="col">
+            <table class="header-table">
+                <tr><td colspan="2"><strong>Government Benefits Breakdown</strong></td></tr>
+                @foreach ($govBen as $label => $amt)
+                    <tr><td class="indent">{{ $label }}</td><td class="num">{{ $f($amt) }}</td></tr>
+                @endforeach
+                <tr class="highlight">
+                    <td><strong>TOTAL COMPANY PAID GOVERNMENT BENEFITS</strong></td>
+                    <td class="num" style="font-size:15px"><strong>{{ $f($govTotal) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col">
+            <table class="header-table">
+                <tr><td colspan="2"><strong>Company Paid Benefits</strong></td></tr>
+                @foreach ($otherBen as $label => $amt)
+                    <tr><td class="indent">{{ $label }}</td><td class="num">{{ $f($amt) }}</td></tr>
+                @endforeach
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr class="highlight">
+                    <td><strong>TOTAL OTHER COMPANY PAID BENEFITS</strong></td>
+                    <td class="num" style="font-size:15px"><strong>{{ $f($otherTotal) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
