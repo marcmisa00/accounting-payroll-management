@@ -496,11 +496,11 @@
             <span class="nav-text">Budgets</span>
         </a>
 
-        <a href="#">
+        <a href="{{route('holidays.index')}}">
             <span class="icon">
-                <i class="fa-solid fa-chart-line"></i>
+                <i class="fa fa-calendar"></i>
             </span>
-            <span class="nav-text">Reports</span>
+            <span class="nav-text">Calendar</span>
         </a>
 
         <a href="{{ route('payroll.history.index') }}"

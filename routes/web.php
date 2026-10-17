@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\EditPayrollController;
 use App\Http\Controllers\PayslipController;
+use App\Http\Controllers\HolidayController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -19,6 +20,14 @@ Route::middleware('accounting.auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
+
+    Route::prefix('holidays')->name('holidays.')->group(function () {
+        Route::get('/', [HolidayController::class, 'index'])->name('index');
+        Route::get('/events', [HolidayController::class, 'events'])->name('events');
+        Route::post('/', [HolidayController::class, 'store'])->name('store');
+        Route::put('/{holiday}', [HolidayController::class, 'update'])->name('update');
+        Route::delete('/{holiday}', [HolidayController::class, 'destroy'])->name('destroy');
+    });
     
 Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::get('create', [PayrollController::class, 'create'])->name('create');
