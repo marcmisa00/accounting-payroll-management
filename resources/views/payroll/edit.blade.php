@@ -66,22 +66,13 @@ function SubmitDetails() {
                 <div class="export-btn" style="display: flex; margin-left: auto; float: right;">
                     @if ($isSaved)
                         @if ($salaryType === 'Rated')
-                         <a href="{{ route('payroll.edit.payslip.rated', [
-        'payroll' => $payroll->id,
-        'idno' => $idno,
-        'detail' => $payrollId,
-    ]) }}"
-       class="btn btn-warning btn-xs"
-       title="View Payslip"
-       target="_blank">
-        <i class="fa fa-eye"></i>
-    </a>
+                            <a href="{{ route('payroll.edit.payslip.rated', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}"class="btn btn-warning btn-xs"title="View Payslip"target="_blank"><i class="fa fa-eye"></i></a>
                             <a href="/exporttopdfRated.php?id={{ $payrollId }}" class="btn btn-success" title="Export Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-download"></i></a>
                         @elseif ($salaryType === 'Fixed')
-                            <a href="/payslip.php?id={{ $payrollId }}" class="btn btn-warning" title="Print Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-eye"></i></a>
+                            <a href="{{ route('payroll.edit.payslip.fixed', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}"class="btn btn-warning btn-xs"title="View Payslip"target="_blank"><i class="fa fa-eye"></i></a>
                             <a href="/exporttopdfFixed.php?id={{ $payrollId }}" class="btn btn-success" title="Export Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-download"></i></a>
                         @elseif ($salaryType === 'Daily')
-                            <a href="/payslipDaily.php?id={{ $payrollId }}" class="btn btn-warning" title="Print Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-eye"></i></a>
+                            <a href="{{ route('payroll.edit.payslip.daily', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
                             <a href="/exporttopdfDaily.php?id={{ $payrollId }}" class="btn btn-success" title="Export Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-download"></i></a>
                         @endif
                     @endif

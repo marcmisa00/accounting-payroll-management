@@ -32,10 +32,14 @@ Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::post('history', [EditPayrollController::class, 'historySelect'])->name('history.select');
         Route::get('manage/{payroll}/history', [EditPayrollController::class, 'history'])->name('history');
         Route::get('payslip/rated/{detail}', [PayslipController::class, 'rated'])->whereNumber('detail')->name('payslip.rated');
+        Route::get('payslip/fixed/{detail}', [PayslipController::class, 'fixed'])->whereNumber('detail')->name('payslip.fixed');
+        Route::get('payslip/daily/{detail}', [PayslipController::class, 'daily'])->whereNumber('detail')->name('payslip.daily');
         Route::prefix('manage/{payroll}/edit/{idno}') ->name('edit.') 
             ->group(function () {
                 Route::get('/', [EditPayrollController::class, 'show'])->name('show');
                 Route::get('payslip/rated/{detail}', [PayslipController::class, 'ratedFromEdit'])->whereNumber('detail')->name('payslip.rated');
+                Route::get('payslip/fixed/{detail}', [PayslipController::class, 'fixedFromEdit'])->whereNumber('detail')->name('payslip.fixed');
+                Route::get('payslip/daily/{detail}', [PayslipController::class, 'dailyFromEdit'])->whereNumber('detail')->name('payslip.daily');
                 Route::post('save', [EditPayrollController::class, 'save'])->name('save');
                 Route::delete('time/{attendance}', [EditPayrollController::class, 'deleteTime'])->name('time.destroy');
                 Route::get('time/{attendance}/edit', [EditPayrollController::class, 'editTime'])->name('time.edit');

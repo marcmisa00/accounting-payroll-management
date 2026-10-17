@@ -172,10 +172,10 @@
                                                                     <a href="{{ route('payroll.payslip.rated', $employee['payroll_id']) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
                                                                     <a href="/exporttopdfRated.php?id={{ $employee['payroll_id'] }}&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-success btn-xs" title="Export Payslip" target="_blank"><i class="fa fa-download"></i></a>
                                                                 @elseif ($employee['salary_type'] === 'Fixed')
-                                                                    <a href="/payslip.php?id={{ $employee['payroll_id'] }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
+                                                                    <a href="{{ route('payroll.payslip.fixed', $employee['payroll_id']) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
                                                                     <a href="/exporttopdfFixed.php?id={{ $employee['payroll_id'] }}&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-success btn-xs" title="Export Payslip" target="_blank"><i class="fa fa-download"></i></a>
                                                                 @elseif ($employee['salary_type'] === 'Daily')
-                                                                    <a href="/payslipDaily.php?id={{ $employee['payroll_id'] }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
+                                                                    <a href="{{ route('payroll.payslip.daily', $employee['payroll_id']) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
                                                                     <a href="/exporttopdfDaily.php?id={{ $employee['payroll_id'] }}&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-success btn-xs" title="Export Payslip" target="_blank"><i class="fa fa-download"></i></a>
                                                                 @endif
                                                             @endif

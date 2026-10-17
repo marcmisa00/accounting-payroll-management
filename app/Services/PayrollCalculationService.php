@@ -36,6 +36,104 @@ class PayrollCalculationService
         $previousSalary    = $employeePayroll->previous_salary ?? 0;
         $effectivityRaw    = $employeePayroll->effective_date ?? null;
 
+
+        
+        $fixedEffectivityDate = !empty($effectivityRaw)
+            ? date('Y-m-d', strtotime($effectivityRaw))
+            : null;
+
+        $fixedOldEligibleDays = 0;
+
+        if ($salaryType === 'Fixed' && $fixedEffectivityDate !== null) {
+            $startDate = new \DateTimeImmutable(
+                date('Y-m-d', strtotime($periodStart))
+            );
+
+            $endDate = new \DateTimeImmutable(
+                date('Y-m-d', strtotime($periodEnd))
+            );
+
+            for (
+                $date = $startDate;
+                $date <= $endDate;
+                $date = $date->modify('+1 day')
+            ) {
+                // ISO weekday: Monday = 1, Sunday = 7.
+                $dayOfWeek = (int) $date->format('N');
+
+                // Skip company rest days.
+                if ($dayOfWeek === 1 || $dayOfWeek === 7) {
+                    continue;
+                }
+
+                // Count working days before the salary increase.
+                if ($date->format('Y-m-d') < $fixedEffectivityDate) {
+                    $fixedOldEligibleDays++;
+                }
+            }
+        }
+
+        // Fixed salary covers a maximum of 10 payable days.
+        $fixedOldPaidDays = min(10, $fixedOldEligibleDays);
+        $fixedNewPaidDays = 10 - $fixedOldPaidDays;
+
+        $fixedBasePay =
+            ($previousSalary * $fixedOldPaidDays) +
+            ($salary * $fixedNewPaidDays);
+
+        // Track deductions according to the rate applicable to their dates.
+        $fixedOldRateDeductions = 0;
+        $fixedNewRateDeductions = 0;
+
+        // DAILY salary increase split
+        $dailyEffectivityDate = !empty($effectivityRaw)
+            ? date('Y-m-d', strtotime($effectivityRaw))
+            : null;
+
+        $dailyOldEligibleDays = 0;
+
+        $normalizedPeriodStart = date('Y-m-d', strtotime($periodStart));
+        $normalizedPeriodEnd = date('Y-m-d', strtotime($periodEnd));
+
+        if ($salaryType === 'Daily' && $dailyEffectivityDate !== null) {
+            if ($dailyEffectivityDate > $normalizedPeriodEnd) {
+                // Increase is after this payroll period: all days use old rate.
+                $dailyOldEligibleDays = $workdays;
+            } elseif ($dailyEffectivityDate > $normalizedPeriodStart) {
+                // Increase is during the period: count eligible days before it.
+                $eligibleDaysBeforeIncrease = 0;
+
+                $date = new \DateTimeImmutable($normalizedPeriodStart);
+                $endDate = new \DateTimeImmutable($normalizedPeriodEnd);
+
+                for (; $date <= $endDate; $date = $date->modify('+1 day')) {
+                    $dayOfWeek = (int) $date->format('N');
+
+                    // Sunday = 7, Monday = 1.
+                    if ($dayOfWeek === 1 || $dayOfWeek === 7) {
+                        continue;
+                    }
+
+                    if ($date->format('Y-m-d') < $dailyEffectivityDate) {
+                        $eligibleDaysBeforeIncrease++;
+                    }
+                }
+
+                $dailyOldEligibleDays = min(
+                    $workdays,
+                    $eligibleDaysBeforeIncrease
+                );
+            }
+        }
+
+        $dailyNewEligibleDays = max(
+            0,
+            $workdays - $dailyOldEligibleDays
+        );
+
+        $dailyOldRateDeductions = 0;
+        $dailyNewRateDeductions = 0;
+
         $attendanceStart = $periodStart;
 
         if (($employeeDetails->dls ?? 0) == 1) {
@@ -139,6 +237,45 @@ class PayrollCalculationService
             $t['_mdl_total'] = ($t['_mdl_total'] ?? 0) + $mdl_count;
             $t['_ltl_total'] = ($t['_ltl_total'] ?? 0) + $ltl_count;
             $t['_suspended_total'] = ($t['_suspended_total'] ?? 0) + $suspended_count;
+
+            
+            if ($salaryType === 'Fixed') {
+                $dayDeductions =
+                    $ab_count +
+                    $pto_count +
+                    $mtl_count +
+                    $mdl_count +
+                    $ltl_count +
+                    $suspended_count;
+
+                if (
+                    $fixedEffectivityDate !== null &&
+                    $payrollDate < $fixedEffectivityDate
+                ) {
+                    $fixedOldRateDeductions += $dayDeductions;
+                } else {
+                    $fixedNewRateDeductions += $dayDeductions;
+                }
+            }
+            
+            if ($salaryType === 'Daily') {
+            $dayDeductions =
+                $ab_count +
+                $pto_count +
+                $mtl_count +
+                $mdl_count +
+                $ltl_count +
+                $suspended_count;
+
+                if (
+                    $dailyEffectivityDate !== null &&
+                    $payrollDate < $dailyEffectivityDate
+                ) {
+                    $dailyOldRateDeductions += $dayDeductions;
+                } else {
+                    $dailyNewRateDeductions += $dayDeductions;
+                }
+            }
 
             $lunchouttime = '06:30:00';
             $lunchintime  = '07:30:00';
@@ -868,27 +1005,34 @@ class PayrollCalculationService
             if ($salaryType === 'Rated') {
                 $t['grandtotal'] += $totalpay + $holidaypay;
             } elseif ($salaryType === 'Fixed') {
-                $totalDeductions = $t['_ab_total'] + $t['_pto_total'] + $t['_mtl_total'] + $t['_mdl_total'] + $t['_ltl_total'] + $t['_suspended_total'];
-                if ($workdays <= 10) {
-                    $t['grandtotal'] = ($salary * 10) - ($salary * $totalDeductions);
-                } else {
-                    $workingDaysPresent = $workdays - $totalDeductions;
-                    $t['grandtotal'] = ($workingDaysPresent >= 10)
-                        ? $salary * 10
-                        : ($salary * 10) - ($salary * (10 - $workingDaysPresent));
+                    $t['grandtotal'] =
+                        $fixedBasePay
+                        - ($previousSalary * $fixedOldRateDeductions)
+                        - ($salary * $fixedNewRateDeductions);
+                } elseif ($salaryType === 'Daily') {
+                    $oldRatePayableDays = max(
+                        0,
+                        $dailyOldEligibleDays - $dailyOldRateDeductions
+                    );
+
+                    $newRatePayableDays = max(
+                        0,
+                        $dailyNewEligibleDays - $dailyNewRateDeductions
+                    );
+
+                    $t['grandtotal'] =
+                        ($previousSalary * $oldRatePayableDays) +
+                        ($salary * $newRatePayableDays);
                 }
-            } elseif ($salaryType === 'Daily') {
-                $totalDeductions = $t['_ab_total'] + $t['_pto_total'] + $t['_mtl_total'] + $t['_mdl_total'] + $t['_ltl_total'] + $t['_suspended_total'];
-                $workingDaysPresent = $workdays - $totalDeductions;
-                $t['grandtotal'] = $salary * $workingDaysPresent;
             }
-        }
 
         if ($attendanceRows->isEmpty()) {
             if ($salaryType === 'Fixed') {
                 $t['grandtotal'] = $workdays <= 10 ? $salary * 10 : $salary * 10;
             } elseif ($salaryType === 'Daily') {
-                $t['grandtotal'] = $salary * $workdays;
+                $t['grandtotal'] =
+                    ($previousSalary * $dailyOldEligibleDays) +
+                    ($salary * $dailyNewEligibleDays);
             }
         }
 
