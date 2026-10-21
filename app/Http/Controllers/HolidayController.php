@@ -15,7 +15,7 @@ class HolidayController extends Controller
 
     public function index()
     {
-        return view('holidays.index');
+        return view('holidays.holiday');
     }
 
     public function events(Request $request)

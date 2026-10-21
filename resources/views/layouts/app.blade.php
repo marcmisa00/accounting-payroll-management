@@ -423,7 +423,7 @@
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body class="{{ request()->routeIs('payroll.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
+<body class="{{ request()->routeIs('payroll.*','holidays.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
     <aside class="sidebar">
 
             <button type="button" class="sidebar-toggle" id="sidebarToggle">

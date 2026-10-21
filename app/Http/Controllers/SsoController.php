@@ -19,7 +19,7 @@ class SsoController extends Controller
 
         // 2. Request must be recent
         if (abs(time() - (int) $timestamp) > 60) {
-            abort(403, 'SSO request has expired.');
+            abort(403, 'SSS request has expired.');
         }
 
         // 3. Generate the signature Laravel expects
