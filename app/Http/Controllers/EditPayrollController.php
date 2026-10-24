@@ -826,20 +826,31 @@ class EditPayrollController extends Controller
      * change for this employee's period — no approval workflow, just a
      * visible history of who changed what and when.
      */
-    public function historyIndex(Request $request): View
-    {
-        [$company, $deptId] = $this->context($request);
+    
+    public function historyIndex(Request $request)
+        {
+            [$company, $deptId] = $this->context($request);
 
-        $payrolls = Payroll::query()
-            ->orderByDesc('periodfrom')
-            ->get();
+            $payroll = Payroll::query()
+                ->orderByDesc('periodfrom')
+                ->orderByDesc('id')
+                ->first();
 
-        return view('payroll.history-index', [
-            'payrolls' => $payrolls,
-            'company'  => $company,
-            'deptId'   => $deptId,
-        ]);
-    }
+            if (!$payroll) {
+                return view('payroll.history-index', [
+                    'payrolls' => collect(),
+                    'company'  => $company,
+                    'deptId'   => $deptId,
+                ]);
+            }
+
+            return redirect()->route('payroll.history', [
+                'payroll' => $payroll->id,
+                'company' => $company,
+                'dept'    => $deptId,
+            ]);
+        }
+
     public function historySelect(Request $request)
         {
             $request->validate([
@@ -850,11 +861,25 @@ class EditPayrollController extends Controller
                 'payroll' => $request->period,
             ]);
         }
+    
     public function history(Request $request, Payroll $payroll): View
-    {
+        {
             [$company, $deptId] = $this->context($request);
+            $payroll = Payroll::query()->findOrFail($request->input('period', $payroll->id));
+    
+            $payrolls = Payroll::query()
+                ->orderByDesc('periodfrom')
+                ->orderByDesc('id')
+                ->get();
 
-            $employees = DB::connection(self::HRIS_CONNECTION)
+            
+            $employee = trim((string) $request->input('employee', ''));
+            $recordType = $request->input('record_type', '');
+
+            // Search all periods only when an employee is entered.
+            $searchAllPeriods = $employee !== '';
+
+            $query = DB::connection(self::HRIS_CONNECTION)
                 ->table('payroll_adjustment_history as h')
                 ->leftJoin(
                     'employee_profile as ep',
@@ -862,95 +887,76 @@ class EditPayrollController extends Controller
                     '=',
                     'h.idno'
                 )
-                ->where('h.payrollperiod', (string) $payroll->id)
-                ->select(
-                    'h.idno',
-                    'ep.firstname',
-                    'ep.middlename',
-                    'ep.lastname'
-                )
-                ->distinct()
-                ->orderBy('ep.lastname')
-                ->orderBy('ep.firstname')
-                ->get();
+                ->leftJoin(
+                    'employee_profile as cb',
+                    'cb.idno',
+                    '=',
+                    'h.changed_by'
+                );
 
-            $employee = $request->input('employee');
-            $type     = $request->input('type');
-            $action   = $request->input('action');
+            // Default: show all entries from the selected payroll period.
+            // Employee search: show matching entries from all periods.
+            if (!$searchAllPeriods) {
+                $query->where('h.payrollperiod', (string) $payroll->id);
+            }
 
-            $hasFilter = !empty($employee)
-                || !empty($type)
-                || !empty($action);
-
-            $entries = collect();
-
-            if ($hasFilter) {
-                $query = DB::connection(self::HRIS_CONNECTION)
-                    ->table('payroll_adjustment_history as h')
-
-
-                    ->leftJoin(
-                        'employee_profile as ep',
-                        'ep.idno',
-                        '=',
-                        'h.idno'
-                    )
-                    ->leftJoin(
-                        'employee_profile as cb',
-                        'cb.idno',
-                        '=',
-                        'h.changed_by'
-                    )
-                    ->where(
-                        'h.payrollperiod',
-                        (string) $payroll->id
-                    )
-                    ->select(
-                        'h.*',
-                        'ep.firstname',
-                        'ep.middlename',
-                        'ep.lastname',
-                        'cb.firstname as changed_by_firstname',
-                        'cb.middlename as changed_by_middlename',
-                        'cb.lastname as changed_by_lastname'
-                    );
-
-               if (!empty($employee)) {
-                    $query->where(function ($q) use ($employee) {
-                        $q->where('h.idno', 'like', "%{$employee}%")
+            if ($employee !== '') {
+                $query->where(function ($q) use ($employee) {
+                    $q->where('h.idno', 'like', "%{$employee}%")
                         ->orWhere('ep.firstname', 'like', "%{$employee}%")
                         ->orWhere('ep.middlename', 'like', "%{$employee}%")
                         ->orWhere('ep.lastname', 'like', "%{$employee}%");
-                    });
-                }
-                if (!empty($type)) {
-                    $query->where('h.type', $type);
-                }
-                if (!empty($action)) {
-                    $query->where('h.action', $action);
-                }
-                $entries = $query
-                    ->orderByDesc('h.changed_at')
-                    ->orderByDesc('h.id')
-                    ->get();
+                });
             }
+
+            // One combined filter for Add-on, Deduction, and Edit Time.
+            $typeMap = [
+                'payroll-ADD' => 'addon',
+                'payroll-DED' => 'deduction',
+                'EDIT TIME'   => 'payroll',
+            ];
+
+            if (isset($typeMap[$recordType])) {
+                $query->where('h.type', $typeMap[$recordType]);
+            }
+
+            $entries = $query
+                ->select(
+                    'h.*',
+                    'ep.firstname',
+                    'ep.middlename',
+                    'ep.lastname',
+                    'cb.firstname as changed_by_firstname',
+                    'cb.middlename as changed_by_middlename',
+                    'cb.lastname as changed_by_lastname'
+                )
+                ->orderByDesc('h.changed_at')
+                ->orderByDesc('h.id')
+                ->get();
+
+            $hasFilter = true;
+
+
             return view('payroll.history', [
-                'payroll'   => $payroll,
-                'company'   => $company,
-                'deptId'    => $deptId,
-                'employee'  => $employee,
-                'type'      => $type,
-                'action'    => $action,
-                'hasFilter' => $hasFilter,
-                'entries'   => $entries,
+                'payroll'          => $payroll,
+                'payrolls'         => $payrolls,
+                'company'          => $company,
+                'deptId'           => $deptId,
+                'employee'         => $employee,
+                'recordType'       => $recordType,
+                'hasFilter'        => $hasFilter,
+                'searchAllPeriods' => $searchAllPeriods,
+                'entries'          => $entries,
             ]);
-    }
+        }
+
 
 
     public function save(Request $request, Payroll $payroll, string $idno): RedirectResponse
     {
         $validated = $request->validate([
             'salary_type' => ['required', 'in:Fixed,Rated,Daily'],
+            'salary_rate' => ['nullable', 'numeric', 'min:0'],
         ] + collect($this->calculator->emptyTotals())->keys()
             ->mapWithKeys(fn ($field) => [$field => ['nullable', 'numeric']])
             ->all());
@@ -1000,6 +1006,7 @@ class EditPayrollController extends Controller
             'bdayleavehrs'             => $totals['bdayleavehrs'],
             'bdayleaveamount'          => $totals['bdayleaveamount'],
             'doubleholidaypay'         => $totals['doubleholidaypay'],
+            'salary_rate'              => $validated['salary_rate'] ?? null,
             'totalbasesalary'          => $totals['totalbasesalary'],
             'totalpay'                 => $totals['totalpay'],
             'reghours_prev'            => $totals['reghours_prev'],

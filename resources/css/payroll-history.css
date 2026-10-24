@@ -487,7 +487,6 @@ table.history-table tbody tr:hover td {
 }
 
 .history-value {
-    text-align: right;
 
     white-space: nowrap;
 

@@ -13,10 +13,6 @@ $backUrl = route('payroll.history.index', [
 
 <div class="page-header-row">
 
-<a href="{{ $backUrl }}">
-    <i class="fa-solid fa-arrow-left"></i>
-    BACK
-</a>
 <span class="title">
     <i class="fa-solid fa-clock-rotate-left"></i>
     PAYROLL HISTORY
@@ -29,12 +25,21 @@ $backUrl = route('payroll.history.index', [
     {{-- PAYROLL INFORMATION --}}
     <div class="panel-heading">
         <h4>
-            Payroll #{{ $payroll->id }}
+            @if ($searchAllPeriods ?? false)
+                All Payroll Periods
+            @else
+                Payroll #{{ $payroll->id }}
+            @endif
         </h4>
+
         <p>
-            {{ date('M d, Y', strtotime($payroll->periodfrom)) }}
-            -
-            {{ date('M d, Y', strtotime($payroll->periodto)) }}
+            @if ($searchAllPeriods ?? false)
+                Showing matching employee history across all payroll periods.
+            @else
+                {{ date('M d, Y', strtotime($payroll->periodfrom)) }}
+                -
+                {{ date('M d, Y', strtotime($payroll->periodto)) }}
+            @endif
         </p>
     </div>
     <div class="panel-body">
@@ -56,60 +61,61 @@ $backUrl = route('payroll.history.index', [
                 autocomplete="off"
             >
         </div>
-            {{-- TYPE --}}
-            <div class="history-filter-group">
-                <label for="type">
-                    Type
-                </label>
-                <select name="type" id="type">
-                    <option value="">
-                        All Types
-                    </option>
-                    <option value="addon"
-                        {{ ($type ?? '') === 'addon' ? 'selected' : '' }}>
-                        Add-on
-                    </option>
-                    <option value="deduction"
-                        {{ ($type ?? '') === 'deduction' ? 'selected' : '' }}>
-                        Deduction
-                    </option>
-                    <option value="payroll"
-                        {{ ($type ?? '') === 'payroll' ? 'selected' : '' }}>
-                        Edit Time
-                    </option>
-                </select>
-            </div>
+        <div class="history-filter-group">
+            <label for="period">Payroll Period</label>
 
-            {{-- ACTION --}}
-            <div class="history-filter-group">
-                <label for="action">
-                    Action
-                </label>
-                <select name="action" id="action">
-                    <option value="">
-                        All Actions
+            <select name="period" id="period">
+                @foreach ($payrolls as $period)
+                    <option
+                        value="{{ $period->id }}"
+                        {{ (string) $period->id === (string) $payroll->id ? 'selected' : '' }}
+                    >
+                        Payroll #{{ $period->id }}
+                        —
+                        {{ date('M d, Y', strtotime($period->periodfrom)) }}
+                        -
+                        {{ date('M d, Y', strtotime($period->periodto)) }}
                     </option>
-                    <option value="INSERT"
-                        {{ ($action ?? '') === 'INSERT' ? 'selected' : '' }}>
-                        INSERT
-                    </option>
-                    <option value="UPDATE"
-                        {{ ($action ?? '') === 'UPDATE' ? 'selected' : '' }}>
-                        UPDATE
-                    </option>
-                    <option value="DELETE"
-                        {{ ($action ?? '') === 'DELETE' ? 'selected' : '' }}>
-                        DELETE
-                    </option>
-                </select>
-            </div>
+                @endforeach
+            </select>
+        </div>
+          
+<div class="history-filter-group">
+    <label for="record_type">History Type</label>
+
+    <select name="record_type" id="record_type">
+        <option value=""
+            {{ ($recordType ?? '') === '' ? 'selected' : '' }}>
+            All Types
+        </option>
+
+        <option value="payroll-ADD"
+            {{ ($recordType ?? '') === 'payroll-ADD' ? 'selected' : '' }}>
+            payroll-ADD — Add-on
+        </option>
+
+        <option value="payroll-DED"
+            {{ ($recordType ?? '') === 'payroll-DED' ? 'selected' : '' }}>
+            payroll-DED — Deduction
+        </option>
+
+        <option value="EDIT TIME"
+            {{ ($recordType ?? '') === 'EDIT TIME' ? 'selected' : '' }}>
+            EDIT TIME
+        </option>
+    </select>
+</div>
+
             {{-- SEARCH --}}
             <div class="history-filter-actions">
                 <button type="submit">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     Search
                 </button>
-                <a href="{{ route('payroll.history', ['payroll' => $payroll->id]) }}">
+             <a href="{{ route('payroll.history.index', [
+                    'company' => $company,
+                    'dept' => $deptId,
+                ]) }}">
                     Clear
                 </a>
             </div>
@@ -141,27 +147,27 @@ $backUrl = route('payroll.history.index', [
             </div>
             <div class="history-table-wrapper">
                 <table class="history-table">
+                    
                     <thead>
                         <tr>
-                            <th>Date / Time</th>
-                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Name</th>
                             <th>Type</th>
-                            <th>Category</th>
-                            <th>Action</th>
-                            <th>Description</th>
-                            <th>Old Value</th>
-                            <th>New Value</th>
+                            <th>Action - Description</th>
+                            <th>Value (Old → New)</th>
                             <th>Changed By</th>
                         </tr>
                     </thead>
+
+                                    
                     <tbody>
                         @foreach ($entries as $entry)
                             @php
                                 $typeLabel = match ($entry->type) {
-                                    'addon'     => 'Add-on',
-                                    'deduction' => 'Deduction',
-                                    'payroll'   => 'Edit Time',
-                                    default     => ucfirst($entry->type ?? '-'),
+                                    'addon'     => 'Payroll-ADD',
+                                    'deduction' => 'Payroll-DED',
+                                    'payroll'   => 'EDIT TIME',
+                                    default     => strtoupper($entry->type ?? '-'),
                                 };
 
                                 $categoryLabel = match ($entry->category) {
@@ -169,82 +175,101 @@ $backUrl = route('payroll.history.index', [
                                     'constant'            => 'Constant',
                                     'attendance'          => 'Attendance',
                                     'attendance_override' => 'Attendance Override',
-                                    default               => ucfirst($entry->category ?? '-'),
+                                    default               => ucfirst($entry->category ?? ''),
                                 };
+
                                 $actionClass = match (strtoupper($entry->action ?? '')) {
                                     'INSERT' => 'history-badge-insert',
                                     'UPDATE' => 'history-badge-update',
                                     'DELETE' => 'history-badge-delete',
                                     default  => 'history-badge-default',
                                 };
+
+                                $employeeName = trim(
+                                    ($entry->firstname ?? '') . ' ' .
+                                    ($entry->lastname ?? '')
+                                ) ?: ($entry->idno ?? '-');
+
+                                $changedByName = trim(
+                                    ($entry->changed_by_firstname ?? '') . ' ' .
+                                    ($entry->changed_by_lastname ?? '')
+                                ) ?: ($entry->changed_by ?? '-');
                             @endphp
+
                             <tr>
-                                {{-- DATE / TIME --}}
+                                {{-- DATE --}}
                                 <td class="history-date">
                                     {{ $entry->changed_at
                                         ? date('M d, Y', strtotime($entry->changed_at))
                                         : '-' }}
+
                                     <small>
                                         {{ $entry->changed_at
                                             ? date('h:i A', strtotime($entry->changed_at))
                                             : '' }}
                                     </small>
                                 </td>
-                                {{-- EMPLOYEE --}}
+
+                                {{-- NAME --}}
                                 <td class="history-employee">
-                                    <strong>
-                                        {{ trim(
-                                            ($entry->firstname ?? '') . ' ' .
-                                            ($entry->lastname ?? '')
-                                        ) ?: ($entry->idno ?? '-') }}
-                                    </strong>
+                                    <strong>{{ $employeeName }}</strong>
+
+                                    @if (!empty($entry->idno))
+                                        <small>{{ $entry->idno }}</small>
+                                    @endif
                                 </td>
-                                {{-- TYPE --}}
+
+                                {{-- TYPE + CATEGORY --}}
                                 <td>
-                                    {{ $typeLabel }}
+                                    <strong>{{ $typeLabel }}</strong>
+
+                                    @if ($categoryLabel !== '')
+                                        <small class="history-category">
+                                            {{ $categoryLabel }}
+                                        </small>
+                                    @endif
                                 </td>
-                                {{-- CATEGORY --}}
-                                <td>
-                                    {{ $categoryLabel }}
-                                </td>
-                                {{-- ACTION --}}
-                                <td>
+
+                                {{-- ACTION + DESCRIPTION --}}
+                                <td class="history-description">
                                     <span class="history-badge {{ $actionClass }}">
                                         {{ strtoupper($entry->action ?? '-') }}
                                     </span>
+
+                                    <div>
+                                        {{ $entry->description ?? '-' }}
+                                    </div>
                                 </td>
-                                {{-- DESCRIPTION --}}
-                                <td class="history-description">
-                                    {{ $entry->description ?? '-' }}
-                                </td>
-                                {{-- OLD VALUE --}}
+
+                                {{-- OLD VALUE → NEW VALUE --}}
                                 <td class="history-value">
-                                    @if ($entry->old_value !== null)
-                                        {{ number_format((float) $entry->old_value, 2) }}
-                                    @else
-                                        -
-                                    @endif
+                                    <span>
+                                        @if ($entry->old_value !== null)
+                                            {{ number_format((float) $entry->old_value, 2) }}
+                                        @else
+                                            -
+                                        @endif
+                                    </span>
+
+                                    <span aria-hidden="true"> → </span>
+
+                                    <strong>
+                                        @if ($entry->new_value !== null)
+                                            {{ number_format((float) $entry->new_value, 2) }}
+                                        @else
+                                            -
+                                        @endif
+                                    </strong>
                                 </td>
-                                {{-- NEW VALUE --}}
-                                <td class="history-value">
-                                    @if ($entry->new_value !== null)
-                                        {{ number_format((float) $entry->new_value, 2) }}
-                                    @else
-                                        -
-                                    @endif
-                                </td>
+
                                 {{-- CHANGED BY --}}
                                 <td class="history-employee">
-                                    <strong>
-                                        {{ trim(
-                                            ($entry->changed_by_firstname ?? '') . ' ' .
-                                            ($entry->changed_by_lastname ?? '')
-                                        ) ?: ($entry->changed_by ?? '-') }}
-                                    </strong>
+                                    <strong>{{ $changedByName }}</strong>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
+
                 </table>
             </div>
         @endif

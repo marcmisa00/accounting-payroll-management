@@ -199,7 +199,7 @@ class PayslipService
         return [$detail, [
             'fullname'   => trim("{$employee->firstname} {$employee->lastname} {$employee->suffix}"),
             'team'       => $employee->team,
-            'baseRate'   => (float) $ep->salary,
+            'baseRate'   => (float) ($detail->salary_rate ?? 0),
             'basePrev'   => (float) $ep->previous_salary,
             'periodFrom' => $period->periodfrom,
             'periodTo'   => $period->periodto,

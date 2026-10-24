@@ -51,6 +51,7 @@ function SubmitDetails() {
           'dept' => $deptId
       ]) }}">
     @csrf
+    <input type="hidden" name="salary_rate" value="{{ $salaryRate ?? '' }}">
 
         <div class="content-panel">
             <div class="panel-heading">
