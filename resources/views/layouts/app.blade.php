@@ -4,408 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Accounting Portal')</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* ----- light theme (default) ----- */
-        :root {
-            --bg-body: #f2f4f7;
-            --text-primary: #222;
-            --sidebar-bg-start: #4b79a1;
-            --sidebar-bg-end: #283e51;
-            --sidebar-text: rgba(255, 255, 255, 0.85);
-            --sidebar-border: rgba(255, 255, 255, 0.15);
-            --sidebar-hover: rgba(255, 255, 255, 0.08);
-            --sidebar-active: rgba(255, 255, 255, 0.12);
-            --topbar-bg: #ffffff;
-            --topbar-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            --avatar-bg: #4b79a1;
-            --card-bg: #ffffff;
-        }
-
-        /* ----- dark theme overrides ----- */
-        html.dark-mode {
-            --bg-body: #12181f;
-            --text-primary: #e8edf2;
-            --sidebar-bg-start: #1a2530;
-            --sidebar-bg-end: #0d141c;
-            --sidebar-text: rgba(255, 255, 255, 0.75);
-            --sidebar-border: rgba(255, 255, 255, 0.08);
-            --sidebar-hover: rgba(255, 255, 255, 0.06);
-            --sidebar-active: rgba(255, 255, 255, 0.12);
-            --topbar-bg: #1a232d;
-            --topbar-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-            --avatar-bg: #2c3e4e;
-            --card-bg: #1e2a36;
-        }
-
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            margin: 0;
-            background: var(--bg-body);
-            color: var(--text-primary);
-            display: flex;
-            min-height: 100vh;
-            transition: background 0.2s, color 0.2s;
-        }
-
-        /* ----- Sidebar ----- */
-        .sidebar {
-            width: 240px;
-            flex-shrink: 0;
-            position: relative;
-            background: linear-gradient(
-                180deg,
-                var(--sidebar-bg-start),
-                var(--sidebar-bg-end)
-            );
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            padding: 28px 0;
-            transition: width 0.25s ease, background 0.2s;
-        }
-
-        /* Sidebar collapse button */
-        .sidebar-toggle {
-            position: absolute;
-            top: 50%;
-            right: -16px;
-            transform: translateY(-50%);
-            width: 31px;
-            height: 31px;
-            border: none;
-            border-radius: 50%;
-            background: var(--sidebar-bg-end);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-            transition: transform 0.25s ease, background 0.15s ease;
-        }
-
-        .sidebar-toggle:hover {
-            background: var(--sidebar-bg-start);
-        }
-
-        /* Collapsed sidebar: slimmer and cleaner for payroll pages */
-        body.sidebar-collapsed .sidebar {
-            width: 62px;
-            padding-left: 0;
-            padding-right: 0;
-            overflow: visible;
-        }
-
-        body.sidebar-collapsed .sidebar .brand-text,
-        body.sidebar-collapsed .sidebar .nav-text,
-        body.sidebar-collapsed .sidebar .logout-text,
-        body.sidebar-collapsed .sidebar .payroll-submenu,
-        body.sidebar-collapsed .sidebar .payroll-arrow {
-            display: none !important;
-        }
-
-        body.sidebar-collapsed .sidebar nav a,
-        body.sidebar-collapsed .sidebar .logout button {
-            justify-content: center;
-            padding-left: 0;
-            padding-right: 0;
-            text-align: center;
-        }
-
-        body.sidebar-collapsed .sidebar nav a {
-            padding-top: 12px;
-            padding-bottom: 12px;
-            gap: 0;
-        }
-
-        body.sidebar-collapsed .sidebar .icon {
-            width: 20px;
-            height: 20px;
-            font-size: 20px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        body.sidebar-collapsed .sidebar .brand {
-            padding: 0 0 18px;
-            text-align: center;
-            font-size: 12px;
-        }
-
-        body.sidebar-collapsed .sidebar .logout {
-            padding: 12px 0;
-        }
-
-        body.sidebar-collapsed .sidebar .logout button {
-            width: 100%;
-            padding: 10px 0;
-        }
-
-        body.sidebar-collapsed .sidebar-toggle {
-            transform: translateY(-50%) rotate(180deg);
-        }
-
-        body.sidebar-collapsed .main {
-            flex: 1;
-        }
-
-        /* =========================================
-        TOPBAR SIDEBAR BUTTON
-        ========================================= */
-
-        .topbar-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .topbar-sidebar-toggle {
-            width: 38px;
-            height: 38px;
-
-            border: 1px solid rgba(128, 128, 128, 0.35);
-            border-radius: 8px;
-
-            background: transparent;
-            color: var(--text-primary);
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            cursor: pointer;
-
-            font-size: 17px;
-
-            transition:
-                background 0.15s,
-                border-color 0.15s;
-        }
-
-        .topbar-sidebar-toggle:hover {
-            background: rgba(128, 128, 128, 0.12);
-            border-color: rgba(128, 128, 128, 0.6);
-        }
-
-        .sidebar .brand {
-            font-size: 19px;
-            font-weight: 700;
-            padding: 0 24px 28px;
-            border-bottom: 1px solid var(--sidebar-border);
-            margin-bottom: 20px;
-            color: #ffffff;
-        }
-
-        .sidebar nav {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .sidebar nav a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--sidebar-text);
-            text-decoration: none;
-            padding: 12px 24px;
-            font-size: 15px;
-            font-weight: 500;
-            border-left: 3px solid transparent;
-            transition: background 0.15s, color 0.15s, border-color 0.15s;
-        }
-
-        .sidebar nav a:hover {
-            background: var(--sidebar-hover);
-        }
-
-        .sidebar nav a.active {
-            background: var(--sidebar-active);
-            border-left-color: #ffffff;
-            color: #ffffff;
-        }
-
-        .sidebar .icon {
-            width: 18px;
-            text-align: center;
-        }
-
-        .sidebar .logout {
-            padding: 12px 24px;
-            border-top: 1px solid var(--sidebar-border);
-            margin-top: 12px;
-        }
-
-        .sidebar .logout button {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .sidebar .logout button:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* ----- Main area ----- */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .topbar {
-            background: var(--topbar-bg);
-            padding: 18px 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: var(--topbar-shadow);
-            transition: background 0.2s, box-shadow 0.2s;
-        }
-
-        .topbar h1 {
-            font-size: 20px;
-            margin: 0;
-            color: var(--text-primary);
-            transition: color 0.2s;
-        }
-
-        .topbar .user {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            color: var(--text-primary);
-            opacity: 0.85;
-            transition: color 0.2s;
-        }
-
-        .topbar .avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: var(--avatar-bg);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-
-        /* ----- dark mode toggle button (inside topbar) ----- */
-        .theme-toggle {
-            background: transparent;
-            border: 1px solid rgba(128, 128, 128, 0.35);
-            color: var(--text-primary);
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-            transition: background 0.15s, border-color 0.15s, color 0.15s;
-            margin-right: 6px;
-        }
-
-        .theme-toggle:hover {
-            background: rgba(128, 128, 128, 0.12);
-            border-color: rgba(128, 128, 128, 0.6);
-        }
-
-        .content {
-            padding: 32px;
-            flex: 1;
-        }
-
-        /* ----- optional card style to showcase dark mode ----- */
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-            transition: background 0.2s, box-shadow 0.2s;
-            color: var(--text-primary);
-        }
-
-        .card h3 {
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .card p {
-            opacity: 0.8;
-            line-height: 1.5;
-        }
-       .payroll-menu {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .payroll-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .payroll-arrow {
-            margin-left: auto;
-            font-size: 12px;
-            transition: transform 0.2s ease;
-        }
-
-        .payroll-submenu {
-            display: none;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .payroll-submenu.show {
-            display: block;
-        }
-
-        .payroll-submenu a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 15px 10px 45px;
-            text-decoration: none;
-        }
-
-        .payroll-arrow.rotate {
-            transform: rotate(180deg);
-        }
-
-
-        body.payroll-show .content {
-            padding: 20px;
-        }
-    </style>
+@vite(['resources/css/app.css'])
 <script>
         (function () {
             try {
@@ -535,16 +134,38 @@
 
     <div class="user">
 
-        <button class="theme-toggle"
+            @php
+                $portalIdno = session('portal_idno');
+                $portalDisplayName = $portalIdno
+                    ? trim((string) \Illuminate\Support\Facades\DB::connection('hris')
+                        ->table('employee_profile')
+                        ->where('idno', $portalIdno)
+                        ->value('firstname'))
+                    : '';
+                if ($portalDisplayName === '') {
+                    $portalDisplayName = 'there';
+                }
+                $portalFirstName = ucfirst(explode(' ', $portalDisplayName)[0]);
+                $hour = now()->setTimezone(config('app.timezone', 'Asia/Manila'))->hour;
+                $greeting = $hour < 12
+                    ? 'Good morning'
+                    : ($hour < 18 ? 'Good afternoon' : 'Good evening');
+            @endphp
+
+        <button type="button"
+                class="theme-toggle"
                 id="themeToggle"
-                aria-label="Toggle dark mode">
-            🌙
+                role="switch"
+                aria-checked="false"
+                aria-label="Switch to dark mode"
+                title="Toggle dark mode">
+            <span class="switch-knob"></span>
         </button>
 
-        <span>ID: {{ session('portal_idno') }}</span>
+        <span>{{ $greeting }}, {{ $portalFirstName }}!</span>
 
-        <div class="avatar">
-            {{ strtoupper(substr(session('portal_idno', 'U'), 0, 1)) }}
+        <div class="avatar" aria-hidden="true">
+            {{ strtoupper(substr($portalFirstName, 0, 1)) }}
         </div>
 
     </div>
@@ -571,17 +192,20 @@
                 return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
 
-            // 2. Apply theme class and update button icon
+            // 2. Apply theme and update the light-switch state
             function applyTheme(theme) {
-                if (theme === 'dark') {
-                    html.classList.add('dark-mode');
-                    toggleBtn.textContent = '☀️';   // sun icon for switching to light
-                    toggleBtn.setAttribute('aria-label', 'Switch to light mode');
-                } else {
-                    html.classList.remove('dark-mode');
-                    toggleBtn.textContent = '🌙';   // moon icon for switching to dark
-                    toggleBtn.setAttribute('aria-label', 'Switch to dark mode');
-                }
+                const isDark = theme === 'dark';
+
+                html.classList.toggle('dark-mode', isDark);
+                toggleBtn.setAttribute('aria-checked', String(isDark));
+                toggleBtn.setAttribute(
+                    'aria-label',
+                    isDark ? 'Switch to light mode' : 'Switch to dark mode'
+                );
+                toggleBtn.setAttribute(
+                    'title',
+                    isDark ? 'Dark mode is on — switch to light mode' : 'Dark mode is off — switch to dark mode'
+                );
             }
 
             // 3. Set initial theme

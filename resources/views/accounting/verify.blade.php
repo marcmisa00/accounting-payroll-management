@@ -1,126 +1,321 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Accounting Portal Verification</title>
+    <title>Secure Verification | Accounting Portal</title>
+    @vite(['resources/css/verify.css'])
+    </head>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+    <body>
 
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: linear-gradient(135deg, #4b79a1, #283e51);
-            min-height: 100vh;
-            margin: 0;
+<div class="orb orb-one"></div>
+<div class="orb orb-two"></div>
 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+<main class="verify-box" id="verifyBox">
 
-        .verify-box {
-            background: #ffffff;
-            width: 380px;
-            padding: 40px 35px;
-            border-radius: 18px;
+    <div class="brand">
+        <span class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+                <path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/>
+                <path d="m9 12 2 2 4-4"/>
+            </svg>
+        </span>
+        ACCOUNTING PORTAL
+    </div>
 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    <div class="security-icon">
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+            <rect x="5" y="10" width="14" height="11" rx="2.5"/>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+            <path d="M12 14v3"/>
+            <circle cx="12" cy="14" r="1"/>
+        </svg>
+    </div>
 
-            text-align: center;
-        }
+    <h1>Verify it's you</h1>
 
-        h2 {
-            margin-top: 0;
-            color: #222;
-            font-size: 24px;
-        }
+    <p class="subtitle">
+        One last step to securely access your
+        Accounting Portal. Enter the 6-digit code
+        from your Google Authenticator app.
+    </p>
 
-        p {
-            color: #555;
-            margin-bottom: 25px;
-        }
+    @if ($has2fa)
+        <div class="status registered">
+            <span class="status-dot"></span>
+            Google Authenticator is registered
+        </div>
+    @else
+        <div class="status unregistered">
+            <span class="status-dot"></span>
+            Google Authenticator is not registered
+        </div>
+    @endif
 
-        input[type="text"] {
-            width: 60%;
-            padding: 14px;
+    <form method="POST"
+          action="{{ route('accounting.verify.code') }}"
+          id="verifyForm">
 
-            font-size: 18px;
+        @csrf
 
-            border: 2px solid #ddd;
-            border-radius: 10px;
+        <label class="field-label" for="otp-0">
+            Authentication code
+        </label>
 
-            text-align: center;
-        }
+        <div class="otp-group {{ $errors->has('code') ? 'shake' : '' }}"
+             id="otpGroup">
 
-        input[type="text"]:focus {
-            border-color: #4b79a1;
-            outline: none;
-        }
+            @for ($i = 0; $i < 6; $i++)
+                <input
+                    type="text"
+                    class="otp-input"
+                    id="otp-{{ $i }}"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    maxlength="1"
+                    autocomplete="{{ $i === 0 ? 'one-time-code' : 'off' }}"
+                    aria-label="Digit {{ $i + 1 }}"
+                    {{ $i === 0 ? 'autofocus' : '' }}
+                    required
+                >
+            @endfor
 
-        button {
-            width: 100%;
-            padding: 14px;
+        </div>
 
-            font-size: 17px;
+        <input type="hidden" name="code" id="fullCode">
 
-            background: #4b79a1;
-            color: white;
+        @error('code')
+            <div class="error-message" role="alert" id="codeError">
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 8v5M12 16h.01"/>
+                </svg>
+                <span>{{ $message }}</span>
+            </div>
+        @enderror
 
-            border: none;
-            border-radius: 10px;
-
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        button:hover {
-            background: #3a637f;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="verify-box">
-
-    <h2>Accounting Portal Verification</h2>
-
-        <p>
-            Please enter the 6-digit code from your
-            Google Authenticator app.
+        <p class="hint" id="otpHint" aria-live="polite">
+            Enter all 6 digits to continue
         </p>
 
-        @if ($has2fa)
-            <p style="color: green;">
-                ✓ Google Authenticator is registered.
-            </p>
-        @else
-            <p style="color: #c0392b;">
-                Google Authenticator is not registered for this account.
-            </p>
-        @endif
+        <button type="submit" class="verify-button" id="verifyButton">
+            <svg id="buttonIcon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+                <rect x="5" y="10" width="14" height="11" rx="2"/>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+            </svg>
+            <span id="buttonText">Verify &amp; Continue</span>
+        </button>
 
-  <form method="POST" action="{{ route('accounting.verify.code') }}">
-    @csrf
+    </form>
 
-    <input
-        type="text"
-        name="code"
-        maxlength="6"
-        inputmode="numeric"
-        placeholder="Enter code"
-        required
-    >
+    <div class="secure-note">
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+            <path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/>
+            <path d="m9 12 2 2 4-4"/>
+        </svg>
+        Protected by two-factor authentication
+    </div>
 
-    <br><br>
+    <div class="footer">
+        NESI ACCOUNTING SYSTEM &bull; SECURE ACCESS
+    </div>
 
-    <button type="submit">Verify</button>
-</form>
+</main>
 
-</div>
+
+<script>
+    const form = document.getElementById('verifyForm');
+    const box = document.getElementById('verifyBox');
+    const group = document.getElementById('otpGroup');
+    const inputs = Array.from(document.querySelectorAll('.otp-input'));
+    const fullCode = document.getElementById('fullCode');
+    const hint = document.getElementById('otpHint');
+    const button = document.getElementById('verifyButton');
+    const buttonText = document.getElementById('buttonText');
+    const buttonIcon = document.getElementById('buttonIcon');
+
+    let submitting = false;
+    let hasError = {{ $errors->has('code') ? 'true' : 'false' }};
+
+    function getCode() {
+        return inputs.map(input => input.value).join('');
+    }
+
+    function updateCode() {
+        const code = getCode();
+
+        fullCode.value = code;
+
+        inputs.forEach(input => {
+            input.classList.toggle('filled', input.value !== '');
+        });
+
+        // Preserve the error message until the user starts retrying.
+        if (hasError) {
+            hint.textContent = 'Incorrect code. Please try again.';
+            hint.style.color = '#e5484d';
+            return;
+        }
+
+        if (code.length === 6) {
+            hint.textContent = 'All 6 digits entered. Ready to verify.';
+            hint.style.color = '#16a875';
+        } else {
+            hint.textContent = 'Enter all 6 digits to continue';
+            hint.style.color = '#929bad';
+        }
+    }
+
+    function clearError() {
+        if (!hasError) return;
+
+        hasError = false;
+        group.classList.remove('invalid', 'shake');
+
+        // Clear the server error message from the current page.
+        const errorMessage = document.getElementById('codeError');
+        if (errorMessage) {
+            errorMessage.remove();
+        }
+
+        hint.textContent = 'Enter all 6 digits to continue';
+        hint.style.color = '#929bad';
+    }
+
+    function shakeBoxes() {
+        group.classList.remove('shake');
+
+        // Restart the CSS animation.
+        void group.offsetWidth;
+
+        group.classList.add('shake');
+    }
+
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', () => {
+            clearError();
+
+            // Accept numeric characters only.
+            input.value = input.value.replace(/\D/g, '').slice(-1);
+
+            if (input.value && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+
+            updateCode();
+        });
+
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Backspace' && !input.value && index > 0) {
+                inputs[index - 1].focus();
+            }
+
+            if (event.key === 'ArrowLeft' && index > 0) {
+                inputs[index - 1].focus();
+            }
+
+            if (event.key === 'ArrowRight' && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener('focus', () => {
+            input.select();
+        });
+
+        input.addEventListener('paste', event => {
+            event.preventDefault();
+
+            clearError();
+
+            const pasted = (event.clipboardData || window.clipboardData)
+                .getData('text')
+                .replace(/\D/g, '')
+                .slice(0, 6);
+
+            if (!pasted) return;
+
+            inputs.forEach((field, i) => {
+                field.value = pasted[i] || '';
+            });
+
+            const nextEmpty = inputs.findIndex(field => !field.value);
+
+            if (nextEmpty === -1) {
+                inputs[5].focus();
+            } else {
+                inputs[nextEmpty].focus();
+            }
+
+            updateCode();
+        });
+    });
+
+    // Laravel returned an incorrect-code validation error.
+    @if ($errors->has('code'))
+        group.classList.add('invalid');
+
+        inputs.forEach(input => {
+            input.value = '';
+        });
+
+        updateCode();
+        shakeBoxes();
+
+        inputs[0].focus();
+    @endif
+
+    form.addEventListener('submit', event => {
+        if (submitting) {
+            event.preventDefault();
+            return;
+        }
+
+        const code = getCode();
+
+        if (code.length !== 6) {
+            event.preventDefault();
+
+            const firstEmpty = inputs.findIndex(input => !input.value);
+
+            if (firstEmpty !== -1) {
+                inputs[firstEmpty].focus();
+            }
+
+            shakeBoxes();
+            return;
+        }
+
+        fullCode.value = code;
+        submitting = true;
+
+        button.disabled = true;
+        buttonText.textContent = 'Verifying securely...';
+
+        buttonIcon.outerHTML =
+            '<span class="spinner" id="buttonIcon" aria-hidden="true"></span>';
+
+        // Dissolve while Laravel verifies the code.
+        box.classList.add('dissolve');
+    });
+</script>
 </body>
 </html>
