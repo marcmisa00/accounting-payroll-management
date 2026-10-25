@@ -7,7 +7,24 @@
 
     <title>Secure Verification | Accounting Portal</title>
     @vite(['resources/css/verify.css'])
+    <script>
+        // Same saved theme as the portal layout (no switch on this page)
+        (function () {
+            try {
+                const stored = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if ((stored || (prefersDark ? 'dark' : 'light')) === 'dark') {
+                    document.documentElement.classList.add('dark-mode');
+                }
+            } catch (e) {}
+        })();
+    </script>
     </head>
+
+    @php
+        // Validation errors arrive as $errors; a wrong or unregistered code arrives as session('error')
+        $codeError = $errors->first('code') ?: session('error');
+    @endphp
 
     <body>
 
@@ -71,7 +88,7 @@
             Authentication code
         </label>
 
-        <div class="otp-group {{ $errors->has('code') ? 'shake' : '' }}"
+        <div class="otp-group {{ $codeError ? 'shake' : '' }}"
              id="otpGroup">
 
             @for ($i = 0; $i < 6; $i++)
@@ -93,7 +110,7 @@
 
         <input type="hidden" name="code" id="fullCode">
 
-        @error('code')
+        @if ($codeError)
             <div class="error-message" role="alert" id="codeError">
                 <svg viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
@@ -102,9 +119,9 @@
                     <circle cx="12" cy="12" r="9"/>
                     <path d="M12 8v5M12 16h.01"/>
                 </svg>
-                <span>{{ $message }}</span>
+                <span>{{ $codeError }}</span>
             </div>
-        @enderror
+        @endif
 
         <p class="hint" id="otpHint" aria-live="polite">
             Enter all 6 digits to continue
@@ -153,7 +170,7 @@
     const buttonIcon = document.getElementById('buttonIcon');
 
     let submitting = false;
-    let hasError = {{ $errors->has('code') ? 'true' : 'false' }};
+    let hasError = {{ $codeError ? 'true' : 'false' }};
 
     function getCode() {
         return inputs.map(input => input.value).join('');
@@ -170,17 +187,17 @@
 
         // Preserve the error message until the user starts retrying.
         if (hasError) {
-            hint.textContent = 'Incorrect code. Please try again.';
-            hint.style.color = '#e5484d';
+            hint.textContent = 'Please try again.';
+            hint.dataset.state = 'error';
             return;
         }
 
         if (code.length === 6) {
             hint.textContent = 'All 6 digits entered. Ready to verify.';
-            hint.style.color = '#16a875';
+            hint.dataset.state = 'ready';
         } else {
             hint.textContent = 'Enter all 6 digits to continue';
-            hint.style.color = '#929bad';
+            hint.dataset.state = '';
         }
     }
 
@@ -197,7 +214,7 @@
         }
 
         hint.textContent = 'Enter all 6 digits to continue';
-        hint.style.color = '#929bad';
+        hint.dataset.state = '';
     }
 
     function shakeBoxes() {
@@ -270,7 +287,7 @@
     });
 
     // Laravel returned an incorrect-code validation error.
-    @if ($errors->has('code'))
+    @if ($codeError)
         group.classList.add('invalid');
 
         inputs.forEach(input => {

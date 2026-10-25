@@ -8,15 +8,20 @@
         :root {
             --bg-body: #f2f4f7;
             --text-primary: #222;
-            --sidebar-bg-start: #4b79a1;
-            --sidebar-bg-end: #283e51;
-            --sidebar-text: rgba(255, 255, 255, 0.85);
-            --sidebar-border: rgba(255, 255, 255, 0.15);
-            --sidebar-hover: rgba(255, 255, 255, 0.08);
+            --sidebar-bg-start: #1e1b4b;
+            --sidebar-bg-end: #0f172a;
+            --sidebar-text: rgba(226, 232, 240, 0.78);
+            --sidebar-border: rgba(255, 255, 255, 0.08);
+            --sidebar-hover: rgba(255, 255, 255, 0.07);
             --sidebar-active: rgba(255, 255, 255, 0.12);
-            --topbar-bg: #ffffff;
-            --topbar-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            --avatar-bg: #4b79a1;
+            --sidebar-glow: rgba(99, 102, 241, 0.35);
+            --accent-start: #6366f1;
+            --accent-end: #0ea5e9;
+            --topbar-bg: rgba(255, 255, 255, 0.85);
+            --topbar-border: rgba(15, 23, 42, 0.07);
+            --topbar-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            --topbar-muted: #64748b;
+            --avatar-bg: linear-gradient(135deg, #6366f1, #0ea5e9);
             --card-bg: #ffffff;
         }
 
@@ -24,15 +29,20 @@
         html.dark-mode {
             --bg-body: #12181f;
             --text-primary: #e8edf2;
-            --sidebar-bg-start: #1a2530;
-            --sidebar-bg-end: #0d141c;
-            --sidebar-text: rgba(255, 255, 255, 0.75);
-            --sidebar-border: rgba(255, 255, 255, 0.08);
-            --sidebar-hover: rgba(255, 255, 255, 0.06);
-            --sidebar-active: rgba(255, 255, 255, 0.12);
-            --topbar-bg: #1a232d;
-            --topbar-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-            --avatar-bg: #2c3e4e;
+            --sidebar-bg-start: #111633;
+            --sidebar-bg-end: #070b14;
+            --sidebar-text: rgba(203, 213, 225, 0.72);
+            --sidebar-border: rgba(255, 255, 255, 0.06);
+            --sidebar-hover: rgba(255, 255, 255, 0.05);
+            --sidebar-active: rgba(255, 255, 255, 0.10);
+            --sidebar-glow: rgba(99, 102, 241, 0.25);
+            --accent-start: #4f46e5;
+            --accent-end: #0284c7;
+            --topbar-bg: rgba(21, 29, 43, 0.85);
+            --topbar-border: rgba(148, 163, 184, 0.10);
+            --topbar-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+            --topbar-muted: #8b9bb4;
+            --avatar-bg: linear-gradient(135deg, #4f46e5, #0284c7);
             --card-bg: #1e2a36;
         }
 
@@ -43,23 +53,45 @@
             color: var(--text-primary);
             display: flex;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
             transition: background 0.2s, color 0.2s;
+        }
+
+        /* ----- Dark mode wave (View Transitions API, driven from the layout script) ----- */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+
+        ::view-transition-new(root) {
+            z-index: 2;
+        }
+
+        /* Element colour transitions would blur the wave edge, so pause them while it runs */
+        html.theme-wave *,
+        html.theme-wave *::before,
+        html.theme-wave *::after {
+            transition: none !important;
         }
 
         /* ----- Sidebar ----- */
         .sidebar {
-            width: 240px;
+            width: 248px;
             flex-shrink: 0;
             position: relative;
-            background: linear-gradient(
-                180deg,
-                var(--sidebar-bg-start),
-                var(--sidebar-bg-end)
-            );
+            background:
+                radial-gradient(120% 40% at 0% 0%, var(--sidebar-glow), transparent 60%),
+                linear-gradient(
+                    180deg,
+                    var(--sidebar-bg-start),
+                    var(--sidebar-bg-end)
+                );
             color: #fff;
             display: flex;
             flex-direction: column;
-            padding: 28px 0;
+            padding: 24px 0;
+            border-right: 1px solid var(--sidebar-border);
             transition: width 0.25s ease, background 0.2s;
         }
 
@@ -67,30 +99,31 @@
         .sidebar-toggle {
             position: absolute;
             top: 50%;
-            right: -16px;
+            right: -14px;
             transform: translateY(-50%);
-            width: 31px;
-            height: 31px;
-            border: none;
+            width: 28px;
+            height: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%;
-            background: var(--sidebar-bg-end);
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
             color: #fff;
+            font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 1000;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-            transition: transform 0.25s ease, background 0.15s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.45);
+            transition: transform 0.25s ease, box-shadow 0.15s ease;
         }
 
         .sidebar-toggle:hover {
-            background: var(--sidebar-bg-start);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.6);
         }
 
         /* Collapsed sidebar: slimmer and cleaner for payroll pages */
         body.sidebar-collapsed .sidebar {
-            width: 62px;
+            width: 68px;
             padding-left: 0;
             padding-right: 0;
             overflow: visible;
@@ -113,6 +146,7 @@
         }
 
         body.sidebar-collapsed .sidebar nav a {
+            margin: 0 10px;
             padding-top: 12px;
             padding-bottom: 12px;
             gap: 0;
@@ -121,7 +155,7 @@
         body.sidebar-collapsed .sidebar .icon {
             width: 20px;
             height: 20px;
-            font-size: 20px;
+            font-size: 17px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -129,12 +163,12 @@
 
         body.sidebar-collapsed .sidebar .brand {
             padding: 0 0 18px;
-            text-align: center;
+            justify-content: center;
             font-size: 12px;
         }
 
         body.sidebar-collapsed .sidebar .logout {
-            padding: 12px 0;
+            padding: 12px 10px;
         }
 
         body.sidebar-collapsed .sidebar .logout button {
@@ -189,12 +223,33 @@
         }
 
         .sidebar .brand {
-            font-size: 19px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 17px;
             font-weight: 700;
-            padding: 0 24px 28px;
+            letter-spacing: -0.01em;
+            padding: 0 20px 22px;
             border-bottom: 1px solid var(--sidebar-border);
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             color: #ffffff;
+        }
+
+        /* Logo mark */
+        .sidebar .brand::before {
+            content: "\f19c";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.45),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.25);
         }
 
         .sidebar nav {
@@ -208,23 +263,26 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            margin: 0 12px;
             color: var(--sidebar-text);
             text-decoration: none;
-            padding: 12px 24px;
-            font-size: 15px;
+            padding: 11px 14px;
+            font-size: 14px;
             font-weight: 500;
-            border-left: 3px solid transparent;
-            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            border-radius: 12px;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
         }
 
         .sidebar nav a:hover {
             background: var(--sidebar-hover);
+            color: #ffffff;
         }
 
         .sidebar nav a.active {
-            background: var(--sidebar-active);
-            border-left-color: #ffffff;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
             color: #ffffff;
+            box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.6),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
 
         .sidebar .icon {
@@ -233,47 +291,60 @@
         }
 
         .sidebar .logout {
-            padding: 12px 24px;
+            padding: 14px 12px 0;
             border-top: 1px solid var(--sidebar-border);
             margin-top: 12px;
         }
 
         .sidebar .logout button {
             width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.85);
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 12px;
+            font-family: inherit;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
         }
 
         .sidebar .logout button:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(244, 63, 94, 0.18);
+            border-color: rgba(244, 63, 94, 0.35);
+            color: #ffffff;
         }
 
         /* ----- Main area ----- */
         .main {
             flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
         }
 
         .topbar {
             background: var(--topbar-bg);
-            padding: 18px 32px;
+            -webkit-backdrop-filter: saturate(180%) blur(12px);
+            backdrop-filter: saturate(180%) blur(12px);
+            padding: 14px 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            border-bottom: 1px solid var(--topbar-border);
             box-shadow: var(--topbar-shadow);
             transition: background 0.2s, box-shadow 0.2s;
         }
 
         .topbar h1 {
             font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
             margin: 0;
             color: var(--text-primary);
             transition: color 0.2s;
@@ -282,95 +353,92 @@
         .topbar .user {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 14px;
+            font-weight: 500;
             color: var(--text-primary);
-            opacity: 0.85;
             transition: color 0.2s;
         }
 
+        .topbar .user > span {
+            color: var(--topbar-muted);
+        }
+
         .topbar .avatar {
-            width: 34px;
-            height: 34px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             background: var(--avatar-bg);
             color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 14px;
-            transition: background 0.2s;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35), 0 4px 10px rgba(79, 70, 229, 0.3);
         }
 
-        /* ----- physical-style light switch for theme ----- */
+        /* ----- pill switch for theme (sun / moon) ----- */
         .theme-toggle {
             position: relative;
-            width: 66px;
-            height: 36px;
-            flex: 0 0 66px;
-            padding: 4px;
-            border: 1px solid rgba(128, 128, 128, 0.35);
-            border-radius: 7px;
-            background: #e4e8ed;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12),
-                        0 1px 2px rgba(0, 0, 0, 0.06);
+            width: 60px;
+            height: 32px;
+            flex: 0 0 60px;
+            padding: 3px;
+            border: 1px solid rgba(15, 23, 42, 0.10);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e0f2fe, #e2e8f0);
+            box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.12);
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: flex-start;
-            margin-right: 6px;
-            transition: background 0.2s ease, border-color 0.2s ease;
-        }
-
-        .theme-toggle::before {
-            content: "OFF";
-            position: absolute;
-            right: 7px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #5d6670;
-            font-size: 9px;
-            font-weight: 800;
-            letter-spacing: 0.4px;
+            margin-right: 4px;
+            transition: background 0.3s ease, border-color 0.3s ease;
         }
 
         .theme-toggle .switch-knob {
-            width: 26px;
-            height: 26px;
-            border-radius: 5px;
-            background: linear-gradient(145deg, #ffffff, #d9dee5);
-            border: 1px solid rgba(80, 90, 100, 0.25);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: #ffffff;
+            color: #f59e0b;
+            font-size: 12px;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
             transform: translateX(0);
-            transition: transform 0.22s ease, background 0.22s ease;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, color 0.3s ease;
             z-index: 1;
         }
 
+        .theme-toggle .switch-knob::before {
+            content: "\f185";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+        }
+
         .theme-toggle:hover {
-            border-color: rgba(128, 128, 128, 0.7);
+            border-color: rgba(99, 102, 241, 0.45);
         }
 
         html.dark-mode .theme-toggle {
-            background: #243b30;
-            border-color: #3e7658;
-            justify-content: flex-start;
-        }
-
-        html.dark-mode .theme-toggle::before {
-            content: "ON";
-            right: auto;
-            left: 8px;
-            color: #a9efc3;
+            background: linear-gradient(135deg, #312e81, #1e293b);
+            border-color: rgba(129, 140, 248, 0.35);
         }
 
         html.dark-mode .theme-toggle .switch-knob {
             transform: translateX(28px);
-            background: linear-gradient(145deg, #f8fff9, #b9e6c8);
+            background: #0f172a;
+            color: #c7d2fe;
+        }
+
+        html.dark-mode .theme-toggle .switch-knob::before {
+            content: "\f186";
         }
 
         .theme-toggle:focus-visible {
-            outline: 3px solid #78a9e8;
+            outline: 3px solid rgba(99, 102, 241, 0.6);
             outline-offset: 3px;
         }
 
@@ -414,14 +482,15 @@
 
         .payroll-arrow {
             margin-left: auto;
-            font-size: 12px;
+            font-size: 11px;
+            opacity: 0.7;
             transition: transform 0.2s ease;
         }
 
         .payroll-submenu {
             display: none;
             list-style: none;
-            margin: 0;
+            margin: 4px 0 0;
             padding: 0;
         }
 
@@ -435,6 +504,16 @@
             gap: 10px;
             padding: 10px 15px 10px 45px;
             text-decoration: none;
+        }
+
+        .sidebar .payroll-submenu a {
+            padding: 9px 14px 9px 42px;
+            font-size: 13px;
+        }
+
+        .sidebar .payroll-submenu a i {
+            font-size: 11px;
+            opacity: 0.8;
         }
 
         .payroll-arrow.rotate {

@@ -6,41 +6,84 @@
 
 @vite(['resources/css/dashboard.css'])
 @section('content')
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-<title>NESI Accounting Portal</title>
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+@php
+    $employeeTotal = $companies->sum('employees');
+    $bankTotal     = $companies->sum(fn ($c) => $c->banks->count());
+    $periodLabel   = $period
+        ? date('M d', strtotime($period->periodfrom)) . ' – ' . date('M d, Y', strtotime($period->periodto))
+        : 'No period selected';
+    $companyKey    = fn ($name) => strtolower(preg_replace('/[^A-Za-z0-9]/', '', $name));
+@endphp
 
-    {{-- ===================== Yearly graphs ===================== --}}
-    <div class="section-head">
-        <div>
-            <h2>Net pay in {{ $year }}</h2>
-            <div class="sub">
-                All {{ count($chart['totals']) }} companies: <strong>₱{{ number_format($chart['overall'], 2) }}</strong>
+<div class="dash">
+
+    {{-- ===================== Hero stats ===================== --}}
+    <div class="stats">
+        <div class="stat stat-hero reveal">
+            <div class="stat-icon"><i class="fa-solid fa-coins"></i></div>
+            <div class="stat-label">Net pay this period</div>
+            <div class="stat-value">₱{{ number_format($grandTotal, 2) }}</div>
+            <div class="stat-foot">
+                <i class="fa-regular fa-calendar"></i> {{ $periodLabel }}
+                @if ($period && $period->id == $currentId)
+                    <span class="badge">Current</span>
+                @endif
             </div>
         </div>
 
-        <form method="GET" action="{{ route('dashboard') }}">
+        <div class="stat reveal">
+            <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-label">Employees paid</div>
+            <div class="stat-value">{{ number_format($employeeTotal) }}</div>
+            <div class="stat-foot">Across {{ $companies->count() }} {{ Str::plural('company', $companies->count()) }}</div>
+        </div>
+
+        <div class="stat reveal">
+            <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="stat-label">Net pay in {{ $year }}</div>
+            <div class="stat-value">₱{{ number_format($chart['overall'], 2) }}</div>
+            <div class="stat-foot">All {{ count($chart['totals']) }} companies</div>
+        </div>
+
+        <div class="stat reveal">
+            <div class="stat-icon"><i class="fa-solid fa-building-columns"></i></div>
+            <div class="stat-label">Bank groups</div>
+            <div class="stat-value">{{ number_format($bankTotal) }}</div>
+            <div class="stat-foot">For the selected period</div>
+        </div>
+    </div>
+
+    {{-- ===================== Yearly graphs ===================== --}}
+    <div class="section-head reveal">
+        <div>
+            <h2>Yearly overview</h2>
+            <div class="sub">Monthly net pay by company in {{ $year }}</div>
+        </div>
+
+        <form method="GET" action="{{ route('dashboard') }}" class="picker">
             @if ($period)
                 <input type="hidden" name="period" value="{{ $period->id }}">
             @endif
             <label class="small" for="year">Year</label>
-            <select name="year" id="year" class="pick" onchange="this.form.submit()">
-                @foreach ($years as $y)
-                    <option value="{{ $y }}" @selected($y == $year)>{{ $y }}</option>
-                @endforeach
-            </select>
+            <div class="select-wrap">
+                <select name="year" id="year" class="pick" onchange="this.form.submit()">
+                    @foreach ($years as $y)
+                        <option value="{{ $y }}" @selected($y == $year)>{{ $y }}</option>
+                    @endforeach
+                </select>
+            </div>
             <noscript><button type="submit">Show</button></noscript>
         </form>
     </div>
 
     <div class="graphs">
         @foreach ($chart['totals'] as $name => $total)
-            <div class="graph">
+            <div class="graph reveal co-{{ $companyKey($name) }}">
                 <div class="graph-head">
-                    <h3>{{ $name }}</h3>
+                    <div class="graph-title">
+                        <span class="dot"></span>
+                        <h3>{{ $name }}</h3>
+                    </div>
                     <div class="amt">₱{{ number_format($total, 2) }}</div>
                 </div>
                 <div class="canvas-wrap">
@@ -51,42 +94,49 @@
         @endforeach
     </div>
 
-    <hr class="divider">
-
     {{-- ===================== Period summary ===================== --}}
-    <div class="toolbar">
-        <form method="GET" action="{{ route('dashboard') }}">
+    <div class="section-head reveal">
+        <div>
+            <h2>Period breakdown</h2>
+            <div class="sub">Net pay by company and bank. Click a bank to see its employees.</div>
+        </div>
+
+        <form method="GET" action="{{ route('dashboard') }}" class="picker">
             <label class="small" for="period">Payroll period</label>
-            <select name="period" id="period" class="pick" style="min-width: 280px;" onchange="this.form.submit()">
-                @foreach ($periods as $p)
-                    <option value="{{ $p->id }}" @selected($period && $p->id == $period->id)>
-                        {{ date('M d, Y', strtotime($p->periodfrom)) }} – {{ date('M d, Y', strtotime($p->periodto)) }}{{ $p->id == $currentId ? ' (Current)' : '' }}
-                    </option>
-                @endforeach
-            </select>
+            <div class="select-wrap">
+                <select name="period" id="period" class="pick pick-wide" onchange="this.form.submit()">
+                    @foreach ($periods as $p)
+                        <option value="{{ $p->id }}" @selected($period && $p->id == $period->id)>
+                            {{ date('M d, Y', strtotime($p->periodfrom)) }} – {{ date('M d, Y', strtotime($p->periodto)) }}{{ $p->id == $currentId ? ' (Current)' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <noscript><button type="submit">Show</button></noscript>
         </form>
-
-        <div class="grand">
-            <div class="label">Total net pay for this period</div>
-            <div class="value">₱{{ number_format($grandTotal, 2) }}</div>
-        </div>
     </div>
 
     @if ($companies->isEmpty())
-        <div class="empty">
-            No payroll data found for this period. Pick another period from the list above.
+        <div class="empty reveal">
+            <i class="fa-regular fa-folder-open"></i>
+            <p>No payroll data found for this period. Pick another period from the list above.</p>
         </div>
     @else
         <div class="companies">
             @foreach ($companies as $companyName => $company)
-                <section class="company">
+                <section class="company reveal co-{{ $companyKey($companyName) }}">
                     <div class="company-head">
                         <div>
                             <h2>{{ $companyName }}</h2>
-                            <div class="meta">{{ $company->employees }} {{ Str::plural('employee', $company->employees) }}</div>
+                            <div class="meta">
+                                <i class="fa-solid fa-user-group"></i>
+                                {{ $company->employees }} {{ Str::plural('employee', $company->employees) }}
+                            </div>
                         </div>
-                        <div class="total">₱{{ number_format($company->net_pay, 2) }}</div>
+                        <div class="total">
+                            <span>Net pay</span>
+                            ₱{{ number_format($company->net_pay, 2) }}
+                        </div>
                     </div>
 
                     <table class="bank-table">
@@ -112,8 +162,8 @@
                                         <a href="{{ $url }}">{{ $row->bank === \App\Http\Controllers\DashboardController::NO_BANK ? 'No bank info' : $row->bank }}</a>
                                     </td>
                                     <td class="num">{{ $row->employees }}</td>
-                                    <td class="num">₱{{ number_format($row->net_pay, 2) }}</td>
-                                    <td class="num go" aria-hidden="true">&rsaquo;</td>
+                                    <td class="num strong">₱{{ number_format($row->net_pay, 2) }}</td>
+                                    <td class="num go" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -123,6 +173,8 @@
         </div>
     @endif
 
+</div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script>
         (function () {
@@ -131,24 +183,40 @@
             const series = @json($chart['series']);
             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-            // Color scheme aware chart colors
-            const isDark = () => document.body.classList.contains('dark-mode');
-            const gridColor = () => isDark() ? '#2a3a4a' : '#eef1f4';
-            const textColor = () => isDark() ? '#a0b0c0' : '#666';
+            // Theme class lives on <html> (set by the layout)
+            const isDark = () => document.documentElement.classList.contains('dark-mode');
+            const theme = () => isDark()
+                ? { grid: 'rgba(148, 163, 184, 0.10)', text: '#8b9bb4', tipBg: '#0f172a', tipText: '#e2e8f0', tipBorder: 'rgba(148, 163, 184, 0.25)' }
+                : { grid: 'rgba(15, 23, 42, 0.06)',    text: '#64748b', tipBg: '#ffffff', tipText: '#0f172a', tipBorder: 'rgba(15, 23, 42, 0.10)' };
 
-            // Base colors for each company (remain same in both modes)
-            const colors = { NESI1: '#4b79a1', NESI2: '#2f8f83', NEWIND: '#c98a2b' };
+            // Gradient pair for each company (same in both modes)
+            const colors = {
+                NESI1:  ['#6366f1', '#38bdf8'],
+                NESI2:  ['#10b981', '#5eead4'],
+                NEWIND: ['#f59e0b', '#fb7185']
+            };
+            const fallback = ['#6366f1', '#38bdf8'];
 
             const short = v => v >= 1e6 ? '₱' + (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'
                              : v >= 1e3 ? '₱' + Math.round(v / 1e3) + 'K'
                              : '₱' + v;
             const full = v => '₱' + Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-            // Store chart instances to update on theme change
+            const barFill = pair => function (ctx) {
+                const area = ctx.chart.chartArea;
+                if (!area) return pair[0];
+                const g = ctx.chart.ctx.createLinearGradient(0, area.bottom, 0, area.top);
+                g.addColorStop(0, pair[0]);
+                g.addColorStop(1, pair[1]);
+                return g;
+            };
+
             const chartInstances = [];
 
             document.querySelectorAll('canvas[data-company]').forEach(function (canvas) {
                 const name = canvas.dataset.company;
+                const pair = colors[name] || fallback;
+                const t = theme();
 
                 const chart = new Chart(canvas, {
                     type: 'bar',
@@ -156,34 +224,44 @@
                         labels: months,
                         datasets: [{
                             data: series[name],
-                            backgroundColor: colors[name] || '#4b79a1',
-                            borderRadius: 3,
-                            maxBarThickness: 22
+                            backgroundColor: barFill(pair),
+                            hoverBackgroundColor: pair[1],
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            maxBarThickness: 20
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: { duration: 900, easing: 'easeOutQuart' },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
                                 callbacks: { label: ctx => full(ctx.parsed.y) },
-                                backgroundColor: isDark() ? '#2a3a4a' : '#fff',
-                                titleColor: isDark() ? '#e8edf2' : '#222',
-                                bodyColor: isDark() ? '#e8edf2' : '#222',
-                                borderColor: isDark() ? '#3a4a5a' : '#ddd',
-                                borderWidth: 1
+                                backgroundColor: t.tipBg,
+                                titleColor: t.tipText,
+                                bodyColor: t.tipText,
+                                borderColor: t.tipBorder,
+                                borderWidth: 1,
+                                padding: 10,
+                                cornerRadius: 10,
+                                displayColors: false,
+                                titleFont: { weight: '600' },
+                                bodyFont: { weight: '700', size: 13 }
                             }
                         },
                         scales: {
                             x: {
                                 grid: { display: false },
-                                ticks: { color: textColor() }
+                                border: { display: false },
+                                ticks: { color: t.text, font: { size: 11 } }
                             },
                             y: {
                                 beginAtZero: true,
-                                grid: { color: gridColor() },
-                                ticks: { maxTicksLimit: 5, callback: v => short(v), color: textColor() }
+                                border: { display: false },
+                                grid: { color: t.grid },
+                                ticks: { maxTicksLimit: 5, callback: v => short(v), color: t.text, font: { size: 11 } }
                             }
                         }
                     }
@@ -192,25 +270,23 @@
                 chartInstances.push(chart);
             });
 
-            // Update charts when theme changes
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.attributeName === 'class') {
-                        chartInstances.forEach(function(chart) {
-                            chart.options.scales.y.grid.color = gridColor();
-                            chart.options.scales.y.ticks.color = textColor();
-                            chart.options.scales.x.ticks.color = textColor();
-                            chart.options.plugins.tooltip.backgroundColor = isDark() ? '#2a3a4a' : '#fff';
-                            chart.options.plugins.tooltip.titleColor = isDark() ? '#e8edf2' : '#222';
-                            chart.options.plugins.tooltip.bodyColor = isDark() ? '#e8edf2' : '#222';
-                            chart.options.plugins.tooltip.borderColor = isDark() ? '#3a4a5a' : '#ddd';
-                            chart.update('none');
-                        });
-                    }
+            // Re-color charts when the theme changes
+            const observer = new MutationObserver(function (mutations) {
+                if (!mutations.some(m => m.attributeName === 'class')) return;
+                const t = theme();
+                chartInstances.forEach(function (chart) {
+                    chart.options.scales.y.grid.color = t.grid;
+                    chart.options.scales.y.ticks.color = t.text;
+                    chart.options.scales.x.ticks.color = t.text;
+                    chart.options.plugins.tooltip.backgroundColor = t.tipBg;
+                    chart.options.plugins.tooltip.titleColor = t.tipText;
+                    chart.options.plugins.tooltip.bodyColor = t.tipText;
+                    chart.options.plugins.tooltip.borderColor = t.tipBorder;
+                    chart.update('none');
                 });
             });
 
-            observer.observe(document.body, { attributes: true });
+            observer.observe(document.documentElement, { attributes: true });
         })();
     </script>
 

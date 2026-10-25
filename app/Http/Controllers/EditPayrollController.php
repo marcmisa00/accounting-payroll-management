@@ -932,7 +932,8 @@ class EditPayrollController extends Controller
                 )
                 ->orderByDesc('h.changed_at')
                 ->orderByDesc('h.id')
-                ->get();
+                ->paginate(25)
+                ->withQueryString();
 
             $hasFilter = true;
 

@@ -212,12 +212,46 @@
             const initialTheme = getInitialTheme();
             applyTheme(initialTheme);
 
-            // 4. Toggle on button click
+            // 4. Toggle on button click, revealing the new theme as a wave from the switch
             toggleBtn.addEventListener('click', function() {
                 const isDark = html.classList.contains('dark-mode');
                 const newTheme = isDark ? 'light' : 'dark';
-                applyTheme(newTheme);
-                localStorage.setItem('theme', newTheme);
+
+                const commit = function () {
+                    applyTheme(newTheme);
+                    localStorage.setItem('theme', newTheme);
+                };
+
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (!document.startViewTransition || reduceMotion) {
+                    commit();
+                    return;
+                }
+
+                const rect = toggleBtn.getBoundingClientRect();
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+                const radius = Math.hypot(
+                    Math.max(x, window.innerWidth - x),
+                    Math.max(y, window.innerHeight - y)
+                );
+
+                html.classList.add('theme-wave');
+                const transition = document.startViewTransition(commit);
+
+                transition.ready.then(function () {
+                    html.animate(
+                        { clipPath: [
+                            'circle(0px at ' + x + 'px ' + y + 'px)',
+                            'circle(' + radius + 'px at ' + x + 'px ' + y + 'px)'
+                        ] },
+                        { duration: 700, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', pseudoElement: '::view-transition-new(root)' }
+                    );
+                }).catch(function () {});
+
+                transition.finished.finally(function () {
+                    html.classList.remove('theme-wave');
+                });
             });
 
             // 5. (Optional) Listen for system preference changes when no explicit choice
