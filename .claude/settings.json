@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(php artisan migrate:*)",
+      "Bash(php artisan db:wipe:*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}
