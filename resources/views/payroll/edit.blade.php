@@ -8,6 +8,9 @@
 @if (session('error'))
     <script>alert(@json(session('error')));</script>
 @endif
+@if ($errors->any())
+    <script>alert(@json(implode("\n", $errors->all())));</script>
+@endif
 
 @php
     $backUrl = route('payroll.show', ['payroll' => $payroll->id]);
@@ -26,7 +29,7 @@ function SubmitDetails() {
         <h4 style="display: flex; align-items: center; justify-content: space-between; text-indent: 10px;">
             <span style="display: flex; align-items: center; gap: 10px;">
                 <a id="backLink" href="{{ $backUrl }}"><i class="fa fa-arrow-left"></i> BACK</a>
-                <span><i class="fa fa-money"></i> EDIT PAYROLL</span>
+                <span><i class="fa-solid fa-money-bill"></i> EDIT PAYROLL</span>
             </span>
 
             <span style="display: flex; align-items: center; gap: 10px; margin-right: 30px;">
@@ -51,7 +54,13 @@ function SubmitDetails() {
           'dept' => $deptId
       ]) }}">
     @csrf
-    <input type="hidden" name="salary_rate" value="{{ $salaryRate ?? '' }}">
+
+        @if ($isPosted)
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:12px 16px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:14px;">
+                <i class="fa-solid fa-lock"></i>
+                <span><strong>This payroll is posted.</strong> Unpost it from Manage Payroll before changing time, add-ons, deductions or saving.</span>
+            </div>
+        @endif
 
         <div class="content-panel">
             <div class="panel-heading">
@@ -121,17 +130,24 @@ function SubmitDetails() {
             </div>
 
             <script>
-                let isSaved = {{ $isSaved ? 'true' : 'false' }};
-                const saveBtn = document.querySelector('[name="submitPayroll"]');
-                if (saveBtn) { saveBtn.addEventListener('click', () => { isSaved = true; }); }
-                const backLink = document.getElementById('backLink');
-                if (backLink) {
-                    backLink.addEventListener('click', function (e) {
-                        if (!isSaved) {
-                            if (!confirm("You didn't save changes. Are you sure you want to leave?")) e.preventDefault();
-                        }
+                // Warn on Back when the salary type was changed but not saved yet,
+                // or when this employee's payroll has never been saved for the period.
+                document.addEventListener('DOMContentLoaded', function () {
+                    let hasUnsaved = {{ $isSaved || $isPosted ? 'false' : 'true' }};
+                    document.querySelectorAll('input[name="salary_type"]').forEach(function (radio) {
+                        radio.addEventListener('change', function () { hasUnsaved = true; });
                     });
-                }
+                    const saveBtn = document.querySelector('[name="submitPayroll"]');
+                    if (saveBtn) { saveBtn.addEventListener('click', function () { hasUnsaved = false; }); }
+                    const backLink = document.getElementById('backLink');
+                    if (backLink) {
+                        backLink.addEventListener('click', function (e) {
+                            if (hasUnsaved && !confirm("You didn't save changes. Are you sure you want to leave?")) {
+                                e.preventDefault();
+                            }
+                        });
+                    }
+                });
             </script>
 
             <div class="panel-body">
@@ -198,12 +214,6 @@ function SubmitDetails() {
                                     <a href="{{ route('payroll.edit.time.edit', ['payroll' => $payroll->id, 'idno' => $idno, 'attendance' => $row['attendance_id'], 'company' => $company, 'dept' => $deptId]) }}" class="btn-link-icon" title="Edit / Override">
                                         <i class="fa fa-pencil"></i>
                                     </a>
-                                   <button type="button"
-                                            class="btn-link-icon"
-                                            title="Delete Time"
-                                            onclick="deleteAttendance({{ $row['attendance_id'] }})">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
                                 </td>
                             </tr>
                         @empty
@@ -231,11 +241,8 @@ function SubmitDetails() {
                     </tbody>
                 </table>
 
-                <input type="submit" name="submitPayroll" class="btn btn-primary" value="Save Details" style="float:right;">
-
-                @foreach ($totals as $field => $value)
-                    <input type="hidden" name="{{ $field }}" value="{{ $value }}">
-                @endforeach
+                {{-- Totals are recalculated on the server when saving; nothing but the salary type is sent. --}}
+                <input type="submit" name="submitPayroll" class="btn btn-primary" value="Save Details" style="float:right;" @disabled($isPosted)>
             </div>
         </div>
     </form>
@@ -576,8 +583,6 @@ function SubmitDetails() {
         </div>
     </div>
 </div>
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <script>
 document.addEventListener('keydown', function (e) {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
@@ -593,18 +598,5 @@ document.addEventListener('keydown', function (e) {
         }
     @endif
 });
-</script>
-<script>
-function deleteAttendance(attendanceId) {
-    if (!confirm('Do you wish to remove this attendance?')) {
-        return;
-    }
-
-    const form = document.getElementById('delete-attendance-form');
-
-    form.action = "{{ url('/payroll/manage/' . $payroll->id . '/edit/' . $idno . '/time') }}/" + attendanceId;
-
-    form.submit();
-}
 </script>
 @endsection

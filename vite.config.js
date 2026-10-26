@@ -19,7 +19,10 @@ export default defineConfig({
                     'resources/js/show-payroll.js',
                     'resources/js/edit-payroll.js',
                     'resources/css/holiday-cal.css',
-                    'resources/css/verify.css'],
+                    'resources/css/verify.css',
+                    'resources/css/attendance.css',
+                    'resources/css/leaves.css',
+                    'resources/js/leaves.js'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

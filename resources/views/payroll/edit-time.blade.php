@@ -5,6 +5,9 @@
 @if (session('success'))
     <script>alert(@json(session('success')));</script>
 @endif
+@if (session('error'))
+    <script>alert(@json(session('error')));</script>
+@endif
 
 @vite(['resources/css/edit-time-payroll.css'])
 
@@ -39,12 +42,9 @@
     $idleMinutes = 0;
 
     if ($idleValue) {
-        [$hours, $minutes, $seconds] = array_map(
-            'intval',
-            explode(':', $idleValue)
-        );
+        $parts = array_map('intval', explode(':', $idleValue));
 
-        $idleMinutes = ($hours * 60) + $minutes;
+        $idleMinutes = (($parts[0] ?? 0) * 60) + ($parts[1] ?? 0);
     }
 @endphp
 
@@ -71,6 +71,24 @@
 
         <div class="panel-body">
 
+            @if ($isPosted)
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; padding:12px 16px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:14px;">
+                    <i class="fa-solid fa-lock"></i>
+                    <span><strong>This payroll is posted.</strong> Unpost it from Manage Payroll before changing this day.</span>
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div role="alert" style="margin-bottom:16px; padding:12px 16px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3; color:#be123c; font-size:14px;">
+                    <strong><i class="fa-solid fa-circle-exclamation"></i> Please fix the following:</strong>
+                    <ul style="margin:6px 0 0 20px;">
+                        @foreach ($errors->all() as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="horizontal-grid">
 
                 {{-- LEFT: Calculated / Attendance Values --}}
@@ -96,7 +114,7 @@
                         <tr>
                             <td>Idle</td>
                             <td>
-                                {{ number_format((float) $idleValue, 2) }}
+                                {{ $idleMinutes > 0 ? $idleMinutes . ' min' : '—' }}
                             </td>
                         </tr>
 
@@ -197,7 +215,7 @@
 
                     <div class="action-row">
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" @disabled($isPosted)>
                             <i class="fa fa-save"></i>
                             Save Changes
                         </button>
@@ -231,7 +249,7 @@
                         @csrf
                         @method('DELETE')
 
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger" @disabled($isPosted)>
                             <i class="fa fa-undo"></i>
                             Clear all payroll overrides for this day
                         </button>

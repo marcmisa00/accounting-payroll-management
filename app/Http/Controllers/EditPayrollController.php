@@ -39,15 +39,14 @@ class EditPayrollController extends Controller
         $employee = $conn->table('employee_profile')->where('idno', $idno)->first();
         $employeeDetails = $conn->table('employee_details')->where('idno', $idno)->first();
 
-        $designation = $employeeDetails->designation ?? 0;
         $department  = $employeeDetails->department ?? 0;
-        $blockOtBefore = ($designation == 71) || ($designation == 46 && $department == 1);
 
         $payrollDetail = $conn->table('payroll_details')
             ->where('payrollperiod', $payroll->id)
             ->where('idno', $idno)
             ->first();
         $isSaved   = (bool) $payrollDetail;
+        $isPosted  = ($payrollDetail->status ?? null) === 'posted';
         $payrollId = $payrollDetail->id ?? null;
 
         $employeePayroll = $conn->table('employee_payroll')->where('idno', $idno)->first();
@@ -58,19 +57,7 @@ class EditPayrollController extends Controller
 
         [$prevId, $nextId] = $this->findNeighbours($conn, $idno, $company, $department);
 
-        $blEligible = $this->isBereavementLeaveEligible($employeeDetails->dateofhired ?? null, $payroll->periodto);
-
-        $calculation = $this->calculator->calculate(
-            $idno,
-            $payroll->id,
-            (string) $payroll->periodfrom,
-            (string) $payroll->periodto,
-            $company,
-            $salaryType,
-            (int) $payroll->days,
-            $blockOtBefore,
-            $blEligible
-        );
+        $calculation = $this->calculateFor($conn, $payroll, $idno, $company, $salaryType);
 
         return view('payroll.edit', [
             'payroll'         => $payroll,
@@ -80,6 +67,7 @@ class EditPayrollController extends Controller
             'employee'        => $employee,
             'employeeDetails' => $employeeDetails,
             'isSaved'         => $isSaved,
+            'isPosted'        => $isPosted,
             'payrollId'       => $payrollId,
             'salaryType'      => $salaryType,
             'prevSalary'      => $prevSalary,
@@ -106,10 +94,14 @@ class EditPayrollController extends Controller
     {
         $validated = $request->validate([
             'description' => ['required', 'string', 'max:255'],
-            'amount'      => ['required', 'numeric'],
+            'amount'      => ['required', 'numeric', 'gt:0'],
         ]);
 
         $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
         $exists = $conn->table('payroll_deductions')
             ->where('payrollperiod', $payroll->id)
@@ -122,14 +114,16 @@ class EditPayrollController extends Controller
                 ->with('error', 'Deduction already exists in this payroll period!');
         }
 
-        $conn->table('payroll_deductions')->insert([
-            'idno'          => $idno,
-            'payrollperiod' => $payroll->id,
-            'description'   => $validated['description'],
-            'amount'        => $validated['amount'],
-        ]);
+        $conn->transaction(function () use ($conn, $idno, $payroll, $validated, $request) {
+            $conn->table('payroll_deductions')->insert([
+                'idno'          => $idno,
+                'payrollperiod' => $payroll->id,
+                'description'   => $validated['description'],
+                'amount'        => $validated['amount'],
+            ]);
 
-        $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $validated['description'], 0, $validated['amount'], $request);
+            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $validated['description'], 0, $validated['amount'], $request);
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'One-time deduction added to payroll!');
     }
@@ -141,8 +135,8 @@ class EditPayrollController extends Controller
     public function addConstantDeduction(Request $request, Payroll $payroll, string $idno): RedirectResponse
     {
         $validated = $request->validate([
-            'deduction_id' => ['required'],
-            'amount'       => ['required', 'numeric'],
+            'deduction_id' => ['required', 'integer', 'exists:' . self::HRIS_CONNECTION . '.deductions,id'],
+            'amount'       => ['required', 'numeric', 'gt:0'],
         ]);
 
         $conn = DB::connection(self::HRIS_CONNECTION);
@@ -157,14 +151,16 @@ class EditPayrollController extends Controller
                 ->with('error', 'This deduction is already a constant deduction for this employee!');
         }
 
-        $conn->table('employee_deductions')->insert([
-            'idno'         => $idno,
-            'deduction_id' => $validated['deduction_id'],
-            'amount'       => $validated['amount'],
-        ]);
+        $conn->transaction(function () use ($conn, $idno, $payroll, $validated, $request) {
+            $conn->table('employee_deductions')->insert([
+                'idno'         => $idno,
+                'deduction_id' => $validated['deduction_id'],
+                'amount'       => $validated['amount'],
+            ]);
 
-        $description = $conn->table('deductions')->where('id', $validated['deduction_id'])->value('deduction') ?? 'Deduction';
-        $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'constant', 'INSERT', $description, 0, $validated['amount'], $request);
+            $description = $conn->table('deductions')->where('id', $validated['deduction_id'])->value('deduction') ?? 'Deduction';
+            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'constant', 'INSERT', $description, 0, $validated['amount'], $request);
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant deduction added successfully!');
     }
@@ -176,6 +172,10 @@ class EditPayrollController extends Controller
     public function applyConstantDeduction(Request $request, Payroll $payroll, string $idno, int $employeeDeduction): RedirectResponse
     {
         $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
         $const = $conn->table('employee_deductions as ed')
             ->join('deductions as d', 'ed.deduction_id', '=', 'd.id')
@@ -198,14 +198,16 @@ class EditPayrollController extends Controller
             return $this->backToEdit($request, $payroll, $idno)->with('error', 'This deduction is already in the current payroll!');
         }
 
-        $conn->table('payroll_deductions')->insert([
-            'idno'          => $idno,
-            'payrollperiod' => $payroll->id,
-            'description'   => $const->description,
-            'amount'        => $const->amount,
-        ]);
+        $conn->transaction(function () use ($conn, $idno, $payroll, $const, $request) {
+            $conn->table('payroll_deductions')->insert([
+                'idno'          => $idno,
+                'payrollperiod' => $payroll->id,
+                'description'   => $const->description,
+                'amount'        => $const->amount,
+            ]);
 
-        $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant deduction added to current payroll!');
     }
@@ -225,11 +227,13 @@ class EditPayrollController extends Controller
             ->select('ed.amount', 'd.deduction as description')
             ->first();
 
-        $conn->table('employee_deductions')->where('id', $employeeDeduction)->where('idno', $idno)->delete();
+        $conn->transaction(function () use ($conn, $idno, $payroll, $employeeDeduction, $old, $request) {
+            $conn->table('employee_deductions')->where('id', $employeeDeduction)->where('idno', $idno)->delete();
 
-        if ($old) {
-            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'constant', 'DELETE', $old->description, $old->amount, 0, $request);
-        }
+            if ($old) {
+                $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'constant', 'DELETE', $old->description, $old->amount, 0, $request);
+            }
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant deduction removed successfully!');
     }
@@ -242,12 +246,21 @@ class EditPayrollController extends Controller
     {
         $conn = DB::connection(self::HRIS_CONNECTION);
 
-        $old = $conn->table('payroll_deductions')->where('id', $payrollDeduction)->where('idno', $idno)->first();
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
-        $conn->table('payroll_deductions')->where('id', $payrollDeduction)->where('idno', $idno)->delete();
+        $old = $conn->table('payroll_deductions')
+            ->where('id', $payrollDeduction)
+            ->where('idno', $idno)
+            ->where('payrollperiod', $payroll->id)
+            ->first();
 
         if ($old) {
-            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'DELETE', $old->description, $old->amount, 0, $request);
+            $conn->transaction(function () use ($conn, $idno, $payroll, $old, $request) {
+                $conn->table('payroll_deductions')->where('id', $old->id)->delete();
+                $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'DELETE', $old->description, $old->amount, 0, $request);
+            });
         }
 
         return $this->backToEdit($request, $payroll, $idno);
@@ -260,6 +273,10 @@ class EditPayrollController extends Controller
     public function generateDeductions(Request $request, Payroll $payroll, string $idno): RedirectResponse
     {
         $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
         $constants = $conn->table('employee_deductions as ed')
             ->join('deductions as d', 'ed.deduction_id', '=', 'd.id')
@@ -282,13 +299,15 @@ class EditPayrollController extends Controller
                 continue;
             }
 
-            $conn->table('payroll_deductions')->insert([
-                'idno'          => $idno,
-                'payrollperiod' => $payroll->id,
-                'description'   => $const->description,
-                'amount'        => $const->amount,
-            ]);
-            $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+            $conn->transaction(function () use ($conn, $idno, $payroll, $const, $request) {
+                $conn->table('payroll_deductions')->insert([
+                    'idno'          => $idno,
+                    'payrollperiod' => $payroll->id,
+                    'description'   => $const->description,
+                    'amount'        => $const->amount,
+                ]);
+                $this->logAdjustment($conn, $idno, $payroll->id, 'deduction', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+            });
             $inserted++;
         }
 
@@ -304,10 +323,14 @@ class EditPayrollController extends Controller
     {
         $validated = $request->validate([
             'description' => ['required', 'string', 'max:255'],
-            'amount'      => ['required', 'numeric'],
+            'amount'      => ['required', 'numeric', 'gt:0'],
         ]);
 
         $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
         $exists = $conn->table('payroll_addons')
             ->where('payrollperiod', $payroll->id)
@@ -319,14 +342,16 @@ class EditPayrollController extends Controller
             return $this->backToEdit($request, $payroll, $idno)->with('error', 'Addon already exists in this payroll period!');
         }
 
-        $conn->table('payroll_addons')->insert([
-            'idno'          => $idno,
-            'payrollperiod' => $payroll->id,
-            'description'   => $validated['description'],
-            'amount'        => $validated['amount'],
-        ]);
+        $conn->transaction(function () use ($conn, $idno, $payroll, $validated, $request) {
+            $conn->table('payroll_addons')->insert([
+                'idno'          => $idno,
+                'payrollperiod' => $payroll->id,
+                'description'   => $validated['description'],
+                'amount'        => $validated['amount'],
+            ]);
 
-        $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'INSERT', $validated['description'], 0, $validated['amount'], $request);
+            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'INSERT', $validated['description'], 0, $validated['amount'], $request);
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'One-time addon added to payroll!');
     }
@@ -334,8 +359,8 @@ class EditPayrollController extends Controller
     public function addConstantAddon(Request $request, Payroll $payroll, string $idno): RedirectResponse
     {
         $validated = $request->validate([
-            'addon_id' => ['required'],
-            'amount'   => ['required', 'numeric'],
+            'addon_id' => ['required', 'integer', 'exists:' . self::HRIS_CONNECTION . '.addons,id'],
+            'amount'   => ['required', 'numeric', 'gt:0'],
         ]);
 
         $conn = DB::connection(self::HRIS_CONNECTION);
@@ -350,14 +375,16 @@ class EditPayrollController extends Controller
                 ->with('error', 'This addon is already a constant addon for this employee!');
         }
 
-        $conn->table('employee_addons')->insert([
-            'idno'     => $idno,
-            'addon_id' => $validated['addon_id'],
-            'amount'   => $validated['amount'],
-        ]);
+        $conn->transaction(function () use ($conn, $idno, $payroll, $validated, $request) {
+            $conn->table('employee_addons')->insert([
+                'idno'     => $idno,
+                'addon_id' => $validated['addon_id'],
+                'amount'   => $validated['amount'],
+            ]);
 
-        $description = $conn->table('addons')->where('id', $validated['addon_id'])->value('addons') ?? 'Addon';
-        $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'INSERT', $description, 0, $validated['amount'], $request);
+            $description = $conn->table('addons')->where('id', $validated['addon_id'])->value('addons') ?? 'Addon';
+            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'INSERT', $description, 0, $validated['amount'], $request);
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant addon added successfully!');
     }
@@ -365,6 +392,10 @@ class EditPayrollController extends Controller
     public function applyConstantAddon(Request $request, Payroll $payroll, string $idno, int $employeeAddon): RedirectResponse
     {
         $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
         $const = $conn->table('employee_addons as ea')
             ->join('addons as a', 'ea.addon_id', '=', 'a.id')
@@ -387,14 +418,17 @@ class EditPayrollController extends Controller
             return $this->backToEdit($request, $payroll, $idno)->with('error', 'This addon is already in the current payroll!');
         }
 
-        $conn->table('payroll_addons')->insert([
-            'idno'          => $idno,
-            'payrollperiod' => $payroll->id,
-            'description'   => $const->description,
-            'amount'        => $const->amount,
-        ]);
+        // Logged as 'payroll': this adds a line to this period only (same as applyConstantDeduction)
+        $conn->transaction(function () use ($conn, $idno, $payroll, $const, $request) {
+            $conn->table('payroll_addons')->insert([
+                'idno'          => $idno,
+                'payrollperiod' => $payroll->id,
+                'description'   => $const->description,
+                'amount'        => $const->amount,
+            ]);
 
-        $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'INSERT', $const->description, 0, $const->amount, $request);
+            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant addon added to current payroll!');
     }
@@ -410,11 +444,13 @@ class EditPayrollController extends Controller
             ->select('ea.amount', 'a.addons as description')
             ->first();
 
-        $conn->table('employee_addons')->where('id', $employeeAddon)->where('idno', $idno)->delete();
+        $conn->transaction(function () use ($conn, $idno, $payroll, $employeeAddon, $old, $request) {
+            $conn->table('employee_addons')->where('id', $employeeAddon)->where('idno', $idno)->delete();
 
-        if ($old) {
-            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'DELETE', $old->description, $old->amount, 0, $request);
-        }
+            if ($old) {
+                $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'constant', 'DELETE', $old->description, $old->amount, 0, $request);
+            }
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Constant addon removed successfully!');
     }
@@ -423,14 +459,21 @@ class EditPayrollController extends Controller
     {
         $conn = DB::connection(self::HRIS_CONNECTION);
 
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
+
         $old = $conn->table('payroll_addons')
             ->where('id', $payrollAddon)
             ->where('idno', $idno)
+            ->where('payrollperiod', $payroll->id)
             ->first();
 
         if ($old) {
-            $conn->table('payroll_addons')->where('id', $payrollAddon)->where('idno', $idno)->delete();
-            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'DELETE', $old->description, $old->amount, 0, $request);
+            $conn->transaction(function () use ($conn, $idno, $payroll, $old, $request) {
+                $conn->table('payroll_addons')->where('id', $old->id)->delete();
+                $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'DELETE', $old->description, $old->amount, 0, $request);
+            });
         }
 
         return $this->backToEdit($request, $payroll, $idno);
@@ -439,6 +482,10 @@ class EditPayrollController extends Controller
     public function generateAddons(Request $request, Payroll $payroll, string $idno): RedirectResponse
     {
         $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
 
         $constants = $conn->table('employee_addons as ea')
             ->join('addons as a', 'ea.addon_id', '=', 'a.id')
@@ -461,13 +508,15 @@ class EditPayrollController extends Controller
                 continue;
             }
 
-            $conn->table('payroll_addons')->insert([
-                'idno'          => $idno,
-                'payrollperiod' => $payroll->id,
-                'description'   => $const->description,
-                'amount'        => $const->amount,
-            ]);
-            $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+            $conn->transaction(function () use ($conn, $idno, $payroll, $const, $request) {
+                $conn->table('payroll_addons')->insert([
+                    'idno'          => $idno,
+                    'payrollperiod' => $payroll->id,
+                    'description'   => $const->description,
+                    'amount'        => $const->amount,
+                ]);
+                $this->logAdjustment($conn, $idno, $payroll->id, 'addon', 'payroll', 'INSERT', $const->description, 0, $const->amount, $request);
+            });
             $inserted++;
         }
 
@@ -476,27 +525,16 @@ class EditPayrollController extends Controller
     }
 
     // =====================================================================
-    // Attendance row deletion + final save
+    // Per-day time / pay overrides
     // =====================================================================
-
-    /**
-     * (was: deletetime)
-     */
-    public function deleteTime(Request $request, Payroll $payroll, string $idno, int $attendance): RedirectResponse
-    {
-        DB::connection(self::HRIS_CONNECTION)->table('attendance')->where('id', $attendance)->delete();
-
-        return $this->backToEdit($request, $payroll, $idno)->with('success', 'Item successfully removed!');
-    }
 
     /**
      * Show the manual-override editor for one attendance day: every field
      * the calculation engine produced for that day, editable, defaulting
      * to the calculated value. Only fields actually changed get stored.
      */
-    public function editTime(Request $request,Payroll $payroll, string $idno, int $attendance): View 
+    public function editTime(Request $request, Payroll $payroll, string $idno, int $attendance): View
     {
-        
         [$company, $deptId] = $this->context($request);
 
         $conn = DB::connection(self::HRIS_CONNECTION);
@@ -507,35 +545,7 @@ class EditPayrollController extends Controller
 
         abort_unless($employeeDetails, 404);
 
-        $employeePayroll = $conn->table('employee_payroll')
-            ->where('idno', $idno)
-            ->first();
-
-        $salaryType = $employeePayroll->salary_type ?? 'Rated';
-
-        $designation = $employeeDetails->designation ?? 0;
-        $department  = $employeeDetails->department ?? 0;
-
-        $blockOtBefore =
-            ($designation == 71) ||
-            ($designation == 46 && $department == 1);
-
-        $blEligible = $this->isBereavementLeaveEligible(
-            $employeeDetails->dateofhired ?? null,
-            $payroll->periodto
-        );
-
-        $calculation = $this->calculator->calculate(
-            $idno,
-            $payroll->id,
-            (string) $payroll->periodfrom,
-            (string) $payroll->periodto,
-            $company,
-            $salaryType,
-            (int) $payroll->days,
-            $blockOtBefore,
-            $blEligible
-        );
+        $calculation = $this->calculateFor($conn, $payroll, $idno, $company);
 
         $row = collect($calculation['rows'])
             ->firstWhere('attendance_id', $attendance);
@@ -553,6 +563,7 @@ class EditPayrollController extends Controller
         */
         $attendanceRecord = $conn->table('attendance')
             ->where('id', $attendance)
+            ->where('idno', $idno)
             ->first();
 
         abort_unless($attendanceRecord, 404);
@@ -575,6 +586,7 @@ class EditPayrollController extends Controller
             'row'              => $row,
             'calculated'       => $row['calculated'],
             'override'         => $override,
+            'isPosted'         => $this->isPosted($conn, $payroll, $idno),
 
             // Actual attendance values
             'attendanceRecord' => $attendanceRecord,
@@ -582,114 +594,115 @@ class EditPayrollController extends Controller
             'otTime'           => $attendanceRecord->ottime ?? 0,
         ]);
     }
+
     private function minutesToTime($minutes): ?string
-        {
-            if ($minutes === null || $minutes === '') {
-                return null;
-            }
-
-            $minutes = (int) $minutes;
-
-            $hours = intdiv($minutes, 60);
-            $mins = $minutes % 60;
-
-            return sprintf('%02d:%02d:00', $hours, $mins);
+    {
+        if ($minutes === null || $minutes === '') {
+            return null;
         }
 
-   private function timeToMinutes($time): ?int
-{
-    if ($time === null || $time === '') {
-        return null;
+        $minutes = (int) $minutes;
+
+        $hours = intdiv($minutes, 60);
+        $mins = $minutes % 60;
+
+        return sprintf('%02d:%02d:00', $hours, $mins);
     }
 
-    [$hours, $minutes, $seconds] = array_map(
-        'intval',
-        explode(':', (string) $time)
-    );
-
-    return ($hours * 60) + $minutes;
-}
-    public function updateTimeOverride(Request $request, Payroll $payroll, string $idno,int $attendance): RedirectResponse 
+    private function timeToMinutes($time): ?int
     {
-        
-            $validated = $request->validate(
-                collect(self::OVERRIDE_FIELDS)
-                    ->mapWithKeys(fn ($f) => [
-                        $f => ['nullable', 'numeric']
-                    ])
-                    ->all()
-                + [
-                    'idle' => ['nullable', 'integer', 'min:0'],
-                ]
-            );
+        if ($time === null || $time === '') {
+            return null;
+        }
 
-            $conn = DB::connection(self::HRIS_CONNECTION);
+        $parts = array_map('intval', explode(':', (string) $time));
 
+        return (($parts[0] ?? 0) * 60) + ($parts[1] ?? 0);
+    }
+
+    public function updateTimeOverride(Request $request, Payroll $payroll, string $idno, int $attendance): RedirectResponse
+    {
+        $validated = $request->validate(
+            collect(self::OVERRIDE_FIELDS)
+                ->mapWithKeys(fn ($f) => [
+                    $f => ['nullable', 'numeric']
+                ])
+                ->all()
+            + [
+                'idle' => ['nullable', 'integer', 'min:0'],
+            ]
+        );
+
+        [$company] = $this->context($request);
+        $conn = DB::connection(self::HRIS_CONNECTION);
+
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
+
+        // Only this employee's own days in this period can be overridden.
+        $attendanceRecord = $this->attendanceInPeriod($conn, $payroll, $idno, $attendance, $company);
+
+        abort_unless($attendanceRecord, 404, 'That attendance day was not found in this payroll period.');
+
+        $dayLabel = 'day ' . date('M d, Y', strtotime($attendanceRecord->logindate));
+
+        $existing = $conn->table('attendance_pay_override')
+            ->where('attendance_id', $attendance)
+            ->first();
+
+        $newValues = collect(self::OVERRIDE_FIELDS)
+            ->mapWithKeys(fn ($f) => [
+                $f => $validated[$f] ?? null
+            ])
+            ->all();
+
+        $conn->transaction(function () use ($conn, $request, $payroll, $idno, $attendance, $attendanceRecord, $existing, $newValues, $validated, $dayLabel) {
             /*
             * ============================================================
-            * 1. HANDLE IDLE
+            * 1. HANDLE IDLE (attendance.idle)
             * ============================================================
             *
-            * Idle belongs directly to attendance.idle.
+            * NULL and 00:00:00 both mean "no idle" to the engine, so they
+            * are compared as minutes — saving the form untouched no longer
+            * turns NULL into 00:00:00 or logs a change.
             */
-            $attendanceRecord = $conn->table('attendance')
-                ->where('id', $attendance)
-                ->first();
+            $oldIdleMinutes = $this->timeToMinutes($attendanceRecord->idle) ?? 0;
+            $newIdleMinutes = (int) ($validated['idle'] ?? 0);
 
-            abort_unless($attendanceRecord, 404);
-
-           $oldIdle = $attendanceRecord->idle;
-
-            $newIdleMinutes = $validated['idle'] ?? null;
-            $newIdle = $this->minutesToTime($newIdleMinutes);
-
-            if ((string) $oldIdle !== (string) $newIdle) {
-                $logindate = $attendanceRecord->logindate;
-
+            if ($oldIdleMinutes !== $newIdleMinutes) {
                 $this->logAdjustment(
                     $conn,
                     $idno,
                     $payroll->id,
                     'payroll',
                     'attendance',
-                    $oldIdle === null
+                    $oldIdleMinutes === 0
                         ? 'INSERT'
-                        : ($newIdle === null ? 'DELETE' : 'UPDATE'),
-                    'day ' . date('M d, Y', strtotime($logindate)) . ' — Idle',
-                    $this->timeToMinutes($oldIdle),
-                    $this->timeToMinutes($newIdle),
+                        : ($newIdleMinutes === 0 ? 'DELETE' : 'UPDATE'),
+                    $dayLabel . ' — Idle',
+                    $oldIdleMinutes,
+                    $newIdleMinutes,
                     $request
                 );
 
                 $conn->table('attendance')
                     ->where('id', $attendance)
                     ->update([
-                        'idle' => $newIdle,
+                        'idle' => $this->minutesToTime($newIdleMinutes),
                     ]);
             }
 
             /*
             * ============================================================
-            * 2. HANDLE EXISTING PAYROLL OVERRIDES
+            * 2. HANDLE PAYROLL OVERRIDES (attendance_pay_override)
             * ============================================================
             */
-            $existing = $conn->table('attendance_pay_override')
-                ->where('attendance_id', $attendance)
-                ->first();
-
-            $newValues = collect(self::OVERRIDE_FIELDS)
-                ->mapWithKeys(fn ($f) => [
-                    $f => $validated[$f] ?? null
-                ])
-                ->all();
-
             foreach (self::OVERRIDE_FIELDS as $field) {
-
                 $old = $existing->{$field} ?? null;
                 $new = $newValues[$field];
 
-                if ((string) $old !== (string) $new) {
-
+                if (! $this->sameValue($old, $new)) {
                     $this->logAdjustment(
                         $conn,
                         $idno,
@@ -699,12 +712,7 @@ class EditPayrollController extends Controller
                         $old === null
                             ? 'INSERT'
                             : ($new === null ? 'DELETE' : 'UPDATE'),
-                        'day ' .
-                            date(
-                                'M d, Y',
-                                strtotime($attendanceRecord->logindate)
-                            ) .
-                            " — {$field}",
+                        "{$dayLabel} — {$field}",
                         $old,
                         $new,
                         $request
@@ -712,115 +720,125 @@ class EditPayrollController extends Controller
                 }
             }
 
-            /*
-            * Save the payroll override values.
-            */
+            $hasAnyOverride = collect($newValues)->contains(fn ($v) => $v !== null);
+
+            if (! $hasAnyOverride) {
+                // Every field blank: no override row at all, the day is fully calculated.
+                $conn->table('attendance_pay_override')
+                    ->where('attendance_id', $attendance)
+                    ->delete();
+
+                return;
+            }
+
             $updatedBy = session('portal_idno')
-            ?? session('accounting_idno')
-            ?? $request->user()?->idno
-            ?? $request->user()?->id;
+                ?? session('accounting_idno')
+                ?? $request->user()?->idno
+                ?? $request->user()?->id;
 
-        $conn->table('attendance_pay_override')->updateOrInsert(
-            ['attendance_id' => $attendance],
-            $newValues + [
-                'updated_by' => $updatedBy,
-                'updated_at' => now(),
-            ]
-        );
-
-            return $this->backToEdit(
-                $request,
-                $payroll,
-                $idno
-            )->with(
-                'success',
-                'Edit Time changes saved successfully.'
+            $conn->table('attendance_pay_override')->updateOrInsert(
+                ['attendance_id' => $attendance],
+                $newValues + [
+                    'updated_by' => $updatedBy,
+                    'updated_at' => now(),
+                ]
             );
-    }
-   
+        });
 
+        return $this->backToEdit(
+            $request,
+            $payroll,
+            $idno
+        )->with(
+            'success',
+            'Edit Time changes saved successfully.'
+        );
+    }
 
     /**
      * Drop the override row entirely, reverting the day to fully
      * calculated — logging a DELETE for every field that had a value.
      */
-   public function clearTimeOverride(
-    Request $request,
-    Payroll $payroll,
-    string $idno,
-    int $attendance
-): RedirectResponse {
-    $conn = DB::connection(self::HRIS_CONNECTION);
+    public function clearTimeOverride(Request $request, Payroll $payroll, string $idno, int $attendance): RedirectResponse
+    {
+        [$company] = $this->context($request);
+        $conn = DB::connection(self::HRIS_CONNECTION);
 
-    $attendanceRecord = $conn->table('attendance')
-        ->where('id', $attendance)
-        ->first();
-
-    if ($attendanceRecord) {
-        $logindate = $attendanceRecord->logindate;
-
-        // Clear Idle override
-        if ($attendanceRecord->idle !== null) {
-            $this->logAdjustment(
-                $conn,
-                $idno,
-                $payroll->id,
-                'payroll',
-                'attendance',
-                'DELETE',
-                'day ' . date('M d, Y', strtotime($logindate)) . ' — Idle',
-                $this->timeToMinutes($attendanceRecord->idle),
-                null,
-                $request
-            );
-
-            $conn->table('attendance')
-                ->where('id', $attendance)
-                ->update([
-                    'idle' => null,
-                ]);
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
         }
-    }
 
-    // Clear payroll field overrides
-    $existing = $conn->table('attendance_pay_override')
-        ->where('attendance_id', $attendance)
-        ->first();
+        $attendanceRecord = $this->attendanceInPeriod($conn, $payroll, $idno, $attendance, $company);
 
-    if ($existing) {
-        $logindate = $attendanceRecord?->logindate;
+        abort_unless($attendanceRecord, 404, 'That attendance day was not found in this payroll period.');
 
-        foreach (self::OVERRIDE_FIELDS as $field) {
-            if ($existing->{$field} !== null) {
+        $dayLabel = 'day ' . date('M d, Y', strtotime($attendanceRecord->logindate));
+
+        $existing = $conn->table('attendance_pay_override')
+            ->where('attendance_id', $attendance)
+            ->first();
+
+        $conn->transaction(function () use ($conn, $request, $payroll, $idno, $attendance, $attendanceRecord, $existing, $dayLabel) {
+            // Clear Idle override
+            $oldIdleMinutes = $this->timeToMinutes($attendanceRecord->idle) ?? 0;
+
+            if ($oldIdleMinutes > 0) {
                 $this->logAdjustment(
                     $conn,
                     $idno,
                     $payroll->id,
                     'payroll',
-                    'attendance_override',
+                    'attendance',
                     'DELETE',
-                    'day ' . date('M d, Y', strtotime($logindate)) . " — {$field}",
-                    $existing->{$field},
+                    $dayLabel . ' — Idle',
+                    $oldIdleMinutes,
                     null,
                     $request
                 );
             }
-        }
 
-        $conn->table('attendance_pay_override')
-            ->where('attendance_id', $attendance)
-            ->delete();
+            if ($attendanceRecord->idle !== null) {
+                $conn->table('attendance')
+                    ->where('id', $attendance)
+                    ->update([
+                        'idle' => null,
+                    ]);
+            }
+
+            // Clear payroll field overrides
+            if ($existing) {
+                foreach (self::OVERRIDE_FIELDS as $field) {
+                    if ($existing->{$field} !== null) {
+                        $this->logAdjustment(
+                            $conn,
+                            $idno,
+                            $payroll->id,
+                            'payroll',
+                            'attendance_override',
+                            'DELETE',
+                            "{$dayLabel} — {$field}",
+                            $existing->{$field},
+                            null,
+                            $request
+                        );
+                    }
+                }
+
+                $conn->table('attendance_pay_override')
+                    ->where('attendance_id', $attendance)
+                    ->delete();
+            }
+        });
+
+        return $this->backToEdit(
+            $request,
+            $payroll,
+            $idno
+        )->with(
+            'success',
+            'Override cleared — that day is back to the calculated values.'
+        );
     }
-
-    return $this->backToEdit(
-        $request,
-        $payroll,
-        $idno
-    )->with(
-        'success',
-        'Override cleared — that day is back to the calculated values.'
-    );
-}
     /**
      * The audit trail of every payroll override, deduction, and addon
      * change for this employee's period — no approval workflow, just a
@@ -957,18 +975,26 @@ class EditPayrollController extends Controller
     {
         $validated = $request->validate([
             'salary_type' => ['required', 'in:Fixed,Rated,Daily'],
-            'salary_rate' => ['nullable', 'numeric', 'min:0'],
-        ] + collect($this->calculator->emptyTotals())->keys()
-            ->mapWithKeys(fn ($field) => [$field => ['nullable', 'numeric']])
-            ->all());
+        ]);
 
+        [$company] = $this->context($request);
         $conn = DB::connection(self::HRIS_CONNECTION);
         $now  = now();
         $addedby = $request->user()?->name ?? auth()->user()?->name;
 
+        if ($this->isPosted($conn, $payroll, $idno)) {
+            return $this->postedResponse($request, $payroll, $idno);
+        }
+
+        // Totals are always recalculated here, with the salary type being saved —
+        // never taken from the browser, which may hold stale or edited values.
+        $calculated = $this->calculateFor($conn, $payroll, $idno, $company, $validated['salary_type'])['totals'];
+
         $totals = collect($this->calculator->emptyTotals())->keys()
-            ->mapWithKeys(fn ($field) => [$field => $validated[$field] ?? 0])
+            ->mapWithKeys(fn ($field) => [$field => $calculated[$field] ?? 0])
             ->all();
+
+        $salaryRate = $conn->table('employee_payroll')->where('idno', $idno)->value('salary');
 
         $columns = [
             'reghours'                 => $totals['regular_hours'],
@@ -1007,7 +1033,7 @@ class EditPayrollController extends Controller
             'bdayleavehrs'             => $totals['bdayleavehrs'],
             'bdayleaveamount'          => $totals['bdayleaveamount'],
             'doubleholidaypay'         => $totals['doubleholidaypay'],
-            'salary_rate'              => $validated['salary_rate'] ?? null,
+            'salary_rate'              => $salaryRate,
             'totalbasesalary'          => $totals['totalbasesalary'],
             'totalpay'                 => $totals['totalpay'],
             'reghours_prev'            => $totals['reghours_prev'],
@@ -1031,35 +1057,43 @@ class EditPayrollController extends Controller
             'bdayleaveamount_prev'     => $totals['bdayleaveamount_prev'],
         ];
 
-        $existing = $conn->table('payroll_details')
-            ->where('payrollperiod', $payroll->id)
-            ->where('idno', $idno)
-            ->first();
-
-        if ($existing) {
-            $conn->table('payroll_details')
-                ->where('idno', $idno)
+        $conn->transaction(function () use ($conn, $payroll, $idno, $columns, $addedby, $now, $validated) {
+            // Re-checked inside the transaction (with a row lock) so a post that lands mid-save can't be overwritten.
+            $existing = $conn->table('payroll_details')
                 ->where('payrollperiod', $payroll->id)
-                ->update($columns + [
-                    'updatedby'       => $addedby,
-                    'updateddatetime' => $now,
+                ->where('idno', $idno)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing && $existing->status === 'posted') {
+                return;
+            }
+
+            if ($existing) {
+                $conn->table('payroll_details')
+                    ->where('idno', $idno)
+                    ->where('payrollperiod', $payroll->id)
+                    ->update($columns + [
+                        'updatedby'       => $addedby,
+                        'updateddatetime' => $now,
+                    ]);
+            } else {
+                $conn->table('payroll_details')->insert($columns + [
+                    'idno'          => $idno,
+                    'payrollperiod' => $payroll->id,
+                    'addedby'       => $addedby,
+                    'addeddatetime' => $now,
                 ]);
-        } else {
-            $conn->table('payroll_details')->insert($columns + [
-                'idno'          => $idno,
-                'payrollperiod' => $payroll->id,
-                'addedby'       => $addedby,
-                'addeddatetime' => $now,
-            ]);
-        }
+            }
 
-        $employeePayrollExists = $conn->table('employee_payroll')->where('idno', $idno)->exists();
+            $employeePayrollExists = $conn->table('employee_payroll')->where('idno', $idno)->exists();
 
-        if ($employeePayrollExists) {
-            $conn->table('employee_payroll')->where('idno', $idno)->update(['salary_type' => $validated['salary_type']]);
-        } else {
-            $conn->table('employee_payroll')->insert(['idno' => $idno, 'salary_type' => $validated['salary_type']]);
-        }
+            if ($employeePayrollExists) {
+                $conn->table('employee_payroll')->where('idno', $idno)->update(['salary_type' => $validated['salary_type']]);
+            } else {
+                $conn->table('employee_payroll')->insert(['idno' => $idno, 'salary_type' => $validated['salary_type']]);
+            }
+        });
 
         return $this->backToEdit($request, $payroll, $idno)->with('success', 'Payroll successfully saved!');
     }
@@ -1076,6 +1110,87 @@ class EditPayrollController extends Controller
     private function context(Request $request): array
     {
         return [$request->query('company', ''), $request->query('dept')];
+    }
+
+    /**
+     * Run the payroll engine for one employee and period, with the same
+     * inputs the Edit Payroll screen uses. $salaryType overrides the stored
+     * type (used when saving with a newly picked type).
+     */
+    private function calculateFor($conn, Payroll $payroll, string $idno, string $company, ?string $salaryType = null): array
+    {
+        $employeeDetails = $conn->table('employee_details')->where('idno', $idno)->first();
+
+        $designation   = $employeeDetails->designation ?? 0;
+        $department    = $employeeDetails->department ?? 0;
+        $blockOtBefore = ($designation == 71) || ($designation == 46 && $department == 1);
+        $blEligible    = $this->isBereavementLeaveEligible($employeeDetails->dateofhired ?? null, $payroll->periodto);
+
+        $salaryType ??= $conn->table('employee_payroll')->where('idno', $idno)->value('salary_type') ?? 'Rated';
+
+        return $this->calculator->calculate(
+            $idno,
+            $payroll->id,
+            (string) $payroll->periodfrom,
+            (string) $payroll->periodto,
+            $company,
+            $salaryType,
+            (int) $payroll->days,
+            $blockOtBefore,
+            $blEligible
+        );
+    }
+
+    /**
+     * Posted payroll is final: it must be unposted from Manage Payroll
+     * before anything that feeds it can change.
+     */
+    private function isPosted($conn, Payroll $payroll, string $idno): bool
+    {
+        return $conn->table('payroll_details')
+            ->where('payrollperiod', $payroll->id)
+            ->where('idno', $idno)
+            ->where('status', 'posted')
+            ->exists();
+    }
+
+    private function postedResponse(Request $request, Payroll $payroll, string $idno): RedirectResponse
+    {
+        return $this->backToEdit($request, $payroll, $idno)
+            ->with('error', 'This payroll is already posted. Unpost it from Manage Payroll before making changes.');
+    }
+
+    /**
+     * The attendance row, but only if it belongs to this employee and is one
+     * of the days the engine counts in this payroll period.
+     */
+    private function attendanceInPeriod($conn, Payroll $payroll, string $idno, int $attendance, string $company): ?object
+    {
+        $record = $conn->table('attendance')
+            ->where('id', $attendance)
+            ->where('idno', $idno)
+            ->first();
+
+        if (! $record) {
+            return null;
+        }
+
+        $inPeriod = collect($this->calculateFor($conn, $payroll, $idno, $company)['rows'])
+            ->contains('attendance_id', $attendance);
+
+        return $inPeriod ? $record : null;
+    }
+
+    /**
+     * Compare two stored/submitted values so "60" and "60.00" count as equal.
+     */
+    private function sameValue($old, $new): bool
+    {
+        if ($old === null || $old === '' || $new === null || $new === '') {
+            return ($old === null || $old === '') && ($new === null || $new === '');
+        }
+
+        return abs((float) $old - (float) $new) < 0.005;
     }
 
     private function backToEdit(Request $request, Payroll $payroll, string $idno): RedirectResponse

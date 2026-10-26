@@ -1005,10 +1005,17 @@ class PayrollCalculationService
             if ($salaryType === 'Rated') {
                 $t['grandtotal'] += $totalpay + $holidaypay;
             } elseif ($salaryType === 'Fixed') {
+                    // Working days beyond the 10 paid days absorb absences first:
+                    // with 11 working days, 1 absence still pays the full 10 days.
+                    // Excused in date order, so old-rate (earlier) absences go first.
+                    $fixedExcusedDays = max(0, $workdays - 10);
+                    $fixedExcusedOld  = min($fixedExcusedDays, $fixedOldRateDeductions);
+                    $fixedExcusedNew  = min($fixedExcusedDays - $fixedExcusedOld, $fixedNewRateDeductions);
+
                     $t['grandtotal'] =
                         $fixedBasePay
-                        - ($previousSalary * $fixedOldRateDeductions)
-                        - ($salary * $fixedNewRateDeductions);
+                        - ($previousSalary * ($fixedOldRateDeductions - $fixedExcusedOld))
+                        - ($salary * ($fixedNewRateDeductions - $fixedExcusedNew));
                 } elseif ($salaryType === 'Daily') {
                     $oldRatePayableDays = max(
                         0,

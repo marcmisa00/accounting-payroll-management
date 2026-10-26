@@ -22,7 +22,7 @@
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body class="{{ request()->routeIs('payroll.*','holidays.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
+<body class="{{ request()->routeIs('payroll.*','holidays.*', 'attendance.*', 'leaves.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
     <aside class="sidebar">
 
             <button type="button" class="sidebar-toggle" id="sidebarToggle">
@@ -93,6 +93,43 @@
                 <i class="fa-solid fa-wallet"></i>
             </span>
             <span class="nav-text">Budgets</span>
+        </a>
+
+        {{-- LEAVES & BENEFITS (same sub-menu markup/classes as Payroll) --}}
+        <li class="nav-item payroll-menu">
+
+            <a href="javascript:void(0);"
+            class="payroll-toggle {{ request()->routeIs('leaves.*') ? 'active' : '' }}">
+
+                <span class="icon">
+                    <i class="fa-solid fa-umbrella-beach"></i>
+                </span>
+
+                <span class="nav-text">Leaves &amp; Benefits</span>
+
+                <i class="fa-solid fa-chevron-down payroll-arrow"></i>
+            </a>
+
+            <ul class="payroll-submenu">
+
+                <li>
+                    <a href="{{ route('leaves.applications') }}"
+                    class="{{ request()->routeIs('leaves.applications') ? 'active' : '' }}">
+                        <i class="fa-solid fa-file-signature"></i>
+                        <span class="nav-text">Leave Application</span>
+                    </a>
+                </li>
+
+            </ul>
+
+        </li>
+
+        <a href="{{ route('attendance.index') }}"
+           class="{{ request()->routeIs('attendance.*') ? 'active' : '' }}">
+            <span class="icon">
+                <i class="fa-solid fa-user-clock"></i>
+            </span>
+            <span class="nav-text">Attendance</span>
         </a>
 
         <a href="{{route('holidays.index')}}">
@@ -265,31 +302,33 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
-            const payrollToggle = document.querySelector('.payroll-toggle');
-            const payrollSubmenu = document.querySelector('.payroll-submenu');
-            const payrollArrow = document.querySelector('.payroll-arrow');
+            // Every sidebar menu with a sub-menu (Payroll, Leaves & Benefits, ...)
+            document.querySelectorAll('.payroll-menu').forEach(function (menu) {
 
-            if (!payrollToggle || !payrollSubmenu) {
-                return;
-            }
+                const toggle = menu.querySelector('.payroll-toggle');
+                const submenu = menu.querySelector('.payroll-submenu');
+                const arrow = menu.querySelector('.payroll-arrow');
 
-            // If we are already inside a Payroll page,
-            // keep the submenu open.
-            const payrollIsActive = payrollToggle.classList.contains('active');
+                if (!toggle || !submenu) {
+                    return;
+                }
 
-            if (payrollIsActive) {
-                payrollSubmenu.classList.add('show');
-                payrollArrow.classList.add('rotate');
-            }
+                // If we are already inside one of this menu's pages,
+                // keep its submenu open.
+                if (toggle.classList.contains('active')) {
+                    submenu.classList.add('show');
+                    if (arrow) arrow.classList.add('rotate');
+                }
 
-            // Click Payroll to open/close manually
-            payrollToggle.addEventListener('click', function (e) {
+                // Click the menu to open/close manually
+                toggle.addEventListener('click', function (e) {
 
-                e.preventDefault();
+                    e.preventDefault();
 
-                payrollSubmenu.classList.toggle('show');
-                payrollArrow.classList.toggle('rotate');
+                    submenu.classList.toggle('show');
+                    if (arrow) arrow.classList.toggle('rotate');
 
+                });
             });
 
         });

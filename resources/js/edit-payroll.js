@@ -29,26 +29,3 @@ document.addEventListener('keydown', function (e) {
         window.location.href = nextUrl;
     }
 });
-
-
-// ==========================================
-// DELETE ATTENDANCE
-// ==========================================
-
-function deleteAttendance(attendanceId) {
-
-    if (!confirm('Do you wish to remove this attendance?')) {
-        return;
-    }
-
-    const form = document.getElementById('delete-attendance-form');
-
-    if (!form) {
-        console.error('Delete attendance form not found.');
-        return;
-    }
-
-    form.action = window.payrollData.deleteAttendanceUrl + '/' + attendanceId;
-
-    form.submit();
-}

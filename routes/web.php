@@ -8,6 +8,8 @@ use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\EditPayrollController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\LeaveApplicationController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -19,6 +21,8 @@ Route::post('/accounting/verify-code', [AccountingAuthController::class, 'verify
 Route::middleware('accounting.auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');
+    Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/leaves/applications', [LeaveApplicationController::class, 'index'])->name('leaves.applications');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
 
     Route::prefix('holidays')->name('holidays.')->group(function () {
@@ -50,7 +54,6 @@ Route::prefix('payroll')->name('payroll.')->group(function () {
                 Route::get('payslip/fixed/{detail}', [PayslipController::class, 'fixedFromEdit'])->whereNumber('detail')->name('payslip.fixed');
                 Route::get('payslip/daily/{detail}', [PayslipController::class, 'dailyFromEdit'])->whereNumber('detail')->name('payslip.daily');
                 Route::post('save', [EditPayrollController::class, 'save'])->name('save');
-                Route::delete('time/{attendance}', [EditPayrollController::class, 'deleteTime'])->name('time.destroy');
                 Route::get('time/{attendance}/edit', [EditPayrollController::class, 'editTime'])->name('time.edit');
                 Route::post('time/{attendance}/override', [EditPayrollController::class, 'updateTimeOverride'])->name('time.override');
                 Route::delete('time/{attendance}/override', [EditPayrollController::class, 'clearTimeOverride'])->name('time.override.clear');
