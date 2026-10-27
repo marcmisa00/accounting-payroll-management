@@ -22,7 +22,10 @@ export default defineConfig({
                     'resources/css/verify.css',
                     'resources/css/attendance.css',
                     'resources/css/leaves.css',
-                    'resources/js/leaves.js'],
+                    'resources/js/leaves.js',
+                    'resources/js/time-adjustments.js',
+                    'resources/js/overtime.js',
+                    'resources/js/eeo.js'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

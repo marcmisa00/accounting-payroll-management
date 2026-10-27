@@ -38,12 +38,12 @@
             </div>
         </form>
 
-        {{-- Search jumps to the matching row, switching company/department tabs as needed --}}
+        {{-- Search filters to matching rows, hiding tabs with no matches and jumping to the first one --}}
         <div class="lv-search" role="search">
-            <label for="lvSearch">Find employee</label>
+            <label for="lvSearch">Search</label>
             <div class="lv-search-box">
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input type="search" id="lvSearch" placeholder="Name or employee ID..." autocomplete="off">
+                <input type="search" id="lvSearch" placeholder="Name, ID or leave type..." autocomplete="off">
                 <span class="lv-search-count" id="lvSearchCount" aria-live="polite"></span>
                 <button type="button" id="lvPrev" title="Previous match (Shift+Enter)" aria-label="Previous match" disabled><i class="fa-solid fa-chevron-up"></i></button>
                 <button type="button" id="lvNext" title="Next match (Enter)" aria-label="Next match" disabled><i class="fa-solid fa-chevron-down"></i></button>
@@ -99,7 +99,6 @@
                                 data-dept="{{ $dept['key'] }}">
                             {{ $dept['name'] }}
                             <span class="lv-count">{{ number_format($dept['count']) }}</span>
-                            <span class="lv-match-dot" aria-hidden="true"></span>
                         </button>
                     @endforeach
                 </div>
@@ -133,6 +132,11 @@
 
         </section>
     @endforeach
+
+    <div class="lv-empty" id="lvNoResults" hidden>
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>No leave applications match your search.</p>
+    </div>
 
 </div>
 

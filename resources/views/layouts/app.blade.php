@@ -59,7 +59,7 @@
                 <i class="fa-solid fa-chevron-down payroll-arrow"></i>
             </a>
 
-            <ul class="payroll-submenu">
+            <ul class="payroll-submenu" data-title="Payroll">
 
                 <li>
                     <a href="{{ route('payroll.create') }}"
@@ -110,13 +110,37 @@
                 <i class="fa-solid fa-chevron-down payroll-arrow"></i>
             </a>
 
-            <ul class="payroll-submenu">
+            <ul class="payroll-submenu" data-title="Leaves &amp; Benefits">
 
                 <li>
                     <a href="{{ route('leaves.applications') }}"
                     class="{{ request()->routeIs('leaves.applications') ? 'active' : '' }}">
                         <i class="fa-solid fa-file-signature"></i>
                         <span class="nav-text">Leave Application</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('leaves.time-adjustments') }}"
+                    class="{{ request()->routeIs('leaves.time-adjustments') ? 'active' : '' }}">
+                        <i class="fa-solid fa-user-clock"></i>
+                        <span class="nav-text">Time Adjustment</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('leaves.overtime') }}"
+                    class="{{ request()->routeIs('leaves.overtime') ? 'active' : '' }}">
+                        <i class="fa-solid fa-business-time"></i>
+                        <span class="nav-text">Overtime</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('leaves.eeo') }}"
+                    class="{{ request()->routeIs('leaves.eeo') ? 'active' : '' }}">
+                        <i class="fa-solid fa-person-walking-arrow-right"></i>
+                        <span class="nav-text">EEO Application</span>
                     </a>
                 </li>
 
@@ -302,8 +326,20 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
+            const menus = document.querySelectorAll('.payroll-menu');
+
+            // Collapsed sidebar: sub-menus open as a flyout beside the icon
+            function closeFlyouts(except) {
+                menus.forEach(function (menu) {
+                    if (menu === except) return;
+                    menu.classList.remove('flyout-open');
+                    const toggle = menu.querySelector('.payroll-toggle');
+                    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                });
+            }
+
             // Every sidebar menu with a sub-menu (Payroll, Leaves & Benefits, ...)
-            document.querySelectorAll('.payroll-menu').forEach(function (menu) {
+            menus.forEach(function (menu) {
 
                 const toggle = menu.querySelector('.payroll-toggle');
                 const submenu = menu.querySelector('.payroll-submenu');
@@ -312,6 +348,10 @@
                 if (!toggle || !submenu) {
                     return;
                 }
+
+                toggle.setAttribute('aria-haspopup', 'true');
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.title = submenu.dataset.title || '';
 
                 // If we are already inside one of this menu's pages,
                 // keep its submenu open.
@@ -325,11 +365,36 @@
 
                     e.preventDefault();
 
+                    if (document.body.classList.contains('sidebar-collapsed')) {
+                        const open = menu.classList.toggle('flyout-open');
+                        toggle.setAttribute('aria-expanded', String(open));
+                        closeFlyouts(menu);
+                        return;
+                    }
+
                     submenu.classList.toggle('show');
                     if (arrow) arrow.classList.toggle('rotate');
 
                 });
             });
+
+            // Close a flyout by clicking elsewhere or pressing Escape
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.payroll-menu')) closeFlyouts();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+                const open = document.querySelector('.payroll-menu.flyout-open .payroll-toggle');
+                closeFlyouts();
+                if (open) open.focus();
+            });
+
+            // Expanding/collapsing the sidebar closes any open flyout
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function () { closeFlyouts(); });
+            }
 
         });
     </script>

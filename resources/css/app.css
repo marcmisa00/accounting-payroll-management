@@ -520,6 +520,68 @@
             transform: rotate(180deg);
         }
 
+        /* Collapsed sidebar: a menu's sub-pages open as a flyout beside its icon */
+        .payroll-menu {
+            position: relative;
+        }
+
+        .payroll-submenu::before {
+            content: attr(data-title);
+            display: none;
+        }
+
+        body.sidebar-collapsed .sidebar .payroll-menu.flyout-open .payroll-submenu {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: calc(100% + 6px);
+            z-index: 1100;
+            min-width: 210px;
+            margin: 0;
+            padding: 6px;
+            background: linear-gradient(180deg, var(--sidebar-bg-start), var(--sidebar-bg-end));
+            border: 1px solid var(--sidebar-border);
+            border-radius: 12px;
+            box-shadow: 0 18px 40px -12px rgba(2, 6, 23, 0.6);
+            animation: flyout-in 0.15s ease-out;
+        }
+
+        body.sidebar-collapsed .sidebar .payroll-menu.flyout-open .payroll-submenu::before {
+            display: block;
+            padding: 6px 12px 8px;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--sidebar-border);
+            margin-bottom: 4px;
+        }
+
+        body.sidebar-collapsed .sidebar .payroll-menu.flyout-open .payroll-submenu a {
+            justify-content: flex-start;
+            margin: 0;
+            padding: 9px 12px;
+            gap: 10px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        body.sidebar-collapsed .sidebar .payroll-menu.flyout-open .payroll-submenu .nav-text {
+            display: inline !important;
+        }
+
+        @keyframes flyout-in {
+            from { opacity: 0; transform: translateX(-6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            body.sidebar-collapsed .sidebar .payroll-menu.flyout-open .payroll-submenu {
+                animation: none;
+            }
+        }
+
 
         body.payroll-show .content {
             padding: 20px;

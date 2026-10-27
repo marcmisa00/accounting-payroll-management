@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ParsesHrisStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -13,6 +14,8 @@ use Illuminate\View\View;
  */
 class LeaveApplicationController extends Controller
 {
+    use ParsesHrisStatus;
+
     private const HRIS_CONNECTION = 'hris';
 
     public function index(Request $request): View
@@ -147,39 +150,5 @@ class LeaveApplicationController extends Controller
     private function date($value): ?string
     {
         return ($value && $value !== '0000-00-00') ? date('M d, Y', strtotime($value)) : null;
-    }
-
-    /**
-     * "Approved - Batara (Team Manager) [Nov 27, 2025 - 9:57 AM]"
-     *   → ['approved', 'Batara (Team Manager) · Nov 27, 2025 - 9:57 AM', false]
-     * A leading "*" (as HRIS stores some statuses) is kept as a flag, not dropped.
-     */
-    private function parseStatus(?string $status): array
-    {
-        $status  = trim((string) $status);
-        $flagged = str_starts_with($status, '*');
-        $status  = ltrim($status, '* ');
-
-        $kind = match (true) {
-            str_starts_with($status, 'Approved')    => 'approved',
-            str_starts_with($status, 'Disapproved') => 'disapproved',
-            str_starts_with($status, 'Cancelled')   => 'cancelled',
-            str_starts_with($status, 'Pending')     => 'pending',
-            default                                 => 'other',
-        };
-
-        $detail = null;
-        if (preg_match('/^\w+\s*-\s*(.*?)\s*(?:\[(.+)\])?$/u', $status, $m)) {
-            $who  = trim(preg_replace('/\(\s*\)/', '', $m[1]));
-            $who  = preg_replace('/\s+\)/', ')', $who);
-            $when = trim($m[2] ?? '');
-            $detail = trim($who . ($who && $when ? ' · ' : '') . $when) ?: null;
-        }
-
-        if ($kind === 'other') {
-            $detail = $status ?: null;
-        }
-
-        return [$kind, $detail, $flagged];
     }
 }

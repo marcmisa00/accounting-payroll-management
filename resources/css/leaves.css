@@ -385,26 +385,12 @@ html.dark-mode .lv-search-box input {
     color: #fff;
 }
 
-/* Yellow dot on tabs that contain search matches */
-.lv-match-dot {
-    display: none;
-}
-
-.lv-tab.has-match::after,
-.lv-tab.has-match .lv-match-dot {
-    content: "";
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    display: block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--l-match-ring);
-    box-shadow: 0 0 0 2px var(--l-surface);
-}
-
-.lv-dept-tabs .lv-tab.has-match::after {
+/* Search filtering: tabs with no matches are hidden; with no matches at all,
+   the tabs and panes give way to the "no results" message */
+.lv-tab[hidden],
+.lv-empty[hidden],
+.lv.no-results .lv-company-tabs,
+.lv.no-results .lv-company.is-active {
     display: none;
 }
 
@@ -573,6 +559,126 @@ table.lv-table tbody tr.is-match td:first-child {
 .lv-star {
     margin-left: 3px;
     cursor: help;
+}
+
+
+/* =========================================================
+   TIME ADJUSTMENT (Original / Requested data, final status, notes)
+   ========================================================= */
+
+.chip-rejected { background: var(--l-disapproved-bg); color: var(--l-disapproved-text); }
+.chip-archived { background: var(--l-soft);           color: var(--l-soft-text); }
+
+.ta-range-note {
+    color: var(--l-placeholder);
+}
+
+.ta-data {
+    min-width: 190px;
+}
+
+.ta-card {
+    padding: 8px 10px;
+    border: 1px solid var(--l-border-strong);
+    border-left-width: 3px;
+    border-radius: 8px;
+    background: var(--l-surface-2);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.ta-original  { border-left-color: var(--l-muted); }
+.ta-requested { border-left-color: var(--l-accent); }
+
+.ta-card-date {
+    margin-bottom: 4px;
+    color: var(--l-muted);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ta-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.ta-card-label {
+    color: var(--l-muted);
+}
+
+.ta-card-value {
+    color: var(--l-heading);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.ta-requested .ta-card-value {
+    color: var(--l-soft-text);
+}
+
+.ta-card-empty {
+    color: var(--l-placeholder);
+    font-style: italic;
+}
+
+.ta-final {
+    margin-top: 8px;
+    color: var(--l-muted);
+    font-size: 11px;
+}
+
+.ta-note-by {
+    display: block;
+    margin-top: 4px;
+    color: var(--l-muted);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   EEO (proof pin, acknowledged list)
+   ========================================================= */
+
+.eeo-proof {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-right: 6px;
+    border-radius: 6px;
+    background: var(--l-soft);
+    color: var(--l-accent);
+    font-size: 12px;
+    vertical-align: text-bottom;
+    transition: background 0.15s;
+}
+
+.eeo-proof:hover {
+    background: var(--l-focus);
+}
+
+.eeo-proof:focus-visible {
+    outline: 3px solid var(--l-focus);
+    outline-offset: 2px;
+}
+
+.eeo-ack {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.eeo-ack li + li {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--l-border-strong);
 }
 
 .lv-empty {

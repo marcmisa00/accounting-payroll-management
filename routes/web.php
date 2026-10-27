@@ -10,6 +10,9 @@ use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveApplicationController;
+use App\Http\Controllers\TimeAdjustmentController;
+use App\Http\Controllers\OvertimeApplicationController;
+use App\Http\Controllers\EeoApplicationController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -23,6 +26,9 @@ Route::middleware('accounting.auth')->group(function () {
     Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/leaves/applications', [LeaveApplicationController::class, 'index'])->name('leaves.applications');
+    Route::get('/leaves/time-adjustments', [TimeAdjustmentController::class, 'index'])->name('leaves.time-adjustments');
+    Route::get('/leaves/overtime', [OvertimeApplicationController::class, 'index'])->name('leaves.overtime');
+    Route::get('/leaves/eeo', [EeoApplicationController::class, 'index'])->name('leaves.eeo');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
 
     Route::prefix('holidays')->name('holidays.')->group(function () {
