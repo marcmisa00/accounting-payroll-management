@@ -231,14 +231,15 @@
 
     .table-bordered-bottom-only th,
     .table-bordered-bottom-only td {
-        font-family:"Lucida Console", "Courier New", monospace;
-        border: none;
-        border-bottom: 1px solid var(--table-row-border);
-        padding: 9px 10px;
-        font-size: 13px;
-        color: #878080;
-        transition: color 0.2s, border-color 0.2s;
-        font-weight:500; 
+    font-variant-numeric: tabular-nums;
+    border: none;
+    border-bottom: 1px solid var(--table-row-border);
+    color: var(--input-text);
+    padding: 9px 10px;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color .2s,border-color .2s
     }
 
     .table-bordered-bottom-only thead th {
@@ -279,6 +280,24 @@
 
     .label-primary { background: #4b79a1; }
     .label-warning { background: #c98a2b; }
+
+    /* Type tags (salary type + GY) */
+    .type-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        margin: 1px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 10px;
+        line-height: 1.3;
+        white-space: nowrap;
+        border: 1px solid transparent;
+    }
+
+    .type-rated { background: var(--tag-rated-bg); color: var(--tag-rated-text); border-color: var(--tag-rated-border); }
+    .type-fixed { background: var(--tag-fixed-bg); color: var(--tag-fixed-text); border-color: var(--tag-fixed-border); }
+    .type-daily { background: var(--tag-daily-bg); color: var(--tag-daily-text); border-color: var(--tag-daily-border); }
+    .type-gy    { background: var(--tag-gy-bg);    color: var(--tag-gy-text);    border-color: var(--tag-gy-border); }
 
     /* Small action buttons in row */
     .btn-xs {
@@ -440,6 +459,18 @@
         --dropdown-hover: #f2f6fa;
         --dropdown-header: #8a99a8;
         --sub-color: #666;
+        --tag-rated-bg: #e6f4ea;
+        --tag-rated-text: #1e6b34;
+        --tag-rated-border: #b9e0c4;
+        --tag-fixed-bg: #e3eefa;
+        --tag-fixed-text: #1f5591;
+        --tag-fixed-border: #b6d0ee;
+        --tag-daily-bg: #efe8fa;
+        --tag-daily-text: #5b3a96;
+        --tag-daily-border: #d3c3ef;
+        --tag-gy-bg: #e9ecef;
+        --tag-gy-text: #3d4852;
+        --tag-gy-border: #c8cfd6;
     }
 
     /* ====== DARK MODE OVERRIDES ====== */
@@ -464,6 +495,18 @@
         --dropdown-hover: #2a3a4a;
         --dropdown-header: #6a7a8a;
         --sub-color: #8a9aa8;
+        --tag-rated-bg: rgba(72, 187, 120, 0.15);
+        --tag-rated-text: #7ddc9f;
+        --tag-rated-border: rgba(72, 187, 120, 0.35);
+        --tag-fixed-bg: rgba(66, 153, 225, 0.15);
+        --tag-fixed-text: #8cc4f5;
+        --tag-fixed-border: rgba(66, 153, 225, 0.35);
+        --tag-daily-bg: rgba(159, 122, 234, 0.15);
+        --tag-daily-text: #c4aaf5;
+        --tag-daily-border: rgba(159, 122, 234, 0.35);
+        --tag-gy-bg: rgba(160, 174, 192, 0.15);
+        --tag-gy-text: #cbd5e0;
+        --tag-gy-border: rgba(160, 174, 192, 0.35);
     }
      .payroll-tabs {
         display: flex;

@@ -135,7 +135,7 @@
                                         <table class="table table-bordered-bottom-only">
                                             <thead>
                                                 <tr>
-                                                    <th class="table-head-1">No.</th>
+                                                    <th class="table-head-1">Type</th>
                                                     <th class="table-head-1">Emp ID</th>
                                                     <th class="table-head">Employee Name</th>
                                                     <th class="table-head-1">Company</th>
@@ -150,22 +150,34 @@
                                             <tbody>
                                                 @forelse ($dept['employees'] as $x => $employee)
                                                     <tr>
-                                                        <td class="table-cont-1" style="background-color: {{ $employee['bg_color'] }};">{{ $x + 1 }}.</td>
-                                                        <td class="table-cont-1" style="background-color: {{ $employee['bg_color'] }};">{{ $employee['idno'] }}</td>
-                                                        <td class="table-cont" style="background-color: {{ $employee['bg_color'] }};"><strong>{{ $employee['name'] }}</strong></td>
-                                                        <td class="table-cont-1" style="background-color: {{ $employee['bg_color'] }};">{{ $company['code'] }}</td>
-                                                        <td class="table-cont-1" style="background-color: {{ $employee['bg_color'] }};">
+                                                        <td class="table-cont-1">
+                                                            @php
+                                                                $typeTag = ['Rated' => ['Rated', 'type-rated'], 'Fixed' => ['Fixed', 'type-fixed'], 'Daily' => ['Fixed Daily', 'type-daily']][$employee['salary_type']] ?? null;
+                                                            @endphp
+                                                            @if ($typeTag)
+                                                                <span class="type-tag {{ $typeTag[1] }}">{{ $typeTag[0] }}</span>
+                                                            @else
+                                                                <span style="color: var(--sub-color);">&mdash;</span>
+                                                            @endif
+                                                            @if ($employee['is_night_shift'])
+                                                                <span class="type-tag type-gy" title="Graveyard shift">GY</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="table-cont-1">{{ $employee['idno'] }}</td>
+                                                        <td class="table-cont"><strong>{{ $employee['name'] }}</strong></td>
+                                                        <td class="table-cont-1">{{ $company['code'] }}</td>
+                                                        <td class="table-cont-1">
                                                             @if ($employee['location'] === 'OS')
                                                                 <span class="label label-primary label-sm">{{ $employee['location'] }}</span>
                                                             @else
                                                                 <span class="label label-warning label-sm">{{ $employee['location'] }}</span>
                                                             @endif
                                                         </td>
-                                                        <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">{{ number_format($employee['addons'], 2) }}</td>
-                                                        <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">{{ number_format($employee['totalpay'], 2) }}</td>
-                                                        <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">{{ number_format($employee['deductions'], 2) }}</td>
-                                                        <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">{{ number_format($employee['netpay'], 2) }}</td>
-                                                        <td class="table-cont-2" style="background-color: {{ $employee['bg_color'] }};">
+                                                        <td class="table-cont-2">{{ number_format($employee['addons'], 2) }}</td>
+                                                        <td class="table-cont-2">{{ number_format($employee['totalpay'], 2) }}</td>
+                                                        <td class="table-cont-2">{{ number_format($employee['deductions'], 2) }}</td>
+                                                        <td class="table-cont-2">{{ number_format($employee['netpay'], 2) }}</td>
+                                                        <td class="table-cont-2">
                                                                <a href="{{ route('payroll.edit.show', ['payroll' => $payroll->id, 'idno' => $employee['idno'], 'company' => $company['code'], 'dept' => $dept['id']]) }}" class="btn btn-primary btn-xs" title="Edit Payroll">
                                                                 <i class="fa fa-pencil"></i>
                                                             </a>

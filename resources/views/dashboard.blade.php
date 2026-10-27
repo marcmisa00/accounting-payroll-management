@@ -13,6 +13,24 @@
         ? date('M d', strtotime($period->periodfrom)) . ' – ' . date('M d, Y', strtotime($period->periodto))
         : 'No period selected';
     $companyKey    = fn ($name) => strtolower(preg_replace('/[^A-Za-z0-9]/', '', $name));
+    $previousLabel = $previous
+        ? date('M d', strtotime($previous->periodfrom)) . ' – ' . date('M d, Y', strtotime($previous->periodto))
+        : null;
+
+    // +/- against the previous period: null when there is nothing to compare with
+    $delta = function ($now, $before) {
+        if ($before === null || round((float) $before, 2) == 0) {
+            return null;
+        }
+        $diff = round((float) $now - (float) $before, 2);
+
+        return (object) [
+            'diff'    => $diff,
+            'percent' => $diff / abs((float) $before) * 100,
+            'dir'     => $diff > 0 ? 'up' : ($diff < 0 ? 'down' : 'flat'),
+        ];
+    };
+    $grandDelta = $delta($grandTotal, $previousGrandTotal);
 @endphp
 
 <div class="dash">
@@ -23,6 +41,15 @@
             <div class="stat-icon"><i class="fa-solid fa-coins"></i></div>
             <div class="stat-label">Net pay this period</div>
             <div class="stat-value">₱{{ number_format($grandTotal, 2) }}</div>
+            @if ($grandDelta)
+                <div class="delta delta-{{ $grandDelta->dir }}" title="Compared with {{ $previousLabel }}">
+                    <i class="fa-solid {{ $grandDelta->dir === 'up' ? 'fa-arrow-trend-up' : ($grandDelta->dir === 'down' ? 'fa-arrow-trend-down' : 'fa-minus') }}"></i>
+                    {{ $grandDelta->diff > 0 ? '+' : ($grandDelta->diff < 0 ? '−' : '') }}₱{{ number_format(abs($grandDelta->diff), 2) }}
+                    ({{ $grandDelta->diff > 0 ? '+' : ($grandDelta->diff < 0 ? '−' : '') }}{{ number_format(abs($grandDelta->percent), 1) }}%)
+                </div>
+            @elseif ($period)
+                <div class="delta delta-none">No previous payroll to compare</div>
+            @endif
             <div class="stat-foot">
                 <i class="fa-regular fa-calendar"></i> {{ $periodLabel }}
                 @if ($period && $period->id == $currentId)
@@ -136,6 +163,18 @@
                         <div class="total">
                             <span>Net pay</span>
                             ₱{{ number_format($company->net_pay, 2) }}
+                            @php
+                                $cd = $delta($company->net_pay, $previous ? ($previousTotals[$companyName] ?? 0) : null);
+                            @endphp
+                            @if ($cd)
+                                <div class="delta delta-{{ $cd->dir }}" title="Compared with {{ $previousLabel }}">
+                                    <i class="fa-solid {{ $cd->dir === 'up' ? 'fa-arrow-trend-up' : ($cd->dir === 'down' ? 'fa-arrow-trend-down' : 'fa-minus') }}"></i>
+                                    {{ $cd->diff > 0 ? '+' : ($cd->diff < 0 ? '−' : '') }}₱{{ number_format(abs($cd->diff), 2) }}
+                                    ({{ $cd->diff > 0 ? '+' : ($cd->diff < 0 ? '−' : '') }}{{ number_format(abs($cd->percent), 1) }}%)
+                                </div>
+                            @else
+                                <div class="delta delta-none">No previous payroll</div>
+                            @endif
                         </div>
                     </div>
 
@@ -189,33 +228,23 @@
                 ? { grid: 'rgba(148, 163, 184, 0.10)', text: '#8b9bb4', tipBg: '#0f172a', tipText: '#e2e8f0', tipBorder: 'rgba(148, 163, 184, 0.25)' }
                 : { grid: 'rgba(15, 23, 42, 0.06)',    text: '#64748b', tipBg: '#ffffff', tipText: '#0f172a', tipBorder: 'rgba(15, 23, 42, 0.10)' };
 
-            // Gradient pair for each company (same in both modes)
-            const colors = {
-                NESI1:  ['#6366f1', '#38bdf8'],
-                NESI2:  ['#10b981', '#5eead4'],
-                NEWIND: ['#f59e0b', '#fb7185']
+            // One muted colour per company, matching the .co-* dots in dashboard.css
+            const palette = {
+                light: { NESI1: '#4f46e5', NESI2: '#0f766e', NEWIND: '#b45309' },
+                dark:  { NESI1: '#818cf8', NESI2: '#2dd4bf', NEWIND: '#f59e0b' }
             };
-            const fallback = ['#6366f1', '#38bdf8'];
+            const colorFor = name => (isDark() ? palette.dark : palette.light)[name] || (isDark() ? '#818cf8' : '#4f46e5');
 
             const short = v => v >= 1e6 ? '₱' + (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'
                              : v >= 1e3 ? '₱' + Math.round(v / 1e3) + 'K'
                              : '₱' + v;
             const full = v => '₱' + Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-            const barFill = pair => function (ctx) {
-                const area = ctx.chart.chartArea;
-                if (!area) return pair[0];
-                const g = ctx.chart.ctx.createLinearGradient(0, area.bottom, 0, area.top);
-                g.addColorStop(0, pair[0]);
-                g.addColorStop(1, pair[1]);
-                return g;
-            };
-
             const chartInstances = [];
 
             document.querySelectorAll('canvas[data-company]').forEach(function (canvas) {
                 const name = canvas.dataset.company;
-                const pair = colors[name] || fallback;
+                const color = colorFor(name);
                 const t = theme();
 
                 const chart = new Chart(canvas, {
@@ -224,9 +253,9 @@
                         labels: months,
                         datasets: [{
                             data: series[name],
-                            backgroundColor: barFill(pair),
-                            hoverBackgroundColor: pair[1],
-                            borderRadius: 8,
+                            backgroundColor: color + 'cc',
+                            hoverBackgroundColor: color,
+                            borderRadius: 4,
                             borderSkipped: false,
                             maxBarThickness: 20
                         }]
@@ -275,6 +304,9 @@
                 if (!mutations.some(m => m.attributeName === 'class')) return;
                 const t = theme();
                 chartInstances.forEach(function (chart) {
+                    const color = colorFor(chart.canvas.dataset.company);
+                    chart.data.datasets[0].backgroundColor = color + 'cc';
+                    chart.data.datasets[0].hoverBackgroundColor = color;
                     chart.options.scales.y.grid.color = t.grid;
                     chart.options.scales.y.ticks.color = t.text;
                     chart.options.scales.x.ticks.color = t.text;

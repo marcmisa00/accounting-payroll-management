@@ -264,11 +264,6 @@ class PayrollController extends Controller
                 $startTime    = $employee->startshift ? date('h:i A', strtotime($employee->startshift)) : null;
                 $isNightShift = in_array($startTime, ['12:00 AM', '01:00 AM', '11:00 PM'], true);
 
-                $bgColor = $isNightShift ? '#cccccc' : '';
-                if (in_array($typeSalary, ['Fixed', 'Daily'], true)) {
-                    $bgColor = '#d0e1f1';
-                }
-
                 return [
                     'idno'        => $idno,
                     'name'        => trim("{$employee->lastname}, {$employee->firstname} {$employee->middlename} {$employee->suffix}"),
@@ -279,7 +274,7 @@ class PayrollController extends Controller
                     'netpay'      => $netpay,
                     'payroll_id'  => $payrollId,
                     'salary_type' => $typeSalary,
-                    'bg_color'    => $bgColor,
+                    'is_night_shift' => $isNightShift,
                 ];
             });
 

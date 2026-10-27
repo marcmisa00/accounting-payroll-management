@@ -59,12 +59,35 @@ class DashboardController extends Controller
             ]);
         }
 
+        // The period just before the selected one (periods are newest first), for the +/- comparison
+        $previous       = null;
+        $previousTotals = collect();
+
+        if ($period) {
+            $index    = $periods->search(fn ($p) => $p->id == $period->id);
+            $previous = $index !== false ? $periods->get($index + 1) : null;
+
+            if ($previous) {
+                // company => net pay, computed the same way as the selected period
+                $previousTotals = $this->employeeNetPayQuery($previous->id)
+                    ->selectRaw('ed.company AS company')
+                    ->selectRaw('SUM(COALESCE(pd.totalpay, 0) + COALESCE(ad.amount, 0) - COALESCE(de.amount, 0)) AS net_pay')
+                    ->groupBy('ed.company')
+                    ->get()
+                    ->pluck('net_pay', 'company')
+                    ->map(fn ($v) => (float) $v);
+            }
+        }
+
         return view('dashboard', [
             'periods'   => $periods,
             'currentId' => $currentId,
             'period'    => $period,
             'companies' => $companies,
             'grandTotal' => $companies->sum('net_pay'),
+            'previous'   => $previous,
+            'previousTotals' => $previousTotals,
+            'previousGrandTotal' => $previous ? $previousTotals->sum() : null,
             'years'     => $years,
             'year'      => $year,
             'chart'     => $chart,

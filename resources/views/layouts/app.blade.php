@@ -80,20 +80,6 @@
             </ul>
 
         </li>
-        
-        <a href="#">
-            <span class="icon">
-                <i class="fa-solid fa-receipt"></i>
-            </span>
-            <span class="nav-text">Expenses</span>
-        </a>
-
-        <a href="#">
-            <span class="icon">
-                <i class="fa-solid fa-wallet"></i>
-            </span>
-            <span class="nav-text">Budgets</span>
-        </a>
 
         {{-- LEAVES & BENEFITS (same sub-menu markup/classes as Payroll) --}}
         <li class="nav-item payroll-menu">
