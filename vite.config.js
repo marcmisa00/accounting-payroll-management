@@ -18,6 +18,7 @@ export default defineConfig({
                     'resources/css/history-index.css',
                     'resources/js/show-payroll.js',
                     'resources/js/edit-payroll.js',
+                    'resources/js/payslip-export.js',
                     'resources/css/holiday-cal.css',
                     'resources/css/verify.css',
                     'resources/css/attendance.css',

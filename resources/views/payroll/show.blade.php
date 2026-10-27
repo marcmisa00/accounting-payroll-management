@@ -7,7 +7,7 @@
 @endif
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-@vite(['resources/css/show-payroll.css', 'resources/js/show-payroll.js'])
+@vite(['resources/css/show-payroll.css', 'resources/js/show-payroll.js', 'resources/js/payslip-export.js'])
 <!-- Loading Overlay -->
 <div class="download-loading-overlay" id="downloadLoadingOverlay">
     <div class="download-loading-box">
@@ -16,6 +16,8 @@
         <p class="sub-text">Please wait, this may take a moment. Do not refresh the page.</p>
     </div>
 </div>
+
+@include('payroll.partials.signatory-modal')
 
 <div class="centered-container">
     <div class="content-panel">
@@ -170,13 +172,19 @@
                                                             @if ($employee['payroll_id'])
                                                                 @if ($employee['salary_type'] === 'Rated')
                                                                     <a href="{{ route('payroll.payslip.rated', $employee['payroll_id']) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
-                                                                    <a href="/exporttopdfRated.php?id={{ $employee['payroll_id'] }}&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-success btn-xs" title="Export Payslip" target="_blank"><i class="fa fa-download"></i></a>
+                                                                    <button type="button" class="btn btn-success btn-xs export-payslip-btn" title="Export Payslip"
+                                                                        data-url="{{ route('payroll.payslip.rated.pdf', $employee['payroll_id']) }}"
+                                                                        data-signatory="{{ config('payroll.payslip_default_signatory.' . $company['code'], 'salvador') }}"><i class="fa fa-download"></i></button>
                                                                 @elseif ($employee['salary_type'] === 'Fixed')
                                                                     <a href="{{ route('payroll.payslip.fixed', $employee['payroll_id']) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
-                                                                    <a href="/exporttopdfFixed.php?id={{ $employee['payroll_id'] }}&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-success btn-xs" title="Export Payslip" target="_blank"><i class="fa fa-download"></i></a>
+                                                                    <button type="button" class="btn btn-success btn-xs export-payslip-btn" title="Export Payslip"
+                                                                        data-url="{{ route('payroll.payslip.fixed.pdf', $employee['payroll_id']) }}"
+                                                                        data-signatory="{{ config('payroll.payslip_default_signatory.' . $company['code'], 'salvador') }}"><i class="fa fa-download"></i></button>
                                                                 @elseif ($employee['salary_type'] === 'Daily')
                                                                     <a href="{{ route('payroll.payslip.daily', $employee['payroll_id']) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
-                                                                    <a href="/exporttopdfDaily.php?id={{ $employee['payroll_id'] }}&idno={{ $employee['idno'] }}&period={{ $payroll->id }}&company={{ $company['code'] }}" class="btn btn-success btn-xs" title="Export Payslip" target="_blank"><i class="fa fa-download"></i></a>
+                                                                    <button type="button" class="btn btn-success btn-xs export-payslip-btn" title="Export Payslip"
+                                                                        data-url="{{ route('payroll.payslip.daily.pdf', $employee['payroll_id']) }}"
+                                                                        data-signatory="{{ config('payroll.payslip_default_signatory.' . $company['code'], 'salvador') }}"><i class="fa fa-download"></i></button>
                                                                 @endif
                                                             @endif
                                                         </td>

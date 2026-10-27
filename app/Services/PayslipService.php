@@ -97,6 +97,67 @@ class PayslipService
         ];
     }
 
+    /**
+     * PDF export (rated / fixed / daily): mid + end payslips of the month side by side,
+     * each half built by the matching single-period method above.
+     * The partner period is found by adjacent dates (not id ± 1, which breaks
+     * on duplicated/mislabelled periods) and must hold this employee's payroll row.
+     * A missing half keeps only the header fields plus ['missing' => true, periodFrom, periodTo].
+     */
+    public function monthly(string $type, int $detailId): array
+    {
+        if (! in_array($type, ['rated', 'fixed', 'daily'], true)) {
+            throw new \InvalidArgumentException("Unknown payslip type [{$type}]");
+        }
+
+        $hris    = DB::connection('hris');
+        $current = $this->{$type}($detailId);
+
+        $detail = $hris->table('payroll_details')->where('id', $detailId)->first(['idno', 'payrollperiod']);
+        $period = $hris->table('payroll')->where('id', $detail->payrollperiod)->first();
+        $isMid  = $period->period === 'mid';
+
+        $partnerPeriods = $hris->table('payroll')
+            ->where('id', '!=', $period->id)
+            ->when(
+                $isMid,
+                fn ($q) => $q->where('periodfrom', date('Y-m-d', strtotime($period->periodto . ' +1 day'))),
+                fn ($q) => $q->where('periodto', date('Y-m-d', strtotime($period->periodfrom . ' -1 day')))
+            )
+            ->orderBy('id')
+            ->get(['id', 'periodfrom', 'periodto']);
+
+        $partnerDetailId = $partnerPeriods->isEmpty() ? null : $hris->table('payroll_details')
+            ->where('idno', $detail->idno)
+            ->whereIn('payrollperiod', $partnerPeriods->pluck('id'))
+            ->orderBy('id')
+            ->value('id');
+
+        $partner = $partnerDetailId
+            ? $this->{$type}((int) $partnerDetailId)
+            : array_intersect_key($current, array_flip(['fullname', 'team', 'shift', 'baseRate', 'monthly', 'semiMonthly'])) + [
+                'missing'    => true,
+                'periodFrom' => $partnerPeriods->first()->periodfrom ?? null,
+                'periodTo'   => $partnerPeriods->first()->periodto ?? null,
+            ];
+
+        $company   = $hris->table('employee_details')->where('idno', $detail->idno)->value('company');
+        $watermark = public_path('img/payslip/' . match ($company) {
+            'NESI1'  => 'Sol.png',
+            'NESI2'  => 'Strat.png',
+            'NEWIND' => 'New.png',
+            default  => '3.png',
+        });
+
+        return [
+            'type'      => $type,
+            'company'   => $company,
+            'watermark' => is_file($watermark) ? 'data:image/png;base64,' . base64_encode(file_get_contents($watermark)) : '',
+            'mid'       => $isMid ? $current : $partner,
+            'end'       => $isMid ? $partner : $current,
+        ];
+    }
+
 
     public function daily(int $detailId): array
         {
@@ -199,7 +260,8 @@ class PayslipService
         return [$detail, [
             'fullname'   => trim("{$employee->firstname} {$employee->lastname} {$employee->suffix}"),
             'team'       => $employee->team,
-            'baseRate'   => (float) ($detail->salary_rate ?? 0),
+            // Rate saved with this payroll; rows created before salary_rate existed (NULL) fall back to the current salary
+            'baseRate'   => (float) ($detail->salary_rate ?? $ep->salary ?? 0),
             'basePrev'   => (float) $ep->previous_salary,
             'periodFrom' => $period->periodfrom,
             'periodTo'   => $period->periodto,

@@ -23,7 +23,8 @@ function SubmitDetails() {
 </script>
 
 
-@vite(['resources/css/edit-payroll.css'])
+@vite(['resources/css/edit-payroll.css', 'resources/js/payslip-export.js'])
+@include('payroll.partials.signatory-modal')
 <div class="row">
     <div class="col-lg-12">
         <h4 style="display: flex; align-items: center; justify-content: space-between; text-indent: 10px;">
@@ -75,15 +76,19 @@ function SubmitDetails() {
 
                 <div class="export-btn" style="display: flex; margin-left: auto; float: right;">
                     @if ($isSaved)
+                        @php $defaultSignatory = config('payroll.payslip_default_signatory.' . ($employeeDetails->company ?? ''), 'salvador'); @endphp
                         @if ($salaryType === 'Rated')
                             <a href="{{ route('payroll.edit.payslip.rated', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}"class="btn btn-warning btn-xs"title="View Payslip"target="_blank"><i class="fa fa-eye"></i></a>
-                            <a href="/exporttopdfRated.php?id={{ $payrollId }}" class="btn btn-success" title="Export Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-download"></i></a>
+                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip" style="float:right; margin-right:10px;"
+                                data-url="{{ route('payroll.payslip.rated.pdf', $payrollId) }}" data-signatory="{{ $defaultSignatory }}"><i class="fa fa-download"></i></button>
                         @elseif ($salaryType === 'Fixed')
                             <a href="{{ route('payroll.edit.payslip.fixed', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}"class="btn btn-warning btn-xs"title="View Payslip"target="_blank"><i class="fa fa-eye"></i></a>
-                            <a href="/exporttopdfFixed.php?id={{ $payrollId }}" class="btn btn-success" title="Export Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-download"></i></a>
+                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip" style="float:right; margin-right:10px;"
+                                data-url="{{ route('payroll.payslip.fixed.pdf', $payrollId) }}" data-signatory="{{ $defaultSignatory }}"><i class="fa fa-download"></i></button>
                         @elseif ($salaryType === 'Daily')
                             <a href="{{ route('payroll.edit.payslip.daily', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
-                            <a href="/exporttopdfDaily.php?id={{ $payrollId }}" class="btn btn-success" title="Export Payslip" target="_blank" style="float:right; margin-right:10px;"><i class="fa fa-download"></i></a>
+                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip" style="float:right; margin-right:10px;"
+                                data-url="{{ route('payroll.payslip.daily.pdf', $payrollId) }}" data-signatory="{{ $defaultSignatory }}"><i class="fa fa-download"></i></button>
                         @endif
                     @endif
                 </div>

@@ -51,8 +51,11 @@ Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::post('history', [EditPayrollController::class, 'historySelect'])->name('history.select');
         Route::get('manage/{payroll}/history', [EditPayrollController::class, 'history'])->name('history');
         Route::get('payslip/rated/{detail}', [PayslipController::class, 'rated'])->whereNumber('detail')->name('payslip.rated');
+        Route::get('payslip/rated/{detail}/pdf', [PayslipController::class, 'ratedPdf'])->whereNumber('detail')->name('payslip.rated.pdf');
         Route::get('payslip/fixed/{detail}', [PayslipController::class, 'fixed'])->whereNumber('detail')->name('payslip.fixed');
+        Route::get('payslip/fixed/{detail}/pdf', [PayslipController::class, 'fixedPdf'])->whereNumber('detail')->name('payslip.fixed.pdf');
         Route::get('payslip/daily/{detail}', [PayslipController::class, 'daily'])->whereNumber('detail')->name('payslip.daily');
+        Route::get('payslip/daily/{detail}/pdf', [PayslipController::class, 'dailyPdf'])->whereNumber('detail')->name('payslip.daily.pdf');
         Route::prefix('manage/{payroll}/edit/{idno}') ->name('edit.') 
             ->group(function () {
                 Route::get('/', [EditPayrollController::class, 'show'])->name('show');

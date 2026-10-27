@@ -1,0 +1,49 @@
+/* Payslip PDF export: signatory selection modal (payroll show + edit pages) */
+.signatory-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+}
+
+.signatory-overlay.open {
+    display: flex;
+}
+
+.signatory-box {
+    background: var(--panel-bg, #fff);
+    color: var(--text-primary, #222);
+    border-radius: 14px;
+    padding: 28px 32px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 440px;
+}
+
+.signatory-box p {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.signatory-box select {
+    width: 100%;
+    margin-top: 14px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--input-border, #d9dee5);
+    background: var(--input-bg, #fff);
+    color: var(--input-text, #222);
+    font-size: 13px;
+}
+
+.signatory-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+}
