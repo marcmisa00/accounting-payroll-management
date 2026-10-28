@@ -905,6 +905,250 @@ table.lc-table tbody td.lc-out { background: var(--lc-out-bg); color: var(--lc-o
 
 
 /* =========================================================
+   HSO + SITE TRANSFER APPLICATIONS (applications.js)
+   ========================================================= */
+
+:root {
+    --ap-due-row: #fff9e6;
+    --ap-acked-row: #f0f9f0;
+    --ap-due-badge: #ef4444;
+    --ap-it: #3498db;
+    --ap-hr: #27ae60;
+    --ap-acc: #f39c12;
+}
+
+html.dark-mode {
+    --ap-due-row: rgba(245, 158, 11, 0.09);
+    --ap-acked-row: rgba(16, 185, 129, 0.08);
+    --ap-due-badge: #f87171;
+}
+
+/* Legacy row colours; the search highlight still wins */
+table.lv-table tbody tr.ap-row-due:not(.is-match) td { background: var(--ap-due-row); }
+table.lv-table tbody tr.ap-row-acked:not(.is-match) td { background: var(--ap-acked-row); }
+
+.ap-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    color: var(--l-muted);
+    font-size: 12px;
+}
+
+.ap-swatch {
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--l-border-strong);
+    border-radius: 3px;
+}
+
+.ap-swatch + * { margin-right: 8px; }
+.ap-swatch--due { background: var(--ap-due-row); }
+.ap-swatch--acked { background: var(--ap-acked-row); margin-left: 8px; }
+
+/* Count still waiting for Accounting, next to the tab total */
+.ap-due {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--ap-due-badge);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.ap-due[hidden] { display: none; }
+
+.ap-ack {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.ap-ack li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.ap-ack li + li {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--l-border-strong);
+}
+
+.ap-ack i { width: 14px; margin-top: 2px; text-align: center; }
+.ap-ack strong { display: block; color: var(--l-heading); font-weight: 600; }
+.ap-ack small { display: block; color: var(--l-muted); font-size: 11px; }
+.ap-ack-it { color: var(--ap-it); }
+.ap-ack-hr { color: var(--ap-hr); }
+.ap-ack-acc { color: var(--ap-acc); }
+
+.ap-ack-waiting {
+    color: var(--l-muted);
+    font-size: 12px;
+    font-style: italic;
+    white-space: nowrap;
+}
+
+table.lv-table th.ap-action-col,
+table.lv-table td.ap-action-col { width: 64px; text-align: center; }
+
+.ap-ack-btn,
+.ap-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.ap-ack-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--l-approved-bg);
+    color: var(--l-approved-text);
+    font-size: 14px;
+}
+
+.ap-ack-btn:hover { background: var(--l-approved-text); color: #fff; transform: translateY(-1px); }
+.ap-ack-btn.is-busy { opacity: 0.5; cursor: progress; }
+
+.ap-info {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 6px;
+    background: var(--l-soft);
+    color: var(--l-soft-text);
+    font-size: 11px;
+    vertical-align: middle;
+}
+
+.ap-info:hover { background: var(--l-accent); color: #fff; }
+
+.ap-ack-btn:focus-visible,
+.ap-info:focus-visible,
+.ap-modal-close:focus-visible,
+.ap-file:focus-visible {
+    outline: 3px solid var(--l-focus);
+    outline-offset: 2px;
+}
+
+/* Details popup */
+.ap-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.55);
+}
+
+.ap-modal-backdrop[hidden] { display: none; }
+
+.ap-modal {
+    width: 100%;
+    max-width: 880px;
+    background: var(--l-surface);
+    border: 1px solid var(--l-border);
+    border-radius: 18px;
+    box-shadow: var(--l-shadow);
+    color: var(--l-text);
+}
+
+.ap-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(120deg, var(--l-grad-start), var(--l-grad-end));
+    color: #fff;
+}
+
+.ap-modal-head h3 { margin: 0; font-size: 17px; }
+.ap-modal-sub { font-size: 12px; opacity: 0.85; }
+
+.ap-modal-close {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    cursor: pointer;
+}
+
+.ap-modal-close:hover { background: rgba(255, 255, 255, 0.3); }
+
+.ap-modal-body { padding: 8px 22px 22px; }
+
+.ap-section { padding-top: 16px; }
+.ap-section + .ap-section { margin-top: 16px; border-top: 1px solid var(--l-border); }
+
+.ap-section h4 {
+    margin: 0 0 10px;
+    color: var(--l-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.ap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 18px;
+}
+
+.ap-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ap-field > span { color: var(--l-muted); font-size: 11px; }
+.ap-field > strong { color: var(--l-heading); font-size: 13px; font-weight: 600; word-break: break-word; }
+
+.ap-reason {
+    margin: 10px 0 0;
+    color: var(--l-heading);
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-line;
+}
+
+.ap-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--l-border-strong);
+    border-radius: 10px;
+    color: var(--l-text);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ap-file:hover { border-color: var(--l-accent); color: var(--l-accent); }
+.ap-file i { color: var(--l-disapproved-text); }
+
+.ap-loading { margin: 24px 0 8px; color: var(--l-muted); text-align: center; }
+
+@media (max-width: 720px) {
+    .ap-grid { grid-template-columns: 1fr 1fr; }
+    .ap-legend { margin-left: 0; }
+}
+
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 

@@ -22,6 +22,16 @@ function initRoster() {
         search.setSelectionRange(search.value.length, search.value.length);
     }
 
+    // Trackers: year / per-page selects apply at once; a year replaces any date range
+    form.querySelectorAll('[data-autosubmit]').forEach((el) => {
+        el.addEventListener('change', () => {
+            if (el.hasAttribute('data-clear-dates')) {
+                form.querySelectorAll('input[name=from], input[name=to]').forEach((d) => (d.value = ''));
+            }
+            form.requestSubmit();
+        });
+    });
+
     // Column filter popovers: fixed to their header cell so the
     // horizontally scrolling table wrapper does not clip them
     let openPopover = null;

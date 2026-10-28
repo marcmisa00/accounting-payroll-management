@@ -1158,6 +1158,166 @@ a.hr-pager-btn:hover { border-color: var(--hr-accent); color: var(--hr-accent); 
 
 
 /* =========================================================
+   TRACKERS: movement, work setup, resigned
+   ========================================================= */
+
+:root {
+    --hr-location: #4caf50;
+    --hr-location-2: #66bb6a;
+    --hr-setup: #2196f3;
+    --hr-setup-2: #42a5f5;
+    --hr-upcoming: #fff3cd;
+    --hr-upcoming-hover: #ffecb0;
+}
+
+html.dark-mode {
+    --hr-location: #2e7d32;
+    --hr-location-2: #388e3c;
+    --hr-setup: #1565c0;
+    --hr-setup-2: #1976d2;
+    --hr-upcoming: rgba(245, 158, 11, 0.16);
+    --hr-upcoming-hover: rgba(245, 158, 11, 0.24);
+}
+
+.hr-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.hr-range {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hr-select {
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--hr-border-strong);
+    border-radius: 10px;
+    background: var(--hr-input-bg);
+    color: var(--hr-heading);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: normal;
+    text-transform: none;
+    outline: none;
+    color-scheme: light;
+}
+
+html.dark-mode .hr-select { color-scheme: dark; }
+.hr-select:focus { border-color: var(--hr-accent); box-shadow: 0 0 0 4px var(--hr-focus); }
+.hr-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+table.hr-table.hr-table--narrow { min-width: 1100px; }
+
+/* Two header rows: stick the whole thead instead of each cell */
+table.hr-table--grouped thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+table.hr-table--grouped thead th { position: static; }
+
+table.hr-table--grouped thead th.hr-group {
+    color: var(--hr-heading);
+    border-left: 1px solid var(--hr-border-strong);
+}
+
+table.hr-table--grouped .hr-group-start { border-left: 1px solid var(--hr-border-strong); }
+
+table.hr-table--grouped thead th.hr-group--location { background: var(--hr-location); color: #fff; }
+table.hr-table--grouped thead tr + tr th.hr-group--location { background: var(--hr-location-2); }
+table.hr-table--grouped thead th.hr-group--setup { background: var(--hr-setup); color: #fff; }
+table.hr-table--grouped thead tr + tr th.hr-group--setup { background: var(--hr-setup-2); }
+
+table.hr-table tbody tr.hr-row-upcoming td { background: var(--hr-upcoming); font-weight: 500; }
+table.hr-table tbody tr.hr-row-upcoming:hover td { background: var(--hr-upcoming-hover); }
+
+.hr-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px 4px;
+    color: var(--hr-muted);
+    font-size: 12px;
+}
+
+.hr-legend-swatch {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--hr-border-strong);
+    border-radius: 4px;
+    background: var(--hr-upcoming);
+}
+
+/* Resigned employee profile */
+:root {
+    --hr-danger-bg: rgba(239, 68, 68, 0.12);
+    --hr-danger-text: #b91c1c;
+}
+
+html.dark-mode {
+    --hr-danger-bg: rgba(239, 68, 68, 0.18);
+    --hr-danger-text: #fca5a5;
+}
+
+.hr-badge-danger { background: var(--hr-danger-bg); color: var(--hr-danger-text); }
+
+.epf-stat--danger dd { color: var(--hr-danger-text); }
+
+table.hr-table.hr-table--compact { min-width: 760px; font-size: 12px; }
+table.hr-table--compact thead th { position: static; padding: 9px 10px; }
+table.hr-table--compact tbody td { padding: 8px 10px; }
+
+.epf-year + .epf-year { margin-top: 16px; }
+
+.epf-year__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--hr-heading);
+    font-size: 14px;
+}
+
+.epf-year__table {
+    max-height: none;
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.epf-none {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 18px 0 6px;
+    color: var(--hr-muted);
+    font-size: 13px;
+}
+
+.epf-none i { color: var(--hr-success-text); }
+
+.hr-reason {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 

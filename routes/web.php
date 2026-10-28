@@ -15,6 +15,10 @@ use App\Http\Controllers\OvertimeApplicationController;
 use App\Http\Controllers\EeoApplicationController;
 use App\Http\Controllers\HrRosterController;
 use App\Http\Controllers\LeaveCreditController;
+use App\Http\Controllers\HrTrackerController;
+use App\Http\Controllers\HsoApplicationController;
+use App\Http\Controllers\TransferApplicationController;
+use App\Http\Controllers\BenefitsController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -36,6 +40,16 @@ Route::middleware('accounting.auth')->group(function () {
     Route::get('/hr/leave-credits', [LeaveCreditController::class, 'index'])->name('hr.leave-credits');
     Route::get('/hr/leave-credits/{idno}/used', [LeaveCreditController::class, 'usedDates'])->where('idno', '[A-Za-z0-9-]+')->name('hr.leave-credits.used');
     Route::get('/hr/monthly-leave-credits', [LeaveCreditController::class, 'monthly'])->name('hr.monthly-leave-credits');
+    Route::get('/hr/movement-tracker', [HrTrackerController::class, 'movement'])->name('hr.movement-tracker');
+    Route::get('/hr/work-setup-tracker', [HrTrackerController::class, 'workSetup'])->name('hr.work-setup-tracker');
+    Route::get('/hr/resigned', [HrTrackerController::class, 'resigned'])->name('hr.resigned');
+    Route::get('/hr/resigned/{idno}', [HrTrackerController::class, 'resignedShow'])->where('idno', '[A-Za-z0-9-]+')->name('hr.resigned.show');
+    Route::get('/hso-applications', [HsoApplicationController::class, 'index'])->name('hso.index');
+    Route::get('/hso-applications/{id}', [HsoApplicationController::class, 'show'])->whereNumber('id')->name('hso.show');
+    Route::get('/hso-applications/{id}/agreement', [HsoApplicationController::class, 'agreement'])->whereNumber('id')->name('hso.agreement');
+    Route::post('/hso-applications/{id}/acknowledge', [HsoApplicationController::class, 'acknowledgeApplication'])->whereNumber('id')->name('hso.acknowledge');
+    Route::get('/transfer-applications', [TransferApplicationController::class, 'index'])->name('transfer.index');
+    Route::post('/transfer-applications/{id}/acknowledge', [TransferApplicationController::class, 'acknowledgeApplication'])->whereNumber('id')->name('transfer.acknowledge');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
 
     Route::prefix('holidays')->name('holidays.')->group(function () {
@@ -54,6 +68,10 @@ Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::get('manage/{payroll}', [PayrollController::class, 'show'])->name('show');
         Route::post('manage/{payroll}/post', [PayrollController::class, 'postPayslip'])->name('postPayslip');
         Route::post('manage/{payroll}/undo', [PayrollController::class, 'undoPostPayslip'])->name('undoPostPayslip');
+        Route::get('benefits', [BenefitsController::class, 'index'])->name('benefits.index');
+        Route::get('benefits/history', [BenefitsController::class, 'history'])->name('benefits.history');
+        Route::get('benefits/{idno}', [BenefitsController::class, 'edit'])->where('idno', '[A-Za-z0-9-]+')->name('benefits.edit');
+        Route::post('benefits/{idno}', [BenefitsController::class, 'update'])->where('idno', '[A-Za-z0-9-]+')->name('benefits.update');
         Route::get('history', [EditPayrollController::class, 'historyIndex'])->name('history.index');
         Route::post('history', [EditPayrollController::class, 'historySelect'])->name('history.select');
         Route::get('manage/{payroll}/history', [EditPayrollController::class, 'history'])->name('history');

@@ -49,6 +49,7 @@ export function cell(className, child) {
  * options.dataId   id of the <script type="application/json"> block
  * options.cells    function (row) → array of <td> nodes for one row
  * options.haystack function (row) → text the search matches against
+ * options.rowClass optional function (row) → class name for the <tr>
  */
 export function initLvPage(options) {
     const dataEl = document.getElementById(options.dataId);
@@ -77,7 +78,7 @@ export function initLvPage(options) {
         const fragment = document.createDocumentFragment();
 
         data[key].rows.forEach(function (row, index) {
-            const tr = el('tr');
+            const tr = el('tr', options.rowClass ? options.rowClass(row) : null);
             tr.dataset.row = key + ':' + index;
             tr.append.apply(tr, options.cells(row));
             fragment.append(tr);

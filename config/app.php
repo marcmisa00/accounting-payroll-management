@@ -110,6 +110,9 @@ return [
 
     // Legacy HRIS portal base URL (links to files it hosts, e.g. EEO proofs)
     'hris_url' => env('HRIS_URL', 'https://www.nesistaff.com'),
+
+    // HRIS upload folder on this server for signed HSO agreements (served by HsoApplicationController)
+    'hso_agreements_path' => env('HSO_AGREEMENTS_PATH', '/home/nesistaff/htdocs/nesistaff/hris/employeeportal/companyfiles/hsoAgreements'),
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver

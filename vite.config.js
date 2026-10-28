@@ -29,7 +29,11 @@ export default defineConfig({
                     'resources/js/eeo.js',
                     'resources/css/hr-roster.css',
                     'resources/js/hr-roster.js',
-                    'resources/js/leave-credits.js'],
+                    'resources/js/leave-credits.js',
+                    'resources/js/hso.js',
+                    'resources/js/transfer.js',
+                    'resources/css/benefits.css',
+                    'resources/js/benefits.js'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

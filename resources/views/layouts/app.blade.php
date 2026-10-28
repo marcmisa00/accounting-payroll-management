@@ -77,6 +77,22 @@
                     </a>
                 </li>
 
+                <li>
+                    <a href="{{ route('payroll.benefits.index') }}"
+                    class="{{ request()->routeIs('payroll.benefits.index', 'payroll.benefits.edit') ? 'active' : '' }}">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                        <span class="nav-text">Salary &amp; Benefits</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('payroll.benefits.history') }}"
+                    class="{{ request()->routeIs('payroll.benefits.history') ? 'active' : '' }}">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span class="nav-text">Benefits History</span>
+                    </a>
+                </li>
+
             </ul>
 
         </li>
@@ -134,6 +150,22 @@
 
         </li>
 
+        <a href="{{ route('hso.index') }}"
+           class="{{ request()->routeIs('hso.*') ? 'active' : '' }}">
+            <span class="icon">
+                <i class="fa-solid fa-laptop-house"></i>
+            </span>
+            <span class="nav-text">HSO Application</span>
+        </a>
+
+        <a href="{{ route('transfer.index') }}"
+           class="{{ request()->routeIs('transfer.*') ? 'active' : '' }}">
+            <span class="icon">
+                <i class="fa-solid fa-building-circle-arrow-right"></i>
+            </span>
+            <span class="nav-text">Site Transfer</span>
+        </a>
+
         {{-- EMPLOYEE DETAILS (same sub-menu markup/classes as Payroll) --}}
         <li class="nav-item payroll-menu">
 
@@ -172,6 +204,30 @@
                     class="{{ request()->routeIs('hr.monthly-leave-credits') ? 'active' : '' }}">
                         <i class="fa-solid fa-calendar-check"></i>
                         <span class="nav-text">Monthly Leave Credits</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('hr.movement-tracker') }}"
+                    class="{{ request()->routeIs('hr.movement-tracker') ? 'active' : '' }}">
+                        <i class="fa-solid fa-right-left"></i>
+                        <span class="nav-text">Movement Tracker</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('hr.work-setup-tracker') }}"
+                    class="{{ request()->routeIs('hr.work-setup-tracker') ? 'active' : '' }}">
+                        <i class="fa-solid fa-house-laptop"></i>
+                        <span class="nav-text">Work Setup Tracker</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('hr.resigned') }}"
+                    class="{{ request()->routeIs('hr.resigned') ? 'active' : '' }}">
+                        <i class="fa-solid fa-user-xmark"></i>
+                        <span class="nav-text">Resigned Employees</span>
                     </a>
                 </li>
 
