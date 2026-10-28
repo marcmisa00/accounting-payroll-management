@@ -26,7 +26,7 @@
     </style>
 </head>
 <body>
-<div class="background" style="border:2px solid black; padding:30px; width:50%; font-size:70%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.90);">
+<div class="background" style="border:2px solid black; padding:30px; width:50%; font-size:70%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.80);">
 
     {{-- Header --}}
     <div class="row2">
@@ -120,6 +120,27 @@
                     <td style="text-align:center">{{ $f1($ndDays) }}</td>
                     <td class="num">{{ $f($ndPay) }}</td>
                 </tr>
+
+                @if ($rateSplit)
+                    <tr>
+                        <td><strong>Basic Salary Breakdown</strong></td>
+                        <td style="text-align:center"><strong>Total No. of Days</strong></td>
+                        <td class="num"><strong>Prev Rate {{ $f($rateSplit['old_rate']) }}/day</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="indent">Regular Days</td>
+                        <td style="text-align:center">{{ $f1($prevRegDays) }}</td>
+                        <td class="num">{{ $f($prevRegDaysPay) }}</td>
+                    </tr>
+                    @foreach ($prevLeaveRows as [$label, $days, $amt])
+                        <tr>
+                            <td class="indent">{{ $label }}</td>
+                            <td style="text-align:center">{{ $f1($days) }}</td>
+                            <td class="num">{{ $f($amt) }}</td>
+                        </tr>
+                    @endforeach
+                @endif
+
                 <tr class="highlight">
                     <td><strong>TOTAL BASIC SALARY</strong></td><td></td>
                     <td class="num" style="font-size:15px"><strong>{{ $f($basic) }}</strong></td>

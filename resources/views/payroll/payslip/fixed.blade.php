@@ -94,6 +94,33 @@
     {{-- Breakdown: deductions (left) and add-ons (right), rows aligned --}}
     @php $maxRows = max($deductions->count(), $addons->count(), 1); @endphp
     <h4 class="bar">BREAKDOWN OF SALARY AND BENEFITS</h4>
+    @if ($rateSplit)
+        <div class="row2">
+            <div class="col">
+                <table class="header-table">
+                    <tr>
+                        <td><strong>Basic Salary Breakdown</strong></td>
+                        <td style="text-align:center"><strong>Total No. of Days</strong></td>
+                        <td class="num"><strong>Amount</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="indent">Current Rate {{ $f($rateSplit['new_rate']) }}/day</td>
+                        <td style="text-align:center">{{ number_format($rateSplit['new_days'], 1) }}</td>
+                        <td class="num">{{ $f($rateSplit['new_amount']) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="indent">Prev Rate {{ $f($rateSplit['old_rate']) }}/day</td>
+                        <td style="text-align:center">{{ number_format($rateSplit['old_days'], 1) }}</td>
+                        <td class="num">{{ $f($rateSplit['old_amount']) }}</td>
+                    </tr>
+                    <tr class="highlight">
+                        <td><strong>TOTAL FIXED RATE SALARY</strong></td><td></td>
+                        <td class="num" style="font-size:15px"><strong>{{ $f($fixedPay) }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    @endif
     <div class="row2">
         <div class="col">
             <table class="header-table">

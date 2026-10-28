@@ -134,6 +134,10 @@ class PayrollCalculationService
         $dailyOldRateDeductions = 0;
         $dailyNewRateDeductions = 0;
 
+        // Paid leave days per rate, for the payslip's salary-increase breakdown.
+        $leaveTypes = ['vl' => 0, 'sl' => 0, 'bl' => 0, 'bday' => 0, 'ptl' => 0, 'spl' => 0];
+        $dailyLeaveDays = ['old' => $leaveTypes, 'new' => $leaveTypes];
+
         $attendanceStart = $periodStart;
 
         if (($employeeDetails->dls ?? 0) == 1) {
@@ -982,6 +986,17 @@ class PayrollCalculationService
                 $t['doubleholidaypay'] = $holidaypay; // legacy assigns (last value), not a running sum
             }
 
+            if ($salaryType === 'Daily') {
+                // Same date rule as the Daily old/new rate deductions above.
+                $rateBucket = ($dailyEffectivityDate !== null && $payrollDate < $dailyEffectivityDate) ? 'old' : 'new';
+                $dailyLeaveDays[$rateBucket]['vl']   += $paidVLhrs / 8;
+                $dailyLeaveDays[$rateBucket]['sl']   += $paidSLhrs / 8;
+                $dailyLeaveDays[$rateBucket]['bl']   += $paidBLhrs / 8;
+                $dailyLeaveDays[$rateBucket]['bday'] += $bdayleavehrs / 8;
+                $dailyLeaveDays[$rateBucket]['ptl']  += $paidptlhrs / 8;
+                $dailyLeaveDays[$rateBucket]['spl']  += $paidsplhrs / 8;
+            }
+
             if ($effectivity !== 'N/A' && $effectivity > $logindate) {
                 $t['reghours_prev']           += $reghrs;
                 $t['reghoursot_prev']         += $overtime;
@@ -1044,6 +1059,46 @@ class PayrollCalculationService
         }
 
         $t['totalpay'] = $t['grandtotal'];
+
+        // Previous-rate / current-rate parts of the Fixed and Daily grandtotal
+        // above (same days and rates), for the payslip's salary-increase
+        // breakdown. Not a payroll_details column, so save() never writes it.
+        $t['rate_split'] = null;
+
+        if ($salaryType === 'Fixed') {
+            if ($attendanceRows->isEmpty()) {
+                // grandtotal above is $salary * 10 with no previous-rate days.
+                $oldRateDays = 0;
+                $newRateDays = 10;
+            } else {
+                $fixedExcusedDays = max(0, $workdays - 10);
+                $fixedExcusedOld  = min($fixedExcusedDays, $fixedOldRateDeductions);
+                $fixedExcusedNew  = min($fixedExcusedDays - $fixedExcusedOld, $fixedNewRateDeductions);
+
+                $oldRateDays = $fixedOldPaidDays - ($fixedOldRateDeductions - $fixedExcusedOld);
+                $newRateDays = $fixedNewPaidDays - ($fixedNewRateDeductions - $fixedExcusedNew);
+            }
+        } elseif ($salaryType === 'Daily') {
+            $oldRateDays = max(0, $dailyOldEligibleDays - $dailyOldRateDeductions);
+            $newRateDays = max(0, $dailyNewEligibleDays - $dailyNewRateDeductions);
+        }
+
+        if (isset($oldRateDays, $newRateDays)) {
+            $t['rate_split'] = [
+                'old_days'   => $oldRateDays,
+                'old_rate'   => (float) $previousSalary,
+                'old_amount' => $previousSalary * $oldRateDays,
+                'new_days'   => $newRateDays,
+                'new_rate'   => (float) $salary,
+                'new_amount' => $salary * $newRateDays,
+            ];
+
+            // Daily: paid leave days inside old_days / new_days, by leave type.
+            if ($salaryType === 'Daily') {
+                $t['rate_split']['old_leave'] = $dailyLeaveDays['old'];
+                $t['rate_split']['new_leave'] = $dailyLeaveDays['new'];
+            }
+        }
 
         unset($t['_ab_total'], $t['_pto_total'], $t['_mtl_total'], $t['_mdl_total'], $t['_ltl_total'], $t['_suspended_total']);
 

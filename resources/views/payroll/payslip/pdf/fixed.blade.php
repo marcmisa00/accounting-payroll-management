@@ -1,5 +1,25 @@
 {{-- Fixed breakdown: deductions (left) and add-ons (right), rows aligned --}}
 @php $maxRows = max($p['deductions']->count(), $p['addons']->count(), 1); @endphp
+@if (! empty($p['rateSplit']))
+    {{-- Salary increase in this period: Fixed Rate Salary split by rate --}}
+    <table class="cols">
+        <tr>
+            <td>
+                <table>
+                    <tr>
+                        <td><strong>Basic Salary Breakdown</strong></td>
+                        <td class="center"><strong>Total No. of Days</strong></td>
+                        <td class="num"><strong>Amount</strong></td>
+                    </tr>
+                    <tr><td class="indent">Current Rate {{ $f($p['rateSplit']['new_rate']) }}/day</td><td class="center">{{ $f1($p['rateSplit']['new_days']) }}</td><td class="num">{{ $f($p['rateSplit']['new_amount']) }}</td></tr>
+                    <tr><td class="indent">Prev Rate {{ $f($p['rateSplit']['old_rate']) }}/day</td><td class="center">{{ $f1($p['rateSplit']['old_days']) }}</td><td class="num">{{ $f($p['rateSplit']['old_amount']) }}</td></tr>
+                    <tr class="highlight"><td>TOTAL FIXED RATE SALARY</td><td></td><td class="num big">{{ $f($p['fixedPay']) }}</td></tr>
+                </table>
+            </td>
+            <td></td>
+        </tr>
+    </table>
+@endif
 <table class="cols">
     <tr>
         <td>

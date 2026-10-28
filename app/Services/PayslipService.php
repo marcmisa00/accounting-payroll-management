@@ -8,6 +8,10 @@ class PayslipService
 {
     private const DAYS_PER_MONTH = 20; // original: salary * 20
 
+    public function __construct(private readonly PayrollCalculationService $calculator)
+    {
+    }
+
     /* ------------------------------------------------------------------ */
     /*  RATED                                                              */
     /* ------------------------------------------------------------------ */
@@ -91,6 +95,7 @@ class PayslipService
         return $c + [
             'semiMonthly' => $c['baseRate'] * 10,   // original: salary * 10
             'fixedPay'    => $pay,
+            'rateSplit'   => $this->rateSplit($detail, 'Fixed'),
             // original Fixed gross uses ALL add-ons, not just the 3 categories
             'gross'       => $pay + $c['totalAddons'] + $c['govTotal'] + $c['otherTotal'],
             'takeHome'    => $pay + $c['totalAddons'] - $c['totalDeductions'],
@@ -203,10 +208,49 @@ class PayslipService
 
             $basic = $n('totalpay');
 
+            // Salary increase in this period: each rate section shows its own
+            // leave days, and Regular Days are that section's payable days minus
+            // its leave days, so every section still adds up to its split amount.
+            $rateSplit = $this->rateSplit($detail, 'Daily');
+            $prevRegDays = $prevRegDaysPay = 0;
+            $prevLeaveRows = [];
+
+            if ($rateSplit) {
+                $leaveLabels = [
+                    'vl'   => 'Paid Vacation',
+                    'sl'   => 'Paid Sick',
+                    'bl'   => 'Paid Bereavement Leave',
+                    'bday' => 'Paid Birthday Leave',
+                    'ptl'  => 'Paid Paternity Leave',
+                    'spl'  => 'Paid Solo Parent Leave',
+                ];
+
+                $section = function (string $side) use ($rateSplit, $leaveLabels): array {
+                    $rate = $rateSplit["{$side}_rate"];
+                    $rows = [];
+                    foreach ($leaveLabels as $key => $label) {
+                        $days = $rateSplit["{$side}_leave"][$key] ?? 0;
+                        if (round($days, 1) != 0) {
+                            $rows[] = [$label, $days, $days * $rate];
+                        }
+                    }
+                    $days = $rateSplit["{$side}_days"] - array_sum(array_column($rows, 1));
+
+                    return [$days, $days * $rate, $rows];
+                };
+
+                [$regDays, $regDaysPay, $leaveRows] = $section('new');
+                [$prevRegDays, $prevRegDaysPay, $prevLeaveRows] = $section('old');
+            }
+
             return $c + [
                 'monthly'    => $c['baseRate'] * self::DAYS_PER_MONTH,
                 'regDays'    => $regDays,
                 'regDaysPay' => $regDaysPay,
+                'rateSplit'  => $rateSplit,
+                'prevRegDays'    => $prevRegDays,
+                'prevRegDaysPay' => $prevRegDaysPay,
+                'prevLeaveRows'  => $prevLeaveRows,
                 'leaveRows'  => $leaveRows,
                 'ndDays'     => $n('ndhrs') / 8,
                 'ndPay'      => $n('ndamount'),
@@ -216,6 +260,46 @@ class PayslipService
                 'takeHome'   => $basic + $c['totalAddons'] - $c['totalDeductions'],
             ];
         }
+    /**
+     * Previous-rate / current-rate split for a Fixed or Daily payroll that spans
+     * a salary increase. The split isn't stored, so the period is re-run through
+     * PayrollCalculationService. Null when the increase isn't in this period or
+     * the re-run no longer matches the saved totalpay (attendance or salary
+     * changed since saving), so the payslip never contradicts saved payroll.
+     */
+    private function rateSplit(object $detail, string $salaryType): ?array
+    {
+        $hris = DB::connection('hris');
+
+        $ep     = $hris->table('employee_payroll')->where('idno', $detail->idno)->first(['previous_salary', 'effective_date']);
+        $period = $hris->table('payroll')->where('id', $detail->payrollperiod)->first();
+
+        if (! $ep || ! $period || (float) $ep->previous_salary <= 0 || empty($ep->effective_date)
+            || date('Y-m-d', strtotime($ep->effective_date)) <= date('Y-m-d', strtotime($period->periodfrom))) {
+            return null;
+        }
+
+        // blockOtBefore / blEligible only affect Rated pay, not the Fixed/Daily total.
+        $split = $this->calculator->calculate(
+            $detail->idno,
+            (int) $period->id,
+            (string) $period->periodfrom,
+            (string) $period->periodto,
+            (string) $hris->table('employee_details')->where('idno', $detail->idno)->value('company'),
+            $salaryType,
+            (int) $period->days,
+            false,
+            false
+        )['totals']['rate_split'] ?? null;
+
+        if (! $split || $split['old_days'] <= 0
+            || abs($split['old_amount'] + $split['new_amount'] - (float) $detail->totalpay) >= 0.005) {
+            return null;
+        }
+
+        return $split;
+    }
+
     /* ------------------------------------------------------------------ */
     /*  SHARED (new)                                                       */
     /* ------------------------------------------------------------------ */
