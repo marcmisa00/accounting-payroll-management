@@ -13,6 +13,8 @@ use App\Http\Controllers\LeaveApplicationController;
 use App\Http\Controllers\TimeAdjustmentController;
 use App\Http\Controllers\OvertimeApplicationController;
 use App\Http\Controllers\EeoApplicationController;
+use App\Http\Controllers\HrRosterController;
+use App\Http\Controllers\LeaveCreditController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -29,6 +31,11 @@ Route::middleware('accounting.auth')->group(function () {
     Route::get('/leaves/time-adjustments', [TimeAdjustmentController::class, 'index'])->name('leaves.time-adjustments');
     Route::get('/leaves/overtime', [OvertimeApplicationController::class, 'index'])->name('leaves.overtime');
     Route::get('/leaves/eeo', [EeoApplicationController::class, 'index'])->name('leaves.eeo');
+    Route::get('/hr/roster', [HrRosterController::class, 'index'])->name('hr.roster');
+    Route::get('/hr/roster/{idno}', [HrRosterController::class, 'show'])->where('idno', '[A-Za-z0-9-]+')->name('hr.roster.show');
+    Route::get('/hr/leave-credits', [LeaveCreditController::class, 'index'])->name('hr.leave-credits');
+    Route::get('/hr/leave-credits/{idno}/used', [LeaveCreditController::class, 'usedDates'])->where('idno', '[A-Za-z0-9-]+')->name('hr.leave-credits.used');
+    Route::get('/hr/monthly-leave-credits', [LeaveCreditController::class, 'monthly'])->name('hr.monthly-leave-credits');
     Route::post('/logout', [AccountingAuthController::class, 'logout'])->name('logout');
 
     Route::prefix('holidays')->name('holidays.')->group(function () {

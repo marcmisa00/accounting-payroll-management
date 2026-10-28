@@ -22,7 +22,7 @@
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body class="{{ request()->routeIs('payroll.*','holidays.*', 'attendance.*', 'leaves.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
+<body class="{{ request()->routeIs('payroll.*','holidays.*', 'attendance.*', 'leaves.*', 'hr.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
     <aside class="sidebar">
 
             <button type="button" class="sidebar-toggle" id="sidebarToggle">
@@ -127,6 +127,51 @@
                     class="{{ request()->routeIs('leaves.eeo') ? 'active' : '' }}">
                         <i class="fa-solid fa-person-walking-arrow-right"></i>
                         <span class="nav-text">EEO Application</span>
+                    </a>
+                </li>
+
+            </ul>
+
+        </li>
+
+        {{-- EMPLOYEE DETAILS (same sub-menu markup/classes as Payroll) --}}
+        <li class="nav-item payroll-menu">
+
+            <a href="javascript:void(0);"
+            class="payroll-toggle {{ request()->routeIs('hr.*') ? 'active' : '' }}">
+
+                <span class="icon">
+                    <i class="fa-solid fa-users"></i>
+                </span>
+
+                <span class="nav-text">Employee Details</span>
+
+                <i class="fa-solid fa-chevron-down payroll-arrow"></i>
+            </a>
+
+            <ul class="payroll-submenu" data-title="Employee Details">
+
+                <li>
+                    <a href="{{ route('hr.roster') }}"
+                    class="{{ request()->routeIs('hr.roster*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-id-badge"></i>
+                        <span class="nav-text">HR Roster</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('hr.leave-credits') }}"
+                    class="{{ request()->routeIs('hr.leave-credits*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <span class="nav-text">Leave Credits</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('hr.monthly-leave-credits') }}"
+                    class="{{ request()->routeIs('hr.monthly-leave-credits') ? 'active' : '' }}">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span class="nav-text">Monthly Leave Credits</span>
                     </a>
                 </li>
 

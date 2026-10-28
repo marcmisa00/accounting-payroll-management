@@ -26,7 +26,10 @@ export default defineConfig({
                     'resources/js/leaves.js',
                     'resources/js/time-adjustments.js',
                     'resources/js/overtime.js',
-                    'resources/js/eeo.js'],
+                    'resources/js/eeo.js',
+                    'resources/css/hr-roster.css',
+                    'resources/js/hr-roster.js',
+                    'resources/js/leave-credits.js'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

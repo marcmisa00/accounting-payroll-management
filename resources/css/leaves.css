@@ -698,6 +698,213 @@ table.lv-table tbody tr.is-match td:first-child {
 
 
 /* =========================================================
+   LEAVE CREDITS (Employee Details)
+   ========================================================= */
+
+.lc {
+    --lc-credit-bg: #fffacd;
+    --lc-ok-bg: #d4edda;
+    --lc-ok-text: #155724;
+    --lc-out-bg: #f8d7da;
+    --lc-out-text: #842029;
+    --lc-blue: #d0e1f1;
+    --lc-gray: #e2e4e8;
+}
+
+html.dark-mode .lc {
+    --lc-credit-bg: rgba(250, 204, 21, 0.12);
+    --lc-ok-bg: rgba(16, 185, 129, 0.16);
+    --lc-ok-text: #6ee7b7;
+    --lc-out-bg: rgba(244, 63, 94, 0.18);
+    --lc-out-text: #fda4af;
+    --lc-blue: rgba(59, 130, 246, 0.14);
+    --lc-gray: rgba(148, 163, 184, 0.12);
+}
+
+.lc-md {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 6px;
+}
+
+/* Monthly Leave Credits: ‹ Month › stepper, same height as the selects */
+.lc-month {
+    height: 42px;
+    display: grid;
+    grid-template-columns: 42px 1fr 42px;
+    align-items: center;
+    border: 1px solid var(--l-border-strong);
+    border-radius: 12px;
+    background-color: var(--l-input-bg);
+    overflow: hidden;
+}
+
+.lc-month strong {
+    text-align: center;
+    color: var(--l-heading);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.lc-month-btn {
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--l-muted);
+    text-decoration: none;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+a.lc-month-btn:hover {
+    color: var(--l-accent);
+    background-color: var(--l-focus);
+}
+
+a.lc-month-btn:focus-visible {
+    outline: 3px solid var(--l-focus);
+    outline-offset: -3px;
+}
+
+.lc-month.is-disabled {
+    opacity: 0.5;
+}
+
+/* Two header rows: the second sticks just below the first */
+.lc-table thead tr:first-child th {
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.lc-table thead tr.lc-sub th {
+    top: 40px;
+}
+
+table.lc-table thead th.lc-group {
+    text-align: center;
+    color: var(--l-heading);
+    border-left: 1px solid var(--l-border-strong);
+}
+
+table.lc-table .lc-group-start {
+    border-left: 1px solid var(--l-border-strong);
+}
+
+table.lc-table thead th.lc-sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+table.lc-table thead th.lc-sortable:hover {
+    color: var(--l-accent);
+}
+
+table.lc-table thead th.lc-sortable.asc::after  { content: ' ▲'; font-size: 9px; }
+table.lc-table thead th.lc-sortable.desc::after { content: ' ▼'; font-size: 9px; }
+
+table.lc-table tbody td {
+    vertical-align: middle;
+}
+
+table.lc-table tbody td.num {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+table.lc-table thead th.num {
+    text-align: center;
+}
+
+.lc-name {
+    color: var(--l-text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.lc-name strong {
+    color: var(--l-heading);
+}
+
+.lc-name:hover,
+.lc-name:hover strong {
+    color: var(--l-accent);
+}
+
+.lc-service {
+    white-space: nowrap;
+}
+
+/* Row tone, then the leave colours on top (search highlight still wins) */
+table.lc-table tbody td.lc-blue { background: var(--lc-blue); }
+table.lc-table tbody td.lc-gray { background: var(--lc-gray); }
+table.lc-table tbody td.lc-credit { background: var(--lc-credit-bg); }
+table.lc-table tbody td.lc-ok { background: var(--lc-ok-bg); color: var(--lc-ok-text); font-weight: 700; }
+table.lc-table tbody td.lc-out { background: var(--lc-out-bg); color: var(--lc-out-text); font-weight: 700; }
+
+.lc-used {
+    min-width: 34px;
+    padding: 3px 8px;
+    border: 1px dashed var(--l-border-strong);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--l-text);
+    font-family: inherit;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.lc-used:hover {
+    border-color: var(--l-accent);
+    color: var(--l-accent);
+}
+
+.lc-used:focus-visible {
+    outline: 3px solid var(--l-focus);
+    outline-offset: 2px;
+}
+
+.lc-popup {
+    position: fixed;
+    z-index: 100;
+    min-width: 230px;
+    max-width: 340px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 12px 14px;
+    border: 1px solid var(--l-border-strong);
+    border-radius: 12px;
+    background: var(--l-surface);
+    box-shadow: var(--l-shadow);
+    color: var(--l-text);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.lc-popup strong {
+    display: block;
+    color: var(--l-heading);
+    font-size: 13px;
+}
+
+.lc-popup-muted {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--l-muted);
+}
+
+.lc-popup ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+}
+
+.lc-popup small {
+    color: var(--l-muted);
+}
+
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 
