@@ -33,6 +33,7 @@ export default defineConfig({
                     'resources/js/hso.js',
                     'resources/js/transfer.js',
                     'resources/css/benefits.css',
+                    'resources/css/payroll-items.css',
                     'resources/js/benefits.js'],
             refresh: true,
             fonts: [

@@ -19,6 +19,7 @@ use App\Http\Controllers\HrTrackerController;
 use App\Http\Controllers\HsoApplicationController;
 use App\Http\Controllers\TransferApplicationController;
 use App\Http\Controllers\BenefitsController;
+use App\Http\Controllers\PayrollItemController;
 
 Route::redirect('/', '/login');
 
@@ -71,6 +72,10 @@ Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::get('manage/{payroll}', [PayrollController::class, 'show'])->name('show');
         Route::post('manage/{payroll}/post', [PayrollController::class, 'postPayslip'])->name('postPayslip');
         Route::post('manage/{payroll}/undo', [PayrollController::class, 'undoPostPayslip'])->name('undoPostPayslip');
+        Route::get('items', [PayrollItemController::class, 'index'])->name('items.index');
+        Route::post('items/{type}', [PayrollItemController::class, 'store'])->whereIn('type', ['addons', 'deductions'])->name('items.store');
+        Route::put('items/{type}/{id}', [PayrollItemController::class, 'update'])->whereIn('type', ['addons', 'deductions'])->whereNumber('id')->name('items.update');
+        Route::delete('items/{type}/{id}', [PayrollItemController::class, 'destroy'])->whereIn('type', ['addons', 'deductions'])->whereNumber('id')->name('items.destroy');
         Route::get('benefits', [BenefitsController::class, 'index'])->name('benefits.index');
         Route::get('benefits/history', [BenefitsController::class, 'history'])->name('benefits.history');
         Route::get('benefits/{idno}', [BenefitsController::class, 'edit'])->where('idno', '[A-Za-z0-9-]+')->name('benefits.edit');

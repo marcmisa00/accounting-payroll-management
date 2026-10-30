@@ -1,0 +1,118 @@
+/* Payroll > Addons & Deductions (builds on dashboard.css + benefits.css) */
+
+.pi-card h3 {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.pi-card .bf-card-head .bf-count {
+    margin-left: auto;
+}
+
+.pi-add {
+    display: flex;
+    gap: 8px;
+}
+
+.pi-add input {
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--d-input-border);
+    border-radius: 8px;
+    background: var(--d-input-bg);
+    color: var(--d-heading);
+    font: inherit;
+    font-size: 13px;
+}
+
+.pi-add input:focus {
+    outline: none;
+    border-color: var(--d-accent);
+    box-shadow: 0 0 0 3px var(--d-focus);
+}
+
+.pi-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--d-border);
+}
+
+.pi-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--d-border);
+}
+
+.pi-item:last-child {
+    border-bottom: 0;
+}
+
+.pi-name {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    color: var(--d-heading);
+    font-size: 13px;
+}
+
+.pi-name strong {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.pi-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.pi-actions form {
+    margin: 0;
+}
+
+/* Rename: the pencil opens an inline form under the row */
+.pi-rename summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.pi-rename summary::-webkit-details-marker {
+    display: none;
+}
+
+.pi-rename[open] summary {
+    border-color: var(--d-accent);
+    color: var(--d-accent);
+}
+
+.pi-rename[open] .pi-add {
+    position: absolute;
+    right: 0;
+    left: 0;
+    margin-top: 6px;
+}
+
+.pi-item:has(.pi-rename[open]) {
+    position: relative;
+    padding-bottom: 56px;
+}
+
+.pi-delete:hover {
+    border-color: #e5484d;
+    color: #e5484d;
+}
+
+@media (max-width: 900px) {
+    .pi-grid {
+        grid-template-columns: 1fr;
+    }
+}

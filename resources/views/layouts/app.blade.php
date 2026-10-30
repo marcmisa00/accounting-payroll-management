@@ -93,6 +93,14 @@
                     </a>
                 </li>
 
+                <li>
+                    <a href="{{ route('payroll.items.index') }}"
+                    class="{{ request()->routeIs('payroll.items.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span class="nav-text">Addons &amp; Deductions</span>
+                    </a>
+                </li>
+
             </ul>
 
         </li>
