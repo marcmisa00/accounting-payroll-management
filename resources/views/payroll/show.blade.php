@@ -19,7 +19,7 @@
 
 @include('payroll.partials.signatory-modal')
 
-<div class="centered-container">
+<div class="centered-container" id="payrollShow" data-search-term="{{ $searchTerm }}" data-search-column="{{ $searchColumn }}">
     <div class="content-panel">
         <div class="panel-heading">
             <!-- Breadcrumb -->
@@ -46,21 +46,30 @@
                 </button>
                 @if (!empty($searchTerm))
                     <a href="{{ route('payroll.show', $payroll) }}" class="reset-btn" style="border-radius: 25px; padding: 6px 15px;" title="Clear Search">
-                        <i class="fa fa-id-badge"></i>
+                        <i class="fa-solid fa-xmark"></i>
                     </a>
                 @endif
             </form>
         </div>
 
+        @if ($searchTerm !== '')
+            {{-- Filled by show-payroll.js: where the matches are, click to jump --}}
+            <div class="search-results" id="searchResults" role="status" aria-live="polite" hidden></div>
+        @endif
+
         <div class="panel-body">
             <!-- Company Tabs -->
            <ul class="payroll-tabs company-tabs" id="companyTabs">
                 @foreach ($companies as $index => $company)
-                   <li class="{{ $index === 0 ? 'active' : '' }}">
+                   @php $companyHasMatch = collect($company['departments'])->contains('has_search_match', true); @endphp
+                   <li class="{{ $index === 0 ? 'active' : '' }} {{ $companyHasMatch ? 'has-search-indicator' : '' }}">
                         <a class="company-tab"
                         href="#company-{{ $company['code'] }}"
                         data-tab-target="company-{{ $company['code'] }}">
                             {{ $company['name'] }}
+                            @if ($companyHasMatch)
+                                <span class="search-indicator" title="Search results found in this company"></span>
+                            @endif
                         </a>
                     </li>
                 @endforeach
@@ -149,7 +158,7 @@
                                             </thead>
                                             <tbody>
                                                 @forelse ($dept['employees'] as $x => $employee)
-                                                    <tr>
+                                                    <tr class="emp-row">
                                                         <td class="table-cont-1">
                                                             @php
                                                                 $typeTag = ['Rated' => ['Rated', 'type-rated'], 'Fixed' => ['Fixed', 'type-fixed'], 'Daily' => ['Fixed Daily', 'type-daily']][$employee['salary_type']] ?? null;
@@ -163,10 +172,10 @@
                                                                 <span class="type-tag type-gy" title="Graveyard shift">GY</span>
                                                             @endif
                                                         </td>
-                                                        <td class="table-cont-1">{{ $employee['idno'] }}</td>
-                                                        <td class="table-cont"><strong>{{ $employee['name'] }}</strong></td>
+                                                        <td class="table-cont-1" data-hl="1">{{ $employee['idno'] }}</td>
+                                                        <td class="table-cont" data-hl="2"><strong>{{ $employee['name'] }}</strong></td>
                                                         <td class="table-cont-1">{{ $company['code'] }}</td>
-                                                        <td class="table-cont-1">
+                                                        <td class="table-cont-1" data-hl="3">
                                                             @if ($employee['location'] === 'OS')
                                                                 <span class="label label-primary label-sm">{{ $employee['location'] }}</span>
                                                             @else

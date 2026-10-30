@@ -1,6 +1,13 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Opening Manage Payroll ends a "came from the dashboard" edit session (see payroll/edit)
+    try {
+        Object.keys(sessionStorage)
+            .filter(function (key) { return key.indexOf('payrollEditReturn-') === 0; })
+            .forEach(function (key) { sessionStorage.removeItem(key); });
+    } catch (e) {}
+
     /*
      * ================================
      * COMPANY TABS
@@ -172,6 +179,132 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+});
+
+/*
+ * ================================
+ * SEARCH: PINPOINT THE MATCHES
+ * ================================
+ * The server already filters each department to matching employees.
+ * This opens the company + department of the first match, scrolls to it,
+ * highlights the matched text and lists where every match is.
+ * Registered after the tab-restore listener above, so it wins over it.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+
+    const page = document.getElementById('payrollShow');
+    const results = document.getElementById('searchResults');
+    const term = page ? (page.dataset.searchTerm || '').trim() : '';
+
+    if (!page || !results || term === '') {
+        return;
+    }
+
+    const column = page.dataset.searchColumn || 'all';
+
+    // Collect every department pane that has matching rows
+    const locations = [];
+
+    document.querySelectorAll('.company-tab-content > .tab-pane').forEach(function (companyPane) {
+        const companyTab = document.querySelector('#companyTabs [data-tab-target="' + companyPane.id + '"]');
+
+        companyPane.querySelectorAll('.dept-tab-content > .tab-pane').forEach(function (deptPane) {
+            const rows = deptPane.querySelectorAll('tr.emp-row');
+
+            if (rows.length === 0) {
+                return;
+            }
+
+            const deptTab = companyPane.querySelector('.dept-tab[data-tab-target="' + deptPane.id + '"]');
+
+            locations.push({
+                companyTab: companyTab,
+                deptTab: deptTab,
+                company: companyTab ? companyTab.textContent.trim() : '',
+                dept: deptTab ? deptTab.textContent.trim() : '',
+                rows: rows,
+            });
+        });
+    });
+
+    // Wrap the matched text in <mark> (text nodes only, no HTML from the term)
+    const needle = term.toLowerCase();
+    const cells = column === 'all' ? ['1', '2', '3'] : [column];
+
+    function highlight(cell) {
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+
+        while (walker.nextNode()) {
+            nodes.push(walker.currentNode);
+        }
+
+        nodes.forEach(function (node) {
+            const text = node.nodeValue;
+            const at = text.toLowerCase().indexOf(needle);
+
+            if (at === -1) {
+                return;
+            }
+
+            const match = node.splitText(at);
+            match.splitText(needle.length);
+
+            const mark = document.createElement('mark');
+            mark.className = 'search-hit';
+            mark.textContent = match.nodeValue;
+            match.parentNode.replaceChild(mark, match);
+        });
+    }
+
+    locations.forEach(function (loc) {
+        loc.rows.forEach(function (row) {
+            cells.forEach(function (c) {
+                row.querySelectorAll('[data-hl="' + c + '"]').forEach(highlight);
+            });
+        });
+    });
+
+    function jumpTo(loc) {
+        if (loc.companyTab) loc.companyTab.click();
+        if (loc.deptTab) loc.deptTab.click();
+
+        const row = loc.rows[0];
+
+        row.classList.remove('search-focus');
+        void row.offsetWidth; // restart the flash animation
+        row.classList.add('search-focus');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Results bar
+    const total = locations.reduce(function (sum, loc) { return sum + loc.rows.length; }, 0);
+    const label = document.createElement('span');
+    label.className = 'search-results-label';
+
+    if (total === 0) {
+        results.classList.add('is-empty');
+        label.textContent = 'No employees match "' + term + '".';
+        results.appendChild(label);
+        results.hidden = false;
+        return;
+    }
+
+    label.textContent = total + (total === 1 ? ' match' : ' matches') + ' for "' + term + '":';
+    results.appendChild(label);
+
+    locations.forEach(function (loc) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'search-results-loc';
+        button.textContent = loc.company + ' › ' + loc.dept + ' (' + loc.rows.length + ')';
+        button.addEventListener('click', function () { jumpTo(loc); });
+        results.appendChild(button);
+    });
+
+    results.hidden = false;
+
+    jumpTo(locations[0]);
 });
 
 function performSearch() {
