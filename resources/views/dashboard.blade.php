@@ -83,7 +83,7 @@
     {{-- ===================== Yearly graphs ===================== --}}
     <div class="section-head reveal">
         <div>
-            <h2>Yearly overview (test)</h2>
+            <h2>Yearly overview</h2>
             <div class="sub">Monthly net pay by company in {{ $year }}</div>
         </div>
 
