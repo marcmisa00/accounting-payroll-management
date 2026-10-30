@@ -1,597 +1,535 @@
-  * {
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #6366f1;
-            --primary-2: #0ea5e9;
-            --text: #0f172a;
-            --muted: #64748b;
-            --danger: #e5484d;
-            --success: #16a875;
-
-            --bg-start: #1e1b4b;
-            --bg-end: #0f172a;
-            --orb-one: #6366f1;
-            --orb-two: #0ea5e9;
-
-            --card-bg: rgba(255, 255, 255, .94);
-            --card-border: rgba(255, 255, 255, .7);
-            --card-shadow: 0 30px 90px -20px rgba(2, 6, 23, .55), 0 6px 20px rgba(2, 6, 23, .12);
-            --label: #475569;
-            --divider: rgba(15, 23, 42, .07);
-            --soft-text: #94a3b8;
-
-            --icon-bg: linear-gradient(145deg, #eef2ff, #e0f2fe);
-            --icon-border: rgba(99, 102, 241, .18);
-
-            --otp-bg: #f8fafc;
-            --otp-border: rgba(15, 23, 42, .12);
-            --otp-text: #0f172a;
-            --otp-hover: rgba(99, 102, 241, .45);
-            --otp-focus-bg: #ffffff;
-            --otp-filled-bg: #eef2ff;
-            --otp-filled-border: rgba(99, 102, 241, .4);
-            --focus-ring: rgba(99, 102, 241, .18);
-
-            --ok-text: #047857;
-            --ok-bg: #ecfdf5;
-            --ok-border: #d1fae5;
-            --bad-text: #be123c;
-            --bad-bg: #fff1f2;
-            --bad-border: #ffe4e6;
-            --otp-bad-bg: #fff1f2;
-        }
-
-        /* Follows the theme saved by the portal's dark mode switch */
-        html.dark-mode {
-            --text: #f1f5f9;
-            --muted: #8b9bb4;
-
-            --bg-start: #111633;
-            --bg-end: #070b14;
-
-            --card-bg: rgba(21, 29, 43, .88);
-            --card-border: rgba(148, 163, 184, .14);
-            --card-shadow: 0 30px 90px -20px rgba(0, 0, 0, .8), 0 6px 20px rgba(0, 0, 0, .35);
-            --label: #94a3b8;
-            --divider: rgba(148, 163, 184, .12);
-            --soft-text: #64748b;
-
-            --icon-bg: linear-gradient(145deg, rgba(99, 102, 241, .20), rgba(14, 165, 233, .14));
-            --icon-border: rgba(129, 140, 248, .25);
-
-            --otp-bg: #0f172a;
-            --otp-border: rgba(148, 163, 184, .18);
-            --otp-text: #f1f5f9;
-            --otp-hover: rgba(129, 140, 248, .55);
-            --otp-focus-bg: #111827;
-            --otp-filled-bg: rgba(99, 102, 241, .14);
-            --otp-filled-border: rgba(129, 140, 248, .5);
-            --focus-ring: rgba(129, 140, 248, .28);
-
-            --ok-text: #6ee7b7;
-            --ok-bg: rgba(16, 185, 129, .10);
-            --ok-border: rgba(16, 185, 129, .25);
-            --bad-text: #fda4af;
-            --bad-bg: rgba(244, 63, 94, .10);
-            --bad-border: rgba(244, 63, 94, .28);
-            --otp-bad-bg: rgba(244, 63, 94, .10);
-        }
-
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            min-height: 100vh;
-            margin: 0;
-            padding: 24px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            color: var(--text);
-            -webkit-font-smoothing: antialiased;
-            background:
-                radial-gradient(ellipse at 15% 10%,
-                    rgba(99, 102, 241, .35), transparent 45%),
-                radial-gradient(ellipse at 85% 90%,
-                    rgba(14, 165, 233, .22), transparent 45%),
-                linear-gradient(160deg, var(--bg-start), var(--bg-end));
-
-            overflow-x: hidden;
-        }
-
-        /* Subtle grid texture */
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
-            background-size: 44px 44px;
-            -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-            mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-            pointer-events: none;
-        }
-
-        /* Ambient background lights */
-        .orb {
-            position: fixed;
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: .35;
-            pointer-events: none;
-            animation: float 9s ease-in-out infinite alternate;
-        }
-
-        .orb-one {
-            top: 5%;
-            left: 5%;
-            background: var(--orb-one);
-        }
-
-        .orb-two {
-            bottom: 4%;
-            right: 5%;
-            background: var(--orb-two);
-            animation-delay: -4s;
-        }
-
-        @keyframes float {
-            from { transform: translate(0, 0); }
-            to { transform: translate(35px, -25px); }
-        }
-
-        .verify-box {
-            position: relative;
-            width: 100%;
-            max-width: 430px;
-            padding: 42px 34px 34px;
-
-            background: var(--card-bg);
-            -webkit-backdrop-filter: blur(18px) saturate(160%);
-            backdrop-filter: blur(18px) saturate(160%);
-            border: 1px solid var(--card-border);
-            border-radius: 26px;
-
-            box-shadow: var(--card-shadow);
-
-            text-align: center;
-            animation: cardEnter .75s cubic-bezier(.2, .8, .2, 1) both;
-            z-index: 1;
-            overflow: hidden;
-        }
-
-        /* Gradient accent along the top edge */
-        .verify-box::before {
-            content: "";
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-2));
-        }
-
-        @keyframes cardEnter {
-            from {
-                opacity: 0;
-                transform: translateY(24px) scale(.97);
-                filter: blur(5px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-                filter: blur(0);
-            }
-        }
-
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 28px;
-            color: var(--label);
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .brand-mark {
-            display: grid;
-            place-items: center;
-            width: 34px;
-            height: 34px;
-            color: white;
-            background: linear-gradient(135deg, var(--primary), var(--primary-2));
-            border-radius: 11px;
-            box-shadow: 0 6px 16px rgba(79, 70, 229, .4),
-                        inset 0 1px 0 rgba(255, 255, 255, .25);
-        }
-
-        .brand-mark svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .security-icon {
-            width: 78px;
-            height: 78px;
-            display: grid;
-            place-items: center;
-            margin: 0 auto 22px;
-
-            color: var(--primary);
-            background: var(--icon-bg);
-            border: 1px solid var(--icon-border);
-            border-radius: 24px;
-
-            box-shadow: 0 10px 26px -6px rgba(99, 102, 241, .35);
-            animation: iconFloat 3s ease-in-out infinite;
-        }
-
-        html.dark-mode .security-icon {
-            color: #a5b4fc;
-        }
-
-        .security-icon svg {
-            width: 38px;
-            height: 38px;
-        }
-
-        @keyframes iconFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-        }
-
-        h1 {
-            margin: 0;
-            font-size: clamp(24px, 6vw, 29px);
-            letter-spacing: -.8px;
-            font-weight: 750;
-            color: var(--text);
-        }
-
-        .subtitle {
-            margin: 12px auto 28px;
-            max-width: 310px;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.7;
-        }
-
-        .status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 11px 12px;
-            margin-bottom: 25px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 650;
-        }
-
-        .status.registered {
-            color: var(--ok-text);
-            background: var(--ok-bg);
-            border: 1px solid var(--ok-border);
-        }
-
-        .status.unregistered {
-            color: var(--bad-text);
-            background: var(--bad-bg);
-            border: 1px solid var(--bad-border);
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            flex: 0 0 7px;
-            border-radius: 50%;
-            background: currentColor;
-            box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 18%, transparent);
-        }
-
-        .field-label {
-            display: block;
-            margin-bottom: 13px;
-            text-align: left;
-            font-size: 12px;
-            font-weight: 800;
-            color: var(--label);
-            letter-spacing: .7px;
-            text-transform: uppercase;
-        }
-
-        .otp-group {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 9px;
-            margin-bottom: 12px;
-        }
-
-        .otp-input {
-            width: 100%;
-            min-width: 0;
-            height: 59px;
-            padding: 0;
-
-            border: 1.5px solid var(--otp-border);
-            border-radius: 14px;
-            outline: none;
-
-            background: var(--otp-bg);
-            color: var(--otp-text);
-            text-align: center;
-            font-family: inherit;
-            font-size: 25px;
-            font-weight: 750;
-            caret-color: var(--primary);
-
-            transition:
-                border-color .2s,
-                background .2s,
-                box-shadow .2s,
-                transform .2s;
-        }
-
-        .otp-input:hover {
-            border-color: var(--otp-hover);
-        }
-
-        .otp-input:focus {
-            border-color: var(--primary);
-            background: var(--otp-focus-bg);
-            box-shadow: 0 0 0 4px var(--focus-ring), 0 8px 18px -8px rgba(99, 102, 241, .5);
-            transform: translateY(-2px);
-        }
-
-        .otp-input.filled {
-            border-color: var(--otp-filled-border);
-            background: var(--otp-filled-bg);
-        }
-
-        /* Wrong verification code */
-        .otp-group.invalid .otp-input {
-            border-color: #e5484d !important;
-            background: var(--otp-bad-bg) !important;
-            color: #e5484d;
-            box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.10);
-        }
-
-        /* Keep the error colour while the user retries */
-        .otp-group.invalid .otp-input:focus {
-            border-color: #e5484d !important;
-            box-shadow: 0 0 0 4px rgba(229, 72, 77, 0.15);
-        }
-
-        .otp-input:disabled {
-            opacity: .7;
-        }
-
-        .hint {
-            min-height: 21px;
-            margin: 10px 0 22px;
-            color: var(--soft-text);
-            font-size: 12px;
-            transition: color .2s;
-        }
-
-        .hint[data-state="ready"] {
-            color: var(--success);
-        }
-
-        .hint[data-state="error"] {
-            color: var(--danger);
-        }
-
-        .error-message {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            padding: 12px;
-            margin: 0 0 18px;
-            border-radius: 12px;
-            background: var(--bad-bg);
-            border: 1px solid var(--bad-border);
-            color: var(--bad-text);
-            font-size: 12px;
-            font-weight: 650;
-            line-height: 1.5;
-            animation: errorAppear .3s ease both;
-        }
-
-        .error-message svg {
-            flex-shrink: 0;
-            width: 17px;
-            height: 17px;
-        }
-
-        @keyframes errorAppear {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Wrong code: shake the OTP boxes */
-        .otp-group.shake {
-            animation: shake .48s cubic-bezier(.36, .07, .19, .97) both;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translateX(-2px); }
-            20%, 80% { transform: translateX(5px); }
-            30%, 50%, 70% { transform: translateX(-7px); }
-            40%, 60% { transform: translateX(7px); }
-        }
-
-        .verify-button {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-
-            width: 100%;
-            min-height: 54px;
-            padding: 14px 18px;
-
-            border: 0;
-            border-radius: 14px;
-            background: linear-gradient(120deg, var(--primary), var(--primary-2));
-            color: #fff;
-
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 750;
-            letter-spacing: .2px;
-
-            cursor: pointer;
-            overflow: hidden;
-            box-shadow: 0 10px 24px -8px rgba(79, 70, 229, .6),
-                        inset 0 1px 0 rgba(255, 255, 255, .2);
-
-            transition: transform .2s, box-shadow .2s, opacity .2s;
-        }
-
-        .verify-button::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-                110deg,
-                transparent 25%,
-                rgba(255,255,255,.25) 50%,
-                transparent 75%
-            );
-            transform: translateX(-120%);
-            transition: transform .6s;
-        }
-
-        .verify-button:hover::before {
-            transform: translateX(120%);
-        }
-
-        .verify-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 30px -8px rgba(79, 70, 229, .7),
-                        inset 0 1px 0 rgba(255, 255, 255, .2);
-        }
-
-        .verify-button:active {
-            transform: scale(.985);
-        }
-
-        .verify-button:focus-visible {
-            outline: 3px solid rgba(99, 102, 241, .5);
-            outline-offset: 3px;
-        }
-
-        .verify-button:disabled {
-            cursor: wait;
-            opacity: .8;
-        }
-
-        .verify-button svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .spinner {
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,.35);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .secure-note {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin-top: 24px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .secure-note svg {
-            width: 14px;
-            height: 14px;
-            color: var(--success);
-        }
-
-        .footer {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid var(--divider);
-            color: var(--soft-text);
-            font-size: 10px;
-            letter-spacing: .4px;
-        }
-
-        /* Dissolve when submitting */
-        .verify-box.dissolve {
-            pointer-events: none;
-            animation: dissolve .55s cubic-bezier(.4, 0, .8, .3) forwards;
-        }
-
-        @keyframes dissolve {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-                filter: blur(0);
-            }
-            45% {
-                opacity: .8;
-                transform: scale(.97);
-                filter: blur(2px);
-            }
-            100% {
-                opacity: 0;
-                transform: scale(.90) translateY(-12px);
-                filter: blur(12px);
-            }
-        }
-
-        @media (max-width: 420px) {
-            body {
-                padding: 15px;
-            }
-
-            .verify-box {
-                padding: 32px 22px 25px;
-                border-radius: 22px;
-            }
-
-            .otp-group {
-                gap: 6px;
-            }
-
-            .otp-input {
-                height: 53px;
-                font-size: 22px;
-                border-radius: 11px;
-            }
-
-            .security-icon {
-                width: 68px;
-                height: 68px;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: .01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: .01ms !important;
-            }
-        }
+/* Accounting Portal sign-in pages: login, register, authenticator setup, OTP verify */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #f5f5f6;
+    --card-bg: #ffffff;
+    --card-border: #e4e4e7;
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 24px -12px rgba(0, 0, 0, .08);
+
+    --text: #18181b;
+    --muted: #71717a;
+    --soft-text: #a1a1aa;
+    --label: #3f3f46;
+    --divider: #f0f0f2;
+
+    --input-bg: #ffffff;
+    --input-border: #d4d4d8;
+    --input-hover: #a1a1aa;
+    --input-focus: #18181b;
+    --focus-ring: rgba(24, 24, 27, .08);
+    --filled-bg: #fafafa;
+
+    --button-bg: #18181b;
+    --button-hover: #2f2f33;
+    --button-text: #ffffff;
+
+    --mark-bg: #18181b;
+    --mark-text: #ffffff;
+
+    --danger: #b91c1c;
+    --bad-bg: #fef2f2;
+    --bad-border: #fde2e2;
+    --success: #15803d;
+    --ok-bg: #f0fdf4;
+    --ok-border: #dcfce7;
+}
+
+/* Follows the theme saved by the portal's dark mode switch */
+html.dark-mode {
+    --bg: #0b0b0c;
+    --card-bg: #151517;
+    --card-border: #27272a;
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
+
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --soft-text: #71717a;
+    --label: #d4d4d8;
+    --divider: #222225;
+
+    --input-bg: #0f0f11;
+    --input-border: #3f3f46;
+    --input-hover: #52525b;
+    --input-focus: #e4e4e7;
+    --focus-ring: rgba(244, 244, 245, .08);
+    --filled-bg: #18181b;
+
+    --button-bg: #f4f4f5;
+    --button-hover: #d4d4d8;
+    --button-text: #18181b;
+
+    --mark-bg: #f4f4f5;
+    --mark-text: #18181b;
+
+    --danger: #fca5a5;
+    --bad-bg: rgba(239, 68, 68, .08);
+    --bad-border: rgba(239, 68, 68, .22);
+    --success: #86efac;
+    --ok-bg: rgba(34, 197, 94, .08);
+    --ok-border: rgba(34, 197, 94, .2);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 24px 16px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Card */
+.verify-box {
+    width: 100%;
+    max-width: 400px;
+    padding: 36px 32px 32px;
+
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+
+    animation: cardEnter .35s ease-out both;
+}
+
+@keyframes cardEnter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    color: var(--mark-text);
+    background: var(--mark-bg);
+    border-radius: 7px;
+}
+
+.brand-mark svg {
+    width: 15px;
+    height: 15px;
+}
+
+.security-icon {
+    display: none;
+}
+
+h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -.3px;
+    color: var(--text);
+}
+
+.subtitle {
+    margin: 6px 0 24px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+/* Google Authenticator registered / not registered */
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+}
+
+.status.registered .status-dot {
+    background: var(--success);
+}
+
+.status.unregistered {
+    color: var(--danger);
+}
+
+.status.unregistered .status-dot {
+    background: var(--danger);
+}
+
+.field-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--label);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Text inputs (login, register, setup) */
+.auth-form {
+    margin: 0;
+}
+
+.text-input {
+    display: block;
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    margin-bottom: 16px;
+
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    outline: none;
+
+    background: var(--input-bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.text-input:hover {
+    border-color: var(--input-hover);
+}
+
+.text-input:focus {
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.code-input {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 6px;
+}
+
+/* OTP boxes (verify page) */
+.otp-group {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.otp-input {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    padding: 0;
+
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    outline: none;
+
+    background: var(--input-bg);
+    color: var(--text);
+    text-align: center;
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 600;
+
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.otp-input:hover {
+    border-color: var(--input-hover);
+}
+
+.otp-input:focus {
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.otp-input.filled {
+    background: var(--filled-bg);
+}
+
+/* Wrong verification code */
+.otp-group.invalid .otp-input,
+.otp-group.invalid .otp-input:focus {
+    border-color: var(--danger);
+}
+
+.otp-input:disabled {
+    opacity: .6;
+}
+
+.otp-group.shake {
+    animation: shake .4s ease-in-out both;
+}
+
+@keyframes shake {
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}
+
+.hint {
+    min-height: 18px;
+    margin: 0 0 18px;
+    color: var(--soft-text);
+    font-size: 12px;
+}
+
+.auth-form .hint {
+    margin-top: -8px;
+}
+
+.hint[data-state="ready"] {
+    color: var(--success);
+}
+
+.hint[data-state="error"] {
+    color: var(--danger);
+}
+
+/* Messages */
+.error-message,
+.success-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    margin: 0 0 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.error-message {
+    color: var(--danger);
+    background: var(--bad-bg);
+    border: 1px solid var(--bad-border);
+}
+
+.success-message {
+    color: var(--success);
+    background: var(--ok-bg);
+    border: 1px solid var(--ok-border);
+}
+
+.error-message svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+}
+
+/* Remember me */
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -4px 0 20px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.check-row input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--button-bg);
+    cursor: pointer;
+}
+
+/* Primary button */
+.verify-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    width: 100%;
+    height: 42px;
+    padding: 0 16px;
+
+    border: 0;
+    border-radius: 8px;
+    background: var(--button-bg);
+    color: var(--button-text);
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.verify-button:hover {
+    background: var(--button-hover);
+}
+
+.verify-button:focus-visible {
+    outline: 2px solid var(--input-focus);
+    outline-offset: 2px;
+}
+
+.verify-button:disabled {
+    cursor: wait;
+    opacity: .7;
+}
+
+.verify-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.secure-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 18px;
+    color: var(--soft-text);
+    font-size: 12px;
+}
+
+.secure-note svg {
+    width: 13px;
+    height: 13px;
+}
+
+.switch-link {
+    margin: 20px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--divider);
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.switch-link a {
+    color: var(--text);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--input-border);
+}
+
+.switch-link a:hover {
+    text-decoration-color: currentColor;
+}
+
+/* Authenticator setup */
+.qr-box {
+    display: flex;
+    width: fit-content;
+    margin: 0 auto 14px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #fff; /* QR codes need a light background to scan, even in dark mode */
+    border: 1px solid var(--card-border);
+}
+
+.qr-box svg {
+    display: block;
+    width: 168px;
+    height: 168px;
+}
+
+.setup-label {
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.setup-key {
+    display: block;
+    margin: 0 0 22px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: var(--filled-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-align: center;
+    word-break: break-all;
+    user-select: all;
+}
+
+/* Below the card */
+.page-footer {
+    color: var(--soft-text);
+    font-size: 12px;
+    text-align: center;
+}
+
+.page-footer .dot {
+    margin: 0 6px;
+}
+
+/* Fade out while the code is verified */
+.verify-box.dissolve {
+    pointer-events: none;
+    opacity: .6;
+    transition: opacity .2s;
+}
+
+@media (max-width: 420px) {
+    .verify-box {
+        padding: 28px 20px 24px;
+    }
+
+    .otp-group {
+        gap: 6px;
+    }
+
+    .otp-input {
+        height: 44px;
+        font-size: 18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}

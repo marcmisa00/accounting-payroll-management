@@ -2,40 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class AccountingAuthController extends Controller
 {
     public function showVerify(Request $request)
     {
-        if (!session('portal_authenticated') || !session('portal_idno')) {
-            abort(403, 'Portal authentication required.');
-        }
+        // Must have passed the ID number + password step first
+        $user = $this->pendingUser();
 
-        $idno = session('portal_idno');
-
-        $employee = DB::connection('hris')
-            ->table('employee_payroll')
-            ->where('idno', $idno)
-            ->select('idno', 'ga_secret')
-            ->first();
-
-        if (!$employee) {
-            abort(403, 'Employee record not found.');
+        if (!$user) {
+            return redirect()->route('login');
         }
 
         return view('accounting.verify', [
-            'idno' => $idno,
-            'has2fa' => !empty($employee->ga_secret),
+            'idno' => $user->idno,
+            'has2fa' => !empty($user->ga_secret),
         ]);
     }
 
     public function verifyCode(Request $request)
     {
-        // Make sure the user came from the Portal
-        if (!session('portal_authenticated') || !session('portal_idno')) {
-            abort(403, 'Portal authentication required.');
+        $user = $this->pendingUser();
+
+        if (!$user) {
+            return redirect()->route('login');
         }
 
         // Validate the submitted code
@@ -43,16 +35,7 @@ class AccountingAuthController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        $idno = session('portal_idno');
-
-        // Get the existing Google Authenticator secret from HRIS
-        $employee = DB::connection('hris')
-            ->table('employee_payroll')
-            ->where('idno', $idno)
-            ->select('idno', 'ga_secret')
-            ->first();
-
-        if (!$employee || empty($employee->ga_secret)) {
+        if (empty($user->ga_secret)) {
             return redirect()
                 ->route('accounting.verify')
                 ->with('error', 'Google Authenticator is not registered for this account.');
@@ -62,24 +45,38 @@ class AccountingAuthController extends Controller
         $googleAuthenticator = new \Sonata\GoogleAuthenticator\GoogleAuthenticator();
 
         // Verify the 6-digit code
-        if (!$googleAuthenticator->checkCode($employee->ga_secret, $request->code)) {
+        if (!$googleAuthenticator->checkCode($user->ga_secret, $request->code)) {
             return redirect()
                 ->route('accounting.verify')
                 ->with('error', 'Invalid Google Authenticator code.');
         }
 
-       // Google Authenticator successfully verified
+        // Google Authenticator successfully verified
+        $request->session()->regenerate();
+        session()->forget('accounting_pending_user_id');
+
+        // portal_idno is kept as the session key for the signed-in ID (audit fields, layout greeting)
         session([
+            'portal_idno' => $user->idno,
             'accounting_authenticated' => true,
             'accounting_authenticated_at' => time(),
         ]);
 
         return redirect()->route('dashboard');
-    }    
-    public function logout()
-    {
-        session()->forget('accounting_authenticated');
+    }
 
-        return redirect()->away('https://www.nesistaff.com/hris/attendance/');
+    public function logout(Request $request)
+    {
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+
+    private function pendingUser(): ?User
+    {
+        $userId = session('accounting_pending_user_id');
+
+        return $userId ? User::find($userId) : null;
     }
 }

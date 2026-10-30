@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\SsoController;
+use App\Http\Controllers\AccountingLoginController;
 use App\Http\Controllers\AccountingAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PayrollController;
@@ -20,13 +20,16 @@ use App\Http\Controllers\HsoApplicationController;
 use App\Http\Controllers\TransferApplicationController;
 use App\Http\Controllers\BenefitsController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::redirect('/', '/login');
 
-Route::get('/sso', [SsoController::class, 'login'])->name('sso.login'); 
+Route::get('/login', [AccountingLoginController::class, 'showLogin'])->name('login');
+Route::post('/login', [AccountingLoginController::class, 'login'])->middleware('throttle:accounting-auth')->name('login.submit');
+Route::get('/register', [AccountingLoginController::class, 'showRegister'])->name('register');
+Route::post('/register', [AccountingLoginController::class, 'register'])->middleware('throttle:accounting-auth')->name('register.submit');
+Route::get('/register/setup', [AccountingLoginController::class, 'showSetup'])->name('register.setup');
+Route::post('/register/setup', [AccountingLoginController::class, 'confirmSetup'])->middleware('throttle:accounting-auth')->name('register.setup.confirm');
 Route::get('/accounting/verify', [AccountingAuthController::class, 'showVerify'])->name('accounting.verify');
-Route::post('/accounting/verify-code', [AccountingAuthController::class, 'verifyCode'])->name('accounting.verify.code');
+Route::post('/accounting/verify-code', [AccountingAuthController::class, 'verifyCode'])->middleware('throttle:accounting-auth')->name('accounting.verify.code');
 Route::middleware('accounting.auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');

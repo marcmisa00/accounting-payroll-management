@@ -28,9 +28,6 @@
 
     <body>
 
-<div class="orb orb-one"></div>
-<div class="orb orb-two"></div>
-
 <main class="verify-box" id="verifyBox">
 
     <div class="brand">
@@ -43,7 +40,7 @@
                 <path d="m9 12 2 2 4-4"/>
             </svg>
         </span>
-        ACCOUNTING PORTAL
+        Accounting Portal
     </div>
 
     <div class="security-icon">
@@ -151,11 +148,15 @@
         Protected by two-factor authentication
     </div>
 
-    <div class="footer">
-        NESI ACCOUNTING SYSTEM &bull; SECURE ACCESS
-    </div>
+    <p class="switch-link">
+        Not you? <a href="{{ route('login') }}">Back to sign in</a>
+    </p>
 
 </main>
+
+<footer class="page-footer">
+    &copy; 2026 Accounting Portal<span class="dot">&middot;</span>Internal use only
+</footer>
 
 
 <script>

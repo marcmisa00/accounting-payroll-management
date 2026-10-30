@@ -11,7 +11,7 @@ class AccountingAuth
     public function handle(Request $request, Closure $next): Response
     {
         if (!session('accounting_authenticated')) {
-            return redirect()->route('sso.login');
+            return redirect()->route('login');
         }
 
         return $next($request);

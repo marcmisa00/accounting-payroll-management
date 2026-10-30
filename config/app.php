@@ -106,8 +106,6 @@ return [
     ],
 
 
-    'portal_sso_secret' => env('PORTAL_SSO_SECRET'),
-
     // Legacy HRIS portal base URL (links to files it hosts, e.g. EEO proofs)
     'hris_url' => env('HRIS_URL', 'https://www.nesistaff.com'),
 
