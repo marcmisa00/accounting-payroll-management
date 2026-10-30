@@ -121,7 +121,7 @@ class DashboardController extends Controller
         }
 
         $employees = $query
-            ->select('ep.idno', 'ep.lastname', 'ep.firstname', 'ep.suffix', 'd.department', 'ebi.account_number')
+            ->select('ep.idno', 'ep.lastname', 'ep.firstname', 'ep.suffix', 'd.id as dept_id', 'd.department', 'ebi.account_number')
             ->selectRaw('(COALESCE(pd.totalpay, 0) + COALESCE(ad.amount, 0) - COALESCE(de.amount, 0)) AS net_pay')
             ->orderBy('d.id')
             ->orderBy('ep.lastname')

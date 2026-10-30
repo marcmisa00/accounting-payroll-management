@@ -13,7 +13,10 @@
 @endif
 
 @php
-    $backUrl = route('payroll.show', ['payroll' => $payroll->id]);
+    // Opened from the dashboard bank detail: BACK returns there instead of Manage Payroll
+    $backUrl = request('from') === 'dashboard' && filled(request('bank')) && filled($company)
+        ? route('dashboard.detail', ['period' => $payroll->id, 'company' => $company, 'bank' => request('bank')])
+        : route('payroll.show', ['payroll' => $payroll->id]);
 @endphp
 
 <script>
@@ -145,6 +148,15 @@ function SubmitDetails() {
                     const saveBtn = document.querySelector('[name="submitPayroll"]');
                     if (saveBtn) { saveBtn.addEventListener('click', function () { hasUnsaved = false; }); }
                     const backLink = document.getElementById('backLink');
+                    // Keep BACK pointing at the dashboard detail through Prev/Next and saves (this tab only)
+                    try {
+                        const returnKey = 'payrollEditReturn-{{ $payroll->id }}';
+                        @if (request('from') === 'dashboard')
+                            sessionStorage.setItem(returnKey, @json($backUrl));
+                        @endif
+                        const savedReturn = sessionStorage.getItem(returnKey);
+                        if (backLink && savedReturn) { backLink.href = savedReturn; }
+                    } catch (e) {}
                     if (backLink) {
                         backLink.addEventListener('click', function (e) {
                             if (hasUnsaved && !confirm("You didn't save changes. Are you sure you want to leave?")) {
