@@ -883,21 +883,51 @@ class EditPayrollController extends Controller
     public function history(Request $request, Payroll $payroll): View
         {
             [$company, $deptId] = $this->context($request);
-            $payroll = Payroll::query()->findOrFail($request->input('period', $payroll->id));
-    
+
+            $v = $request->validate([
+                'period'      => ['nullable', 'integer'],
+                'employee'    => ['nullable', 'string', 'max:100'],
+                'record_type' => ['nullable', 'in:payroll-ADD,payroll-DED,EDIT TIME'],
+                'user'        => ['nullable', 'string', 'max:50'],
+                'from'        => ['nullable', 'date_format:Y-m-d'],
+                'to'          => ['nullable', 'date_format:Y-m-d'],
+            ]);
+
+            $payroll = Payroll::query()->findOrFail($v['period'] ?? $payroll->id);
+
             $payrolls = Payroll::query()
                 ->orderByDesc('periodfrom')
                 ->orderByDesc('id')
                 ->get();
 
-            
-            $employee = trim((string) $request->input('employee', ''));
-            $recordType = $request->input('record_type', '');
+            $conn = DB::connection(self::HRIS_CONNECTION);
+
+            // People who have made changes, for the "Changed by" filter.
+            $users = $conn->table('payroll_adjustment_history as h')
+                ->leftJoin('employee_profile as cb', 'cb.idno', '=', 'h.changed_by')
+                ->whereNotNull('h.changed_by')
+                ->where('h.changed_by', '!=', '')
+                ->select('h.changed_by', 'cb.firstname', 'cb.lastname')
+                ->distinct()
+                ->get()
+                ->unique('changed_by')
+                ->map(fn ($u) => (object) [
+                    'idno' => $u->changed_by,
+                    'name' => trim(($u->lastname ?? '') . ', ' . ($u->firstname ?? ''), ', ') ?: $u->changed_by,
+                ])
+                ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+
+            $employee = trim((string) ($v['employee'] ?? ''));
+            $recordType = $v['record_type'] ?? '';
+            $user = $v['user'] ?? '';
+            $from = $v['from'] ?? '';
+            $to = $v['to'] ?? '';
 
             // Search all periods only when an employee is entered.
             $searchAllPeriods = $employee !== '';
 
-            $query = DB::connection(self::HRIS_CONNECTION)
+            $query = $conn
                 ->table('payroll_adjustment_history as h')
                 ->leftJoin(
                     'employee_profile as ep',
@@ -919,13 +949,20 @@ class EditPayrollController extends Controller
             }
 
             if ($employee !== '') {
-                $query->where(function ($q) use ($employee) {
-                    $q->where('h.idno', 'like', "%{$employee}%")
-                        ->orWhere('ep.firstname', 'like', "%{$employee}%")
-                        ->orWhere('ep.middlename', 'like', "%{$employee}%")
-                        ->orWhere('ep.lastname', 'like', "%{$employee}%");
+                $s = '%' . addcslashes($employee, '%_\\') . '%';
+                $query->where(function ($q) use ($s) {
+                    $q->where('h.idno', 'like', $s)
+                        ->orWhere('ep.firstname', 'like', $s)
+                        ->orWhere('ep.middlename', 'like', $s)
+                        ->orWhere('ep.lastname', 'like', $s)
+                        ->orWhereRaw("CONCAT_WS(' ', ep.firstname, ep.lastname) LIKE ?", [$s])
+                        ->orWhereRaw("CONCAT_WS(' ', ep.lastname, ep.firstname) LIKE ?", [$s]);
                 });
             }
+
+            $query->when($user !== '', fn ($q) => $q->where('h.changed_by', $user))
+                ->when($from !== '', fn ($q) => $q->where('h.changed_at', '>=', $from . ' 00:00:00'))
+                ->when($to !== '', fn ($q) => $q->where('h.changed_at', '<=', $to . ' 23:59:59'));
 
             // One combined filter for Add-on, Deduction, and Edit Time.
             $typeMap = [
@@ -963,6 +1000,8 @@ class EditPayrollController extends Controller
                 'deptId'           => $deptId,
                 'employee'         => $employee,
                 'recordType'       => $recordType,
+                'users'            => $users,
+                'filters'          => array_filter(compact('employee', 'recordType', 'user', 'from', 'to')),
                 'hasFilter'        => $hasFilter,
                 'searchAllPeriods' => $searchAllPeriods,
                 'entries'          => $entries,
