@@ -22,7 +22,7 @@
 </head>
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<body class="{{ request()->routeIs('payroll.*','holidays.*', 'attendance.*', 'leaves.*', 'hr.*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
+<body class="{{ request()->routeIs('payroll.*','holidays.*', 'attendance.*', 'leaves.*', 'hr.*','hso.*','transfer.*','attendance.*','payroll.history*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
     <aside class="sidebar">
 
             <button type="button" class="sidebar-toggle" id="sidebarToggle">
@@ -251,7 +251,7 @@
             <span class="nav-text">Attendance</span>
         </a>
 
-        <a href="{{route('holidays.index')}}">
+        <a href="{{route('holidays.index')}}" class="{{ request()->routeIs('holidays.*') ? 'active' : '' }}">
             <span class="icon">
                 <i class="fa fa-calendar"></i>
             </span>
