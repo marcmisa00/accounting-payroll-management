@@ -422,6 +422,8 @@
         document.addEventListener('DOMContentLoaded', function () {
 
             const menus = document.querySelectorAll('.payroll-menu');
+            const canHover = window.matchMedia('(hover: hover)').matches;
+            const isCollapsed = function () { return document.body.classList.contains('sidebar-collapsed'); };
 
             // Collapsed sidebar: sub-menus open as a flyout beside the icon
             function closeFlyouts(except) {
@@ -446,7 +448,6 @@
 
                 toggle.setAttribute('aria-haspopup', 'true');
                 toggle.setAttribute('aria-expanded', 'false');
-                toggle.title = submenu.dataset.title || '';
 
                 // If we are already inside one of this menu's pages,
                 // keep its submenu open.
@@ -460,8 +461,10 @@
 
                     e.preventDefault();
 
-                    if (document.body.classList.contains('sidebar-collapsed')) {
-                        const open = menu.classList.toggle('flyout-open');
+                    if (isCollapsed()) {
+                        // With a mouse the flyout is already open from hovering, so a click keeps it open
+                        const open = canHover || !menu.classList.contains('flyout-open');
+                        menu.classList.toggle('flyout-open', open);
                         toggle.setAttribute('aria-expanded', String(open));
                         closeFlyouts(menu);
                         return;
@@ -471,6 +474,28 @@
                     if (arrow) arrow.classList.toggle('rotate');
 
                 });
+
+                // Collapsed sidebar with a mouse: hovering opens the flyout; a short
+                // delay lets the pointer cross the gap to it before it closes
+                if (canHover) {
+                    let closeTimer;
+
+                    menu.addEventListener('mouseenter', function () {
+                        if (!isCollapsed()) return;
+                        clearTimeout(closeTimer);
+                        closeFlyouts(menu);
+                        menu.classList.add('flyout-open');
+                        toggle.setAttribute('aria-expanded', 'true');
+                    });
+
+                    menu.addEventListener('mouseleave', function () {
+                        if (!isCollapsed()) return;
+                        closeTimer = setTimeout(function () {
+                            menu.classList.remove('flyout-open');
+                            toggle.setAttribute('aria-expanded', 'false');
+                        }, 250);
+                    });
+                }
             });
 
             // Close a flyout by clicking elsewhere or pressing Escape
