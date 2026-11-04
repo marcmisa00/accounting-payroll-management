@@ -1122,6 +1122,22 @@ class PayrollCalculationService
             }
         }
 
+        // Daily night shift ND: Daily employees have no time logs, so ND is paid per
+        // regular day (payable days minus paid leave days, EO / EEO count in full)
+        // at 10% of that day's rate. Only for shifts mostly inside 10pm-6am.
+        if ($salaryType === 'Daily' && $this->isNightShift($employeeDetails->startshift, $employeeDetails->endshift)) {
+            $oldNdDays = max(0, $oldRateDays - array_sum($dailyLeaveDays['old']));
+            $newNdDays = max(0, $newRateDays - array_sum($dailyLeaveDays['new']));
+            $ndAmount  = ($previousSalary * $oldNdDays + $salary * $newNdDays) * 0.1;
+
+            $t['ndhrs']       = ($oldNdDays + $newNdDays) * 8;
+            $t['ndamount']    = $ndAmount;
+            $t['totalndhrs']  = $t['ndhrs'];
+            $t['totalndrate'] = $ndAmount;
+            $t['grandtotal'] += $ndAmount;
+            $t['totalpay']    = $t['grandtotal'];
+        }
+
         unset($t['_ab_total'], $t['_pto_total'], $t['_mtl_total'], $t['_mdl_total'], $t['_ltl_total'], $t['_suspended_total']);
 
         return ['rows' => $rows, 'totals' => $t];
@@ -1241,6 +1257,32 @@ class PayrollCalculationService
         $totalpay = $empsalary + $regdaysot + $ndrate + $spholiday + $spholidayot + $regholiday + $regholidayot + $reghoursnwamount;
 
         return $obDeductedFromHoliday ? $totalpay : $totalpay - $obsubsal;
+    }
+
+    /**
+     * True when at least 4 hours of the shift fall inside the 10pm-6am ND window
+     * (00:00-09:00 and 01:00-10:00 qualify; 05:00-14:00 does not).
+     */
+    private function isNightShift(?string $startshift, ?string $endshift): bool
+    {
+        if (empty($startshift) || empty($endshift)) {
+            return false;
+        }
+
+        $start = strtotime('2000-01-01 ' . $startshift);
+        $end   = strtotime('2000-01-01 ' . $endshift);
+        if ($end <= $start) {
+            $end += 86400;
+        }
+
+        // ND windows overlapping a shift that starts on 2000-01-01: the night before and that night.
+        $overlap = 0;
+        foreach (['1999-12-31 22:00', '2000-01-01 22:00'] as $windowStart) {
+            $ws = strtotime($windowStart);
+            $overlap += max(0, min($end, $ws + 8 * 3600) - max($start, $ws));
+        }
+
+        return $overlap >= 4 * 3600;
     }
 
     private function hoursWithMidnight($in, $out): float
