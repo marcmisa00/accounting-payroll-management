@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PayrollController extends Controller
@@ -117,57 +118,77 @@ class PayrollController extends Controller
     }
 
     /**
-     * Post all pending payslips for one company in this payroll period.
+     * Post all pending payslips for one company, or several selected ones,
+     * in this payroll period.
      * (was: the "postpayslip" branch in managepayroll.php)
      */
     public function postPayslip(Request $request, Payroll $payroll): RedirectResponse
     {
-        $validated = $request->validate([
-            'company' => ['required', 'string'],
-        ]);
+        $companies = $this->selectedCompanies($request);
 
-        DB::connection(self::HRIS_CONNECTION)
-            ->table('payroll_details as pd')
-            ->join('employee_details as ed', 'ed.idno', '=', 'pd.idno')
-            ->where('pd.payrollperiod', $payroll->id)
-            ->where('ed.company', $validated['company'])
-            ->where('ed.status', 'not like', '%RESIGNED%')
-            ->where('pd.status', 'pending')
-            ->update([
-                'pd.status'     => 'posted',
-                'pd.dateposted' => now(),
-            ]);
+        $count = $this->setPayslipStatus($payroll, $companies, 'pending', [
+            'pd.status'     => 'posted',
+            'pd.dateposted' => now(),
+        ]);
 
         return redirect()
             ->route('payroll.show', $payroll)
-            ->with('success', 'Payslip successfully posted!');
+            ->with('success', "Posted {$count} payslip(s) for " . implode(', ', $companies) . '.');
     }
 
     /**
-     * Undo posting for one company in this payroll period.
+     * Undo posting for one company, or several selected ones, in this payroll period.
      * (was: the "undopostpayslip" branch in managepayroll.php)
      */
     public function undoPostPayslip(Request $request, Payroll $payroll): RedirectResponse
     {
-        $validated = $request->validate([
-            'company' => ['required', 'string'],
-        ]);
+        $companies = $this->selectedCompanies($request);
 
-        DB::connection(self::HRIS_CONNECTION)
-            ->table('payroll_details as pd')
-            ->join('employee_details as ed', 'ed.idno', '=', 'pd.idno')
-            ->where('pd.payrollperiod', $payroll->id)
-            ->where('ed.company', $validated['company'])
-            ->where('ed.status', 'not like', '%RESIGNED%')
-            ->where('pd.status', 'posted')
-            ->update([
-                'pd.status'     => 'pending',
-                'pd.dateposted' => null,
-            ]);
+        $count = $this->setPayslipStatus($payroll, $companies, 'posted', [
+            'pd.status'     => 'pending',
+            'pd.dateposted' => null,
+        ]);
 
         return redirect()
             ->route('payroll.show', $payroll)
-            ->with('success', 'Payslip successfully unposted!');
+            ->with('success', "Unposted {$count} payslip(s) for " . implode(', ', $companies) . '.');
+    }
+
+    /**
+     * Companies from the per-company button (company) or the selection
+     * (companies[]), each checked against the real company list.
+     */
+    private function selectedCompanies(Request $request): array
+    {
+        $codes = DB::connection(self::HRIS_CONNECTION)->table('settings')->pluck('companycode')->all();
+
+        $validated = $request->validate([
+            'company'     => ['required_without:companies', 'string', Rule::in($codes)],
+            'companies'   => ['sometimes', 'array', 'min:1'],
+            'companies.*' => ['string', 'distinct', Rule::in($codes)],
+        ], [
+            'company.required_without'   => 'Select at least one company.',
+        ]);
+
+        return $validated['companies'] ?? [$validated['company']];
+    }
+
+    /**
+     * Move the selected companies' non-resigned payslips from one status to
+     * another, all in one transaction. Returns how many payslips changed.
+     */
+    private function setPayslipStatus(Payroll $payroll, array $companies, string $fromStatus, array $changes): int
+    {
+        $conn = DB::connection(self::HRIS_CONNECTION);
+
+        return $conn->transaction(fn () => $conn
+            ->table('payroll_details as pd')
+            ->join('employee_details as ed', 'ed.idno', '=', 'pd.idno')
+            ->where('pd.payrollperiod', $payroll->id)
+            ->whereIn('ed.company', $companies)
+            ->where('ed.status', 'not like', '%RESIGNED%')
+            ->where('pd.status', $fromStatus)
+            ->update($changes));
     }
 
     /**

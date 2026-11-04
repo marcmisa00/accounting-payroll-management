@@ -10,6 +10,72 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /*
      * ================================
+     * POST / UNDO POST SELECTED COMPANIES
+     * ================================
+     */
+
+    const bulkForm = document.getElementById('bulkPostForm');
+
+    if (bulkForm) {
+        const selectAll = document.getElementById('postSelectAll');
+        const postBtn   = document.getElementById('postSelectedBtn');
+        const undoBtn   = document.getElementById('undoSelectedBtn');
+        const checks    = Array.from(document.querySelectorAll('.post-check:not(:disabled)'));
+
+        // Checked companies that have payslips in the given state (data-pending / data-posted)
+        const selectedWith = function (state) {
+            return checks.filter(function (box) {
+                return box.checked && Number(box.dataset[state]) > 0;
+            });
+        };
+
+        const refresh = function () {
+            const checkedCount = checks.filter(function (box) { return box.checked; }).length;
+            const toPost = selectedWith('pending').length;
+            const toUndo = selectedWith('posted').length;
+
+            postBtn.disabled = toPost === 0;
+            undoBtn.disabled = toUndo === 0;
+            postBtn.querySelector('[data-count]').textContent = toPost ? '(' + toPost + ')' : '';
+            undoBtn.querySelector('[data-count]').textContent = toUndo ? '(' + toUndo + ')' : '';
+
+            selectAll.disabled      = checks.length === 0;
+            selectAll.checked       = checks.length > 0 && checkedCount === checks.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < checks.length;
+        };
+
+        selectAll.addEventListener('change', function () {
+            checks.forEach(function (box) { box.checked = selectAll.checked; });
+            refresh();
+        });
+
+        checks.forEach(function (box) { box.addEventListener('change', refresh); });
+
+        bulkForm.addEventListener('submit', function (e) {
+            const isUndo = e.submitter === undoBtn;
+            const boxes  = selectedWith(isUndo ? 'posted' : 'pending');
+            const names  = boxes.map(function (box) { return box.value; }).join(', ');
+
+            if (!boxes.length || !confirm(isUndo
+                ? 'Do you wish to undo post for ' + names + '?'
+                : 'Do you wish to post payslip for ' + names + '?')) {
+                e.preventDefault();
+                return;
+            }
+
+            // Send only the companies this action applies to
+            checks.forEach(function (box) {
+                if (box.checked && boxes.indexOf(box) === -1) {
+                    box.disabled = true;
+                }
+            });
+        });
+
+        refresh();
+    }
+
+    /*
+     * ================================
      * COMPANY TABS
      * ================================
      */

@@ -5,6 +5,9 @@
 @if (session('success'))
     <script>alert(@json(session('success')));</script>
 @endif
+@if ($errors->any())
+    <script>alert(@json(implode("\n", $errors->all())));</script>
+@endif
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 @vite(['resources/css/show-payroll.css', 'resources/js/show-payroll.js', 'resources/js/payslip-export.js'])
@@ -58,6 +61,61 @@
         @endif
 
         <div class="panel-body">
+            <!-- Post / undo post: the selected companies at once, or each one on its card -->
+            <form method="POST" action="{{ route('payroll.postPayslip', $payroll) }}" id="bulkPostForm" class="post-toolbar">
+                @csrf
+                <label class="post-select-all">
+                    <input type="checkbox" id="postSelectAll"> Select all
+                </label>
+                <button type="submit" class="btn btn-primary" id="postSelectedBtn" disabled>
+                    <i class="fa fa-paper-plane"></i> POST SELECTED <span data-count></span>
+                </button>
+                <button type="submit" class="btn btn-warning" id="undoSelectedBtn" disabled
+                        formaction="{{ route('payroll.undoPostPayslip', $payroll) }}">
+                    <i class="fa fa-rotate-left"></i> UNDO SELECTED <span data-count></span>
+                </button>
+            </form>
+
+            <div class="post-bar">
+                @foreach ($companies as $company)
+                    @php $hasRecords = $company['posted'] > 0 || $company['notposted'] > 0; @endphp
+                    <div class="post-card">
+                        <label class="post-card-info">
+                            <span class="post-card-name">
+                                <input type="checkbox" name="companies[]" value="{{ $company['code'] }}" form="bulkPostForm"
+                                       class="post-check" data-pending="{{ $company['notposted'] }}" data-posted="{{ $company['posted'] }}"
+                                       @disabled(! $hasRecords)>
+                                <strong>{{ $company['code'] }}</strong>
+                            </span>
+                            <span class="post-card-status">
+                                @if (! $hasRecords)
+                                    Nothing saved yet
+                                @else
+                                    {{ $company['notposted'] }} pending · {{ $company['posted'] }} posted
+                                @endif
+                            </span>
+                        </label>
+                        @if (! $hasRecords)
+                            <button type="button" class="btn btn-primary" disabled title="Save payroll for this company's employees first"><i class="fa fa-paper-plane"></i> POST PAYSLIP</button>
+                        @elseif ($company['notposted'] > 0)
+                            <form method="POST" action="{{ route('payroll.postPayslip', $payroll) }}"
+                                  onsubmit="return confirm(@js('Do you wish to post payslip for ' . $company['code'] . '?'));">
+                                @csrf
+                                <input type="hidden" name="company" value="{{ $company['code'] }}">
+                                <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> POST PAYSLIP</button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('payroll.undoPostPayslip', $payroll) }}"
+                                  onsubmit="return confirm(@js('Do you wish to undo post for ' . $company['code'] . '?'));">
+                                @csrf
+                                <input type="hidden" name="company" value="{{ $company['code'] }}">
+                                <button type="submit" class="btn btn-warning"><i class="fa fa-rotate-left"></i> UNDO POST</button>
+                            </form>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
             <!-- Company Tabs -->
            <ul class="payroll-tabs company-tabs" id="companyTabs">
                 @foreach ($companies as $index => $company)
@@ -79,26 +137,8 @@
                 @foreach ($companies as $companyIndex => $company)
                     <div id="company-{{ $company['code'] }}" class="tab-pane{{ $companyIndex === 0 ? ' active' : '' }}">
 
-                        <!-- Per-company action buttons -->
+                        <!-- Per-company download (post / undo post is in the bar above the tabs) -->
                         <div class="action-buttons">
-                            @if ($company['posted'] === 0 && $company['notposted'] === 0)
-                                {{-- No payroll records --}}
-                            @elseif ($company['notposted'] > 0)
-                                <form method="POST" action="{{ route('payroll.postPayslip', $payroll) }}" style="display:inline"
-                                      onsubmit="return confirm('Do you wish to post payslip?');">
-                                    @csrf
-                                    <input type="hidden" name="company" value="{{ $company['code'] }}">
-                                    <button type="submit" class="btn btn-primary">POST PAYSLIP</button>
-                                </form>
-                            @else
-                                <form method="POST" action="{{ route('payroll.undoPostPayslip', $payroll) }}" style="display:inline"
-                                      onsubmit="return confirm('Do you wish to undo post?');">
-                                    @csrf
-                                    <input type="hidden" name="company" value="{{ $company['code'] }}">
-                                    <button type="submit" class="btn btn-warning">UNDO POST</button>
-                                </form>
-                            @endif
-
                             <!-- Download dropdown -->
                             <div class="btn-group">
                                 <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
