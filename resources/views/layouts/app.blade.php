@@ -6,13 +6,19 @@
     <title>@yield('title', 'Accounting Portal')</title>
 @vite(['resources/css/app.css'])
 <script>
+        // Apply the saved theme before the page paints. Dim and Midnight build on Dark,
+        // Warm and Ocean on Light (resources/css/themes.css).
         (function () {
             try {
+                const darkThemes = ['dark', 'dim', 'midnight'];
+                const known = darkThemes.concat(['light', 'warm', 'ocean']);
                 const stored = localStorage.getItem('theme');
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const theme = stored || (prefersDark ? 'dark' : 'light');
-                if (theme === 'dark') {
-                    document.documentElement.classList.add('dark-mode');
+                const theme = known.includes(stored) ? stored : (prefersDark ? 'dark' : 'light');
+                const html = document.documentElement;
+                html.classList.toggle('dark-mode', darkThemes.includes(theme));
+                if (theme !== 'light' && theme !== 'dark') {
+                    html.classList.add('theme-' + theme);
                 }
             } catch (e) {}
         })();
@@ -308,15 +314,31 @@
                     : ($hour < 18 ? 'Good afternoon' : 'Good evening');
             @endphp
 
-        <button type="button"
-                class="theme-toggle"
-                id="themeToggle"
-                role="switch"
-                aria-checked="false"
-                aria-label="Switch to dark mode"
-                title="Toggle dark mode">
-            <span class="switch-knob"></span>
-        </button>
+        <div class="theme-picker">
+            <button type="button"
+                    class="theme-toggle"
+                    id="themeToggle"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="themeMenu"
+                    title="Change theme">
+                <span class="theme-swatch" id="themeCurrentSwatch" data-theme="light" aria-hidden="true"></span>
+                <span class="theme-name" id="themeCurrentName">Light</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
+
+            <div class="theme-menu" id="themeMenu" role="menu" aria-label="Theme" hidden>
+                <div class="theme-menu-label">Theme</div>
+                @foreach (['light' => ['Light', ''], 'dark' => ['Dark', ''], 'dim' => ['Dim', ''], 'midnight' => ['Midnight', ''], 'warm' => ['Warm', ''], 'ocean' => ['Ocean', '']] as $themeKey => [$themeName, $themeHint])
+                    <button type="button" class="theme-option" role="menuitemradio" aria-checked="false" data-theme="{{ $themeKey }}">
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        <span class="theme-swatch" data-theme="{{ $themeKey }}" aria-hidden="true"></span>
+                        <span>{{ $themeName }}</span>
+                        <small>{{ $themeHint }}</small>
+                    </button>
+                @endforeach
+            </div>
+        </div>
 
         <span>{{ $greeting }}, {{ $portalFirstName }}!</span>
 
@@ -336,83 +358,132 @@
 
     <script>
         (function() {
-            const html = document.documentElement; // use <html> for theme class
+            const html = document.documentElement; // theme classes live on <html>
             const toggleBtn = document.getElementById('themeToggle');
+            const menu = document.getElementById('themeMenu');
+            const options = Array.from(menu.querySelectorAll('.theme-option'));
+            const currentSwatch = document.getElementById('themeCurrentSwatch');
+            const currentName = document.getElementById('themeCurrentName');
 
-            // 1. Determine initial theme: localStorage > system preference > light
-            function getInitialTheme() {
-                const stored = localStorage.getItem('theme');
-                if (stored === 'dark') return 'dark';
-                if (stored === 'light') return 'light';
-                // no stored preference → use system
-                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            }
+            // Dim and Midnight build on Dark, Warm and Ocean on Light (resources/css/themes.css)
+            const THEMES = {
+                light: { name: 'Light', dark: false },
+                dark: { name: 'Dark', dark: true },
+                dim: { name: 'Dim', dark: true },
+                midnight: { name: 'Midnight', dark: true },
+                warm: { name: 'Warm', dark: false },
+                ocean: { name: 'Ocean', dark: false },
+            };
 
-            // 2. Apply theme and update the light-switch state
-            function applyTheme(theme) {
-                const isDark = theme === 'dark';
-
-                html.classList.toggle('dark-mode', isDark);
-                toggleBtn.setAttribute('aria-checked', String(isDark));
-                toggleBtn.setAttribute(
-                    'aria-label',
-                    isDark ? 'Switch to light mode' : 'Switch to dark mode'
-                );
-                toggleBtn.setAttribute(
-                    'title',
-                    isDark ? 'Dark mode is on — switch to light mode' : 'Dark mode is off — switch to dark mode'
-                );
-            }
-
-            // 3. Set initial theme
-            const initialTheme = getInitialTheme();
-            applyTheme(initialTheme);
-
-            // 4. Toggle on button click, revealing the new theme as a wave from the switch
-            toggleBtn.addEventListener('click', function() {
-                const isDark = html.classList.contains('dark-mode');
-                const newTheme = isDark ? 'light' : 'dark';
-
-                const commit = function () {
-                    applyTheme(newTheme);
-                    localStorage.setItem('theme', newTheme);
-                };
-
-                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                if (!document.startViewTransition || reduceMotion) {
-                    commit();
-                    return;
+            function savedTheme() {
+                try {
+                    const stored = localStorage.getItem('theme');
+                    return THEMES[stored] ? stored : null;
+                } catch (e) {
+                    return null;
                 }
+            }
 
-                const rect = toggleBtn.getBoundingClientRect();
-                const x = rect.left + rect.width / 2;
-                const y = rect.top + rect.height / 2;
-                const radius = Math.hypot(
-                    Math.max(x, window.innerWidth - x),
-                    Math.max(y, window.innerHeight - y)
-                );
+            // 1. Initial theme: saved choice > system preference
+            function getInitialTheme() {
+                return savedTheme() || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            }
 
-                html.classList.add('theme-wave');
-                const transition = document.startViewTransition(commit);
+            // 2. Apply a theme and update the button and menu
+            function applyTheme(theme) {
+                html.classList.toggle('dark-mode', THEMES[theme].dark);
+                Object.keys(THEMES).forEach(function (key) {
+                    html.classList.toggle('theme-' + key, key === theme && key !== 'light' && key !== 'dark');
+                });
 
-                transition.ready.then(function () {
-                    html.animate(
-                        { clipPath: [
-                            'circle(0px at ' + x + 'px ' + y + 'px)',
-                            'circle(' + radius + 'px at ' + x + 'px ' + y + 'px)'
-                        ] },
-                        { duration: 700, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', pseudoElement: '::view-transition-new(root)' }
+                currentSwatch.dataset.theme = theme;
+                currentName.textContent = THEMES[theme].name;
+                toggleBtn.setAttribute('aria-label', 'Theme: ' + THEMES[theme].name + '. Change theme');
+                options.forEach(function (option) {
+                    option.setAttribute('aria-checked', String(option.dataset.theme === theme));
+                });
+            }
+
+            applyTheme(getInitialTheme());
+
+            // 3. Open / close the menu
+            function openMenu() {
+                menu.hidden = false;
+                toggleBtn.setAttribute('aria-expanded', 'true');
+                (options.find(function (o) { return o.getAttribute('aria-checked') === 'true'; }) || options[0]).focus();
+            }
+
+            function closeMenu(focusButton) {
+                menu.hidden = true;
+                toggleBtn.setAttribute('aria-expanded', 'false');
+                if (focusButton) toggleBtn.focus();
+            }
+
+            toggleBtn.addEventListener('click', function () {
+                menu.hidden ? openMenu() : closeMenu(false);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!menu.hidden && !e.target.closest('.theme-picker')) closeMenu(false);
+            });
+
+            menu.addEventListener('keydown', function (e) {
+                const i = options.indexOf(document.activeElement);
+                if (e.key === 'Escape') { e.preventDefault(); closeMenu(true); }
+                if (e.key === 'ArrowDown') { e.preventDefault(); options[(i + 1) % options.length].focus(); }
+                if (e.key === 'ArrowUp') { e.preventDefault(); options[(i - 1 + options.length) % options.length].focus(); }
+                if (e.key === 'Tab') closeMenu(false);
+            });
+
+            // 4. Pick a theme, revealing it as a wave from the button
+            options.forEach(function (option) {
+                option.addEventListener('click', function () {
+                    const newTheme = option.dataset.theme;
+                    closeMenu(true);
+
+                    if (currentSwatch.dataset.theme === newTheme) return;
+
+                    const commit = function () {
+                        applyTheme(newTheme);
+                        try { localStorage.setItem('theme', newTheme); } catch (e) {}
+                    };
+
+                    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    if (!document.startViewTransition || reduceMotion) {
+                        commit();
+                        return;
+                    }
+
+                    const rect = toggleBtn.getBoundingClientRect();
+                    const x = rect.left + rect.width / 2;
+                    const y = rect.top + rect.height / 2;
+                    const radius = Math.hypot(
+                        Math.max(x, window.innerWidth - x),
+                        Math.max(y, window.innerHeight - y)
                     );
-                }).catch(function () {});
 
-                transition.finished.finally(function () {
-                    html.classList.remove('theme-wave');
+                    html.classList.add('theme-wave');
+                    const transition = document.startViewTransition(commit);
+
+                    transition.ready.then(function () {
+                        html.animate(
+                            { clipPath: [
+                                'circle(0px at ' + x + 'px ' + y + 'px)',
+                                'circle(' + radius + 'px at ' + x + 'px ' + y + 'px)'
+                            ] },
+                            { duration: 700, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', pseudoElement: '::view-transition-new(root)' }
+                        );
+                    }).catch(function () {});
+
+                    transition.finished.finally(function () {
+                        html.classList.remove('theme-wave');
+                    });
                 });
             });
 
-            // 5. (Optional) Listen for system preference changes when no explicit choice
+            // 5. Follow the system light/dark setting until a theme is picked
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-                if (!localStorage.getItem('theme')) {
+                if (!savedTheme()) {
                     applyTheme(e.matches ? 'dark' : 'light');
                 }
             });

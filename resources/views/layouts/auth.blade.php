@@ -7,12 +7,14 @@
     <title>@yield('title') | Accounting Portal</title>
     @vite(['resources/css/verify.css'])
     <script>
-        // Same saved theme as the portal layout (no switch on this page)
+        // Same saved theme as the portal layout (no switch on this page). Only light and
+        // dark are styled here, so Dim / Midnight show as dark and Warm / Ocean as light.
         (function () {
             try {
                 const stored = localStorage.getItem('theme');
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if ((stored || (prefersDark ? 'dark' : 'light')) === 'dark') {
+                const isDark = stored ? ['dark', 'dim', 'midnight'].includes(stored) : prefersDark;
+                if (isDark) {
                     document.documentElement.classList.add('dark-mode');
                 }
             } catch (e) {}

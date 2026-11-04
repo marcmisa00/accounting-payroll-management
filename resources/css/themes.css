@@ -1,0 +1,274 @@
+/* =========================================================
+   EXTRA THEMES: Dim, Midnight (on top of Dark) and Warm, Ocean (on top of Light)
+
+   Light and Dark live in each page's own stylesheet (:root / html.dark-mode).
+   A theme here adds a class on <html>: dark-based themes keep .dark-mode, so
+   every page's dark rules still apply, and the block at the bottom repaints
+   the neutral and accent variables of every page from one set of --t-* tokens.
+   Status colours (present / absent / leave, old / new values...) are not touched.
+
+   Selectors are one step more specific than the pages' own (:root, html.dark-mode),
+   so these win whichever stylesheet loads last.
+   ========================================================= */
+
+/* ---------- Dim: charcoal, low contrast ---------- */
+html.dark-mode.theme-dim {
+    --t-bg: #1b1c1f;
+    --t-surface: #232428;
+    --t-surface-2: #1e1f22;
+    --t-surface-hover: #2a2b30;
+    --t-input: #1a1b1e;
+    --t-border: rgba(255, 255, 255, 0.08);
+    --t-border-strong: rgba(255, 255, 255, 0.14);
+    --t-heading: #e7e7ea;
+    --t-text: #c5c6cb;
+    --t-muted: #9b9da4;
+    --t-placeholder: #6f7178;
+    --t-hover: rgba(255, 255, 255, 0.045);
+    --t-active: rgba(255, 255, 255, 0.075);
+    --t-panel-head: #2c2d32;
+    --t-accent: #a5b4fc;
+    --t-accent-hover: #c7d2fe;
+    --t-focus: rgba(165, 180, 252, 0.25);
+    --t-grad-start: #4f46e5;
+    --t-grad-end: #6366f1;
+    --t-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
+    --t-edge: rgba(0, 0, 0, 0.5);
+    --t-tip-bg: #e7e7ea;
+    --t-tip-text: #1b1c1f;
+}
+
+/* ---------- Midnight: deep navy, crisp blue ---------- */
+html.dark-mode.theme-midnight {
+    --t-bg: #060a14;
+    --t-surface: #0c1323;
+    --t-surface-2: #09101d;
+    --t-surface-hover: #12203a;
+    --t-input: #070d1a;
+    --t-border: rgba(96, 165, 250, 0.12);
+    --t-border-strong: rgba(96, 165, 250, 0.22);
+    --t-heading: #f1f5ff;
+    --t-text: #d3dcf1;
+    --t-muted: #8fa1c6;
+    --t-placeholder: #5a6a8e;
+    --t-hover: rgba(96, 165, 250, 0.06);
+    --t-active: rgba(96, 165, 250, 0.11);
+    --t-panel-head: #0f1b33;
+    --t-accent: #60a5fa;
+    --t-accent-hover: #93c5fd;
+    --t-focus: rgba(96, 165, 250, 0.3);
+    --t-grad-start: #2563eb;
+    --t-grad-end: #0891b2;
+    --t-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -14px rgba(0, 0, 0, 0.7);
+    --t-edge: rgba(0, 0, 0, 0.6);
+    --t-tip-bg: #dbe7ff;
+    --t-tip-text: #060a14;
+}
+
+/* ---------- Warm: cream paper, brown ink, amber accent ---------- */
+html.theme-warm {
+    --t-bg: #f3ede2;
+    --t-surface: #fbf8f1;
+    --t-surface-2: #f4ede1;
+    --t-surface-hover: #efe5d4;
+    --t-input: #fffdf8;
+    --t-border: rgba(92, 64, 28, 0.12);
+    --t-border-strong: rgba(92, 64, 28, 0.2);
+    --t-heading: #3a2e21;
+    --t-text: #4f4333;
+    --t-muted: #725f4a;
+    --t-placeholder: #b2a38b;
+    --t-hover: rgba(120, 82, 34, 0.06);
+    --t-active: rgba(120, 82, 34, 0.1);
+    --t-panel-head: #6b4f32;
+    --t-accent: #b45309;
+    --t-accent-hover: #92400e;
+    --t-focus: rgba(180, 83, 9, 0.2);
+    --t-grad-start: #b45309;
+    --t-grad-end: #d97706;
+    --t-shadow: 0 1px 2px rgba(92, 64, 28, 0.06), 0 10px 30px -14px rgba(92, 64, 28, 0.25);
+    --t-edge: rgba(92, 64, 28, 0.18);
+    --t-tip-bg: #3a2e21;
+    --t-tip-text: #fbf8f1;
+}
+
+/* ---------- Ocean: cool blue-tinted, teal accent ---------- */
+html.theme-ocean {
+    --t-bg: #e8f2f6;
+    --t-surface: #f7fbfd;
+    --t-surface-2: #edf5f8;
+    --t-surface-hover: #e1eff4;
+    --t-input: #ffffff;
+    --t-border: rgba(14, 72, 94, 0.1);
+    --t-border-strong: rgba(14, 72, 94, 0.18);
+    --t-heading: #0b3142;
+    --t-text: #24475a;
+    --t-muted: #4a6b7b;
+    --t-placeholder: #93afbc;
+    --t-hover: rgba(14, 116, 144, 0.06);
+    --t-active: rgba(14, 116, 144, 0.1);
+    --t-panel-head: #0e5a6e;
+    --t-accent: #0f766e;
+    --t-accent-hover: #115e59;
+    --t-focus: rgba(13, 148, 136, 0.2);
+    --t-grad-start: #0e7490;
+    --t-grad-end: #14b8a6;
+    --t-shadow: 0 1px 2px rgba(14, 72, 94, 0.05), 0 10px 30px -14px rgba(14, 72, 94, 0.22);
+    --t-edge: rgba(14, 72, 94, 0.16);
+    --t-tip-bg: #0b3142;
+    --t-tip-text: #f7fbfd;
+}
+
+/* ---------- Map the tokens onto every page's variables ---------- */
+html.dark-mode.theme-dim,
+html.dark-mode.theme-midnight,
+html.theme-warm,
+html.theme-ocean {
+    /* Shell (app.css) */
+    --bg-body: var(--t-bg);
+    --surface: var(--t-surface);
+    --card-bg: var(--t-surface);
+    --border: var(--t-border-strong);
+    --muted: var(--t-muted);
+    --text-primary: var(--t-heading);
+    --hover: var(--t-hover);
+    --active: var(--t-active);
+    --accent: var(--t-accent);
+
+    /* Attendance (--a-*) */
+    --a-surface: var(--t-surface);
+    --a-surface-2: var(--t-surface-2);
+    --a-border: var(--t-border);
+    --a-border-strong: var(--t-border-strong);
+    --a-heading: var(--t-heading);
+    --a-text: var(--t-text);
+    --a-muted: var(--t-muted);
+    --a-placeholder: var(--t-placeholder);
+    --a-row-hover: var(--t-hover);
+    --a-input-bg: var(--t-input);
+    --a-shadow: var(--t-shadow);
+    --a-accent: var(--t-accent);
+    --a-focus: var(--t-focus);
+    --a-grad-start: var(--t-grad-start);
+    --a-grad-end: var(--t-grad-end);
+    --a-sum-sticky-hover: var(--t-surface-hover);
+    --a-sum-sunday: var(--t-surface-2);
+    --a-sum-edge: var(--t-edge);
+    --a-sum-tip-bg: var(--t-tip-bg);
+    --a-sum-tip-text: var(--t-tip-text);
+
+    /* Dashboard (--d-*) */
+    --d-surface: var(--t-surface);
+    --d-surface-2: var(--t-surface-2);
+    --d-border: var(--t-border);
+    --d-heading: var(--t-heading);
+    --d-text: var(--t-text);
+    --d-muted: var(--t-muted);
+    --d-row-hover: var(--t-hover);
+    --d-input-bg: var(--t-input);
+    --d-input-border: var(--t-border-strong);
+    --d-icon-bg: var(--t-active);
+    --d-shadow: var(--t-shadow);
+    --d-accent: var(--t-accent);
+    --d-focus: var(--t-focus);
+
+    /* HR pages (--hr-*) */
+    --hr-surface: var(--t-surface);
+    --hr-surface-2: var(--t-surface-2);
+    --hr-border: var(--t-border);
+    --hr-border-strong: var(--t-border-strong);
+    --hr-heading: var(--t-heading);
+    --hr-text: var(--t-text);
+    --hr-muted: var(--t-muted);
+    --hr-placeholder: var(--t-placeholder);
+    --hr-row-hover: var(--t-hover);
+    --hr-input-bg: var(--t-input);
+    --hr-shadow: var(--t-shadow);
+    --hr-accent: var(--t-accent);
+    --hr-focus: var(--t-focus);
+    --hr-grad-start: var(--t-grad-start);
+    --hr-grad-end: var(--t-grad-end);
+
+    /* Leaves / applications (--l-*) */
+    --l-surface: var(--t-surface);
+    --l-surface-2: var(--t-surface-2);
+    --l-border: var(--t-border);
+    --l-border-strong: var(--t-border-strong);
+    --l-heading: var(--t-heading);
+    --l-text: var(--t-text);
+    --l-muted: var(--t-muted);
+    --l-placeholder: var(--t-placeholder);
+    --l-row-hover: var(--t-hover);
+    --l-input-bg: var(--t-input);
+    --l-shadow: var(--t-shadow);
+    --l-accent: var(--t-accent);
+    --l-focus: var(--t-focus);
+    --l-grad-start: var(--t-grad-start);
+    --l-grad-end: var(--t-grad-end);
+
+    /* Payroll history (--h-*) */
+    --h-surface: var(--t-surface);
+    --h-surface-2: var(--t-surface-2);
+    --h-border: var(--t-border);
+    --h-border-strong: var(--t-border-strong);
+    --h-heading: var(--t-heading);
+    --h-text: var(--t-text);
+    --h-muted: var(--t-muted);
+    --h-placeholder: var(--t-placeholder);
+    --h-row-hover: var(--t-hover);
+    --h-input-bg: var(--t-input);
+    --h-shadow: var(--t-shadow);
+    --h-accent: var(--t-accent);
+    --h-focus: var(--t-focus);
+    --h-head-start: var(--t-grad-start);
+    --h-head-end: var(--t-grad-end);
+
+    /* Payroll panels (manage, show, edit, edit time, history index) */
+    --panel-bg: var(--t-surface);
+    --panel-heading-bg: var(--t-panel-head);
+    --panel-heading-text: #ffffff;
+    --panel-shadow: var(--t-shadow);
+    --card-body-bg: var(--t-surface);
+    --card-shadow: var(--t-shadow);
+    --input-bg: var(--t-input);
+    --input-border: var(--t-border-strong);
+    --input-text: var(--t-heading);
+    --input-addon-bg: var(--t-surface-2);
+    --input-placeholder: var(--t-placeholder);
+    --placeholder-color: var(--t-placeholder);
+    --table-head-bg: var(--t-surface-2);
+    --table-head-color: var(--t-text);
+    --table-row-border: var(--t-border);
+    --table-border-strong: var(--t-border-strong);
+    --table-hover-bg: var(--t-surface-hover);
+    --table-total-bg: var(--t-surface-2);
+    --table-total-text: var(--t-heading);
+    --divider-color: var(--t-border);
+    --heading-color: var(--t-heading);
+    --text-secondary: var(--t-text);
+    --muted-color: var(--t-muted);
+    --label-color: var(--t-text);
+    --sub-color: var(--t-muted);
+    --info-strip-bg: var(--t-surface-2);
+    --muted-btn-bg: var(--t-surface-2);
+    --muted-btn-text: var(--t-text);
+    --link-color: var(--t-accent);
+    --link-hover: var(--t-accent-hover);
+    --focus-ring: var(--t-focus);
+    --scrollbar-track: var(--t-surface-2);
+    --scrollbar-thumb: var(--t-border-strong);
+    --dropdown-bg: var(--t-surface);
+    --dropdown-border: var(--t-border-strong);
+    --dropdown-hover: var(--t-surface-hover);
+    --dropdown-text: var(--t-heading);
+    --dropdown-header: var(--t-muted);
+    --tab-border: var(--t-border-strong);
+    --tab-hover-bg: var(--t-surface-hover);
+    --tab-link: var(--t-muted);
+    --tab-link-active: var(--t-heading);
+
+    /* Holiday calendar (FullCalendar) */
+    --fc-border-color: var(--t-border-strong);
+    --fc-neutral-bg-color: var(--t-surface-2);
+    --fc-list-event-hover-bg-color: var(--t-hover);
+}

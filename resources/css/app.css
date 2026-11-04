@@ -1,3 +1,5 @@
+@import "./themes.css";
+
      * {
             box-sizing: border-box;
             margin: 0;
@@ -366,55 +368,132 @@
             font-size: 13px;
         }
 
-        /* ----- pill switch for theme (sun / moon) ----- */
-        .theme-toggle {
+        /* ----- theme menu (palette button + list of themes) ----- */
+        .theme-picker {
             position: relative;
-            width: 52px;
-            height: 28px;
-            flex: 0 0 52px;
-            padding: 3px;
+            margin-right: 4px;
+        }
+
+        .theme-toggle {
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 10px 0 8px;
             border: 1px solid var(--border);
             border-radius: 999px;
             background: var(--active);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: flex-start;
-            margin-right: 4px;
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .theme-toggle .switch-knob {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            background: var(--surface);
-            color: var(--muted);
-            font-size: 10px;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
-            transform: translateX(0);
-            transition: transform 0.3s var(--ease), background 0.2s, color 0.2s;
-            z-index: 1;
-        }
-
-        .theme-toggle .switch-knob::before {
-            content: "\f185";
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
         }
 
         .theme-toggle:hover {
             border-color: var(--muted);
         }
 
-        html.dark-mode .theme-toggle .switch-knob {
-            transform: translateX(24px);
+        .theme-toggle .fa-chevron-down {
+            font-size: 10px;
+            color: var(--muted);
+            transition: transform 0.2s var(--ease);
         }
 
-        html.dark-mode .theme-toggle .switch-knob::before {
-            content: "\f186";
+        .theme-toggle[aria-expanded="true"] .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        /* Two-tone dot: page background + accent of a theme */
+        .theme-swatch {
+            width: 16px;
+            height: 16px;
+            flex: 0 0 16px;
+            border-radius: 50%;
+            border: 1px solid rgba(15, 23, 42, 0.18);
+            background: linear-gradient(135deg, var(--sw-bg) 50%, var(--sw-accent) 50%);
+        }
+
+        .theme-swatch[data-theme="light"]    { --sw-bg: #f2f4f7; --sw-accent: #6366f1; }
+        .theme-swatch[data-theme="dark"]     { --sw-bg: #12181f; --sw-accent: #818cf8; }
+        .theme-swatch[data-theme="dim"]      { --sw-bg: #232428; --sw-accent: #a5b4fc; }
+        .theme-swatch[data-theme="midnight"] { --sw-bg: #060a14; --sw-accent: #60a5fa; }
+        .theme-swatch[data-theme="warm"]     { --sw-bg: #f3ede2; --sw-accent: #b45309; }
+        .theme-swatch[data-theme="ocean"]    { --sw-bg: #e8f2f6; --sw-accent: #0f766e; }
+
+        .theme-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 1000;
+            min-width: 190px;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface);
+            box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.35);
+        }
+
+        .theme-menu[hidden] {
+            display: none;
+        }
+
+        .theme-menu-label {
+            padding: 6px 10px 4px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .theme-option {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .theme-option:hover,
+        .theme-option:focus-visible {
+            background: var(--hover);
+            outline: none;
+        }
+
+        .theme-option small {
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .theme-option .fa-check {
+            width: 12px;
+            color: var(--accent);
+            visibility: hidden;
+        }
+
+        .theme-option[aria-checked="true"] {
+            font-weight: 600;
+        }
+
+        .theme-option[aria-checked="true"] .fa-check {
+            visibility: visible;
+        }
+
+        @media (max-width: 640px) {
+            .theme-toggle .theme-name {
+                display: none;
+            }
         }
 
         .theme-toggle:focus-visible,
