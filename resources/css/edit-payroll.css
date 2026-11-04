@@ -168,6 +168,25 @@ body {
     color: var(--heading-color);
 }
 
+/* Posted (locked) payroll notice */
+.posted-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
+}
+.dark-mode .posted-banner {
+    background: rgba(234, 88, 12, 0.12);
+    border-color: rgba(251, 146, 60, 0.35);
+    color: #fdba74;
+}
+
 /* =========================================================
    CONTAINER / PANEL
    ========================================================= */
@@ -225,7 +244,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px 32px;
-    padding: 0 20px 16px;
+    padding: 16px 24px;
     font-size: 14px;
     color: var(--text-primary);
     transition: color 0.2s;
@@ -373,6 +392,21 @@ body {
     font-weight: 700;
 }
 
+/* Horizontal scroll for the 18-column attendance table */
+.attendance-table-wrap {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.table-bordered-bottom-only tbody tr.total-row td {
+    font-size: 14px;
+}
+.table-bordered-bottom-only tbody tr.total-row td.total-label {
+    text-align: left;
+    letter-spacing: 0.5px;
+}
+
 /* Empty table state */
 .table-bordered-bottom-only td.text-center {
     color: var(--muted-color);
@@ -423,11 +457,11 @@ body {
     min-width: 30px;
 }
 
-/* Action delete button inside table */
+/* Edit / override icon inside table */
 .btn-link-icon {
     background: transparent;
     border: none;
-    color: var(--danger);
+    color: var(--link-color);
     cursor: pointer;
     font-size: 14px;
     padding: 4px 8px;
@@ -436,17 +470,8 @@ body {
 }
 
 .btn-link-icon:hover {
-    background: rgba(220, 53, 69, 0.12);
-    color: var(--danger-hover);
-}
-
-.dark-mode .btn-link-icon {
-    color: #f0788a;
-}
-
-.dark-mode .btn-link-icon:hover {
-    background: rgba(240, 120, 138, 0.15);
-    color: #ff9aab;
+    background: var(--focus-ring);
+    color: var(--link-hover);
 }
 
 /* =========================================================
@@ -822,6 +847,14 @@ table.mini-table td.empty-cell {
     transform: translateY(0);
 }
 
+.btn-apply.btn-xs {
+    background: #3498db;
+    margin-right: 3px;
+}
+.btn-apply.btn-xs:hover {
+    background: #2980b9;
+}
+
 .btn-danger.btn-xs {
     background: var(--danger);
 }
@@ -867,7 +900,20 @@ table.mini-table td.empty-cell {
 }
 
 /* Your form uses .btn-primary for the save button — harmonize it */
-.content-panel .panel-body > .btn-primary {
+.save-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.save-row .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.save-row .btn-primary {
     background: #4b79a1;
     border: none;
     color: #ffffff;
@@ -875,10 +921,9 @@ table.mini-table td.empty-cell {
     padding: 8px 22px;
     font-weight: 600;
     font-size: 14px;
-    float: right;
     transition: background 0.15s, box-shadow 0.2s, transform 0.1s;
 }
-.content-panel .panel-body > .btn-primary:hover {
+.save-row .btn-primary:hover:not(:disabled) {
     background: #3c6389;
     color: #ffffff;
     box-shadow: 0 4px 12px rgba(75, 121, 161, 0.3);
@@ -921,6 +966,13 @@ table.mini-table td.empty-cell {
 }
 
 /* Export buttons in panel heading */
+.panel-heading .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
 .panel-heading .btn-warning,
 .panel-heading .btn-success {
     border-radius: 20px;

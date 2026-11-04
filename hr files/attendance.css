@@ -1,0 +1,614 @@
+/* ============================================================
+   Attendance Gateway & Employee Logs
+   Layout + attendance-only parts. Look comes from theme.css / ui.css.
+   (The Edit-Time slide-over now lives in ui.css as .add-emp-*)
+   ============================================================ */
+
+/* Side gutters come from the layout wrapper; ui.css removes the layout's
+   vertical padding, so the page supplies its own top/bottom space. */
+.att-container {
+    max-width: var(--hr-page-max);
+    margin: 0 auto;
+    padding: 1.25rem 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ---------- Panels ---------- */
+.att-panel { overflow: hidden; }
+
+.att-panel-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--hr-border);
+}
+.att-panel-header:last-child { border-bottom: 0; }
+.att-heading { display: flex; align-items: flex-start; gap: 0.5rem; min-width: 0; }
+.att-heading .hr-icon-btn { margin-left: -0.375rem; }
+.att-title { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: var(--hr-control-h-sm); letter-spacing: -0.01em; color: var(--hr-text); }
+.att-subtitle { margin: 0.125rem 0 0; font-size: 0.8125rem; color: var(--hr-text-3); }
+.att-subtitle strong { font-weight: 600; color: var(--hr-text-2); }
+.att-panel-body { padding: 1.25rem; }
+
+@media (max-width: 639px) {
+    .att-container { padding: 1rem 0 1.5rem; gap: 0.75rem; }
+    .att-panel-header { padding: 0.875rem 1rem; }
+    .att-panel-body { padding: 1rem; }
+}
+
+/* ---------- Department tabs ---------- */
+/* Hug the tabs instead of stretching the track across the page,
+   and wrap long department lists instead of hiding them in a scroll. */
+.att-tabs { align-self: flex-start; flex-wrap: wrap; overflow: visible; }
+
+/* ---------- Gateway: page header ---------- */
+.att-page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+.att-page-title { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.015em; color: var(--hr-text); }
+
+/* ---------- Gateway: filters ---------- */
+.att-filters { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.att-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 640px) { .att-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .att-grid { grid-template-columns: 2fr 1fr 1fr; } }
+
+.att-field { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; }
+
+.att-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: -0.25rem; }
+
+.att-dept-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; }
+.att-dept-title { display: flex; align-items: center; gap: 0.5rem; }
+.att-dept-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
+.att-dept-search { width: 14rem; max-width: 100%; height: var(--hr-control-h-sm); }
+@media (max-width: 639px) { .att-dept-tools, .att-dept-search { width: 100%; } .att-dept-search { flex: 1 1 100%; } }
+
+.att-empty-note { grid-column: 1 / -1; margin: 0; padding: 1rem; text-align: center; color: var(--hr-text-3); }
+
+/* Selection summary under the filters */
+.att-scope {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--hr-border-soft);
+    background: var(--hr-surface-2);
+}
+.att-text-danger { color: var(--hr-danger-fg); font-weight: 600; }
+@media (max-width: 639px) { .att-scope { padding: 0.75rem 1rem; } }
+
+/* ---------- Department checkboxes ---------- */
+.att-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem 0.5rem;
+    padding: 0.75rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+@media (min-width: 640px)  { .att-checkbox-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .att-checkbox-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 420px)  { .att-checkbox-grid { grid-template-columns: 1fr; } }
+.att-checkbox-grid.is-invalid { border-color: var(--hr-danger-dot); }
+
+.att-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--hr-r-sm);
+    font-size: 0.8125rem;
+    color: var(--hr-text);
+    cursor: pointer;
+    transition: background var(--hr-dur) ease;
+}
+.att-checkbox-label:hover { background: var(--hr-surface-3); }
+.att-checkbox-label:has(input:checked) { background: var(--hr-accent-soft); font-weight: 500; }
+
+/* ---------- Action cards ---------- */
+.att-actions-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 900px) { .att-actions-grid { grid-template-columns: repeat(2, 1fr); align-items: start; } }
+
+.att-action-card { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; }
+.att-action-title { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1rem; font-weight: 600; color: var(--hr-text); }
+.att-action-desc { margin: 0.25rem 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--hr-text-3); }
+
+.att-btn-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.att-btn-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--hr-r-md);
+    background: var(--hr-surface);
+    color: var(--hr-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--hr-dur) ease, background var(--hr-dur) ease;
+}
+.att-btn-item:hover { border-color: var(--hr-border-strong); background: var(--hr-surface-2); }
+.att-btn-item svg { flex-shrink: 0; color: var(--hr-text-4); transition: color var(--hr-dur) ease; }
+.att-btn-item:hover svg { color: var(--hr-text); }
+.att-btn-item.is-disabled { cursor: default; color: var(--hr-text-3); background: var(--hr-surface-2); border-style: dashed; }
+.att-btn-item.is-disabled:hover { border-color: var(--hr-border); }
+.att-btn-text { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.att-btn-text small { font-size: 0.75rem; font-weight: 400; color: var(--hr-text-3); }
+
+.att-btn-primary { width: 100%; margin-top: 1.5rem; }
+
+.text-brand   { color: var(--hr-accent); }
+.text-emerald { color: var(--hr-success-dot); }
+
+/* ---------- Bulk tagging ---------- */
+.att-tag-form { display: flex; flex-direction: column; gap: 1rem; }
+.att-tag-options { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.att-tag-options legend { margin-bottom: 0.375rem; padding: 0; }
+
+.att-tag-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--hr-r-md);
+    background: var(--hr-surface);
+    cursor: pointer;
+    transition: border-color var(--hr-dur) ease, background var(--hr-dur) ease;
+}
+.att-tag-option:hover { border-color: var(--hr-border-strong); }
+.att-tag-option:has(input:checked) { border-color: var(--hr-accent); background: var(--hr-accent-soft); }
+.att-tag-option:has(input:focus-visible) { outline: 2px solid var(--hr-accent); outline-offset: 2px; }
+.att-tag-option input { margin: 0.2rem 0 0; accent-color: var(--hr-accent); }
+.att-tag-option__body { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.att-tag-option__name { font-weight: 600; color: var(--hr-text); }
+.att-tag-option__help { font-size: 0.75rem; line-height: 1.4; color: var(--hr-text-3); }
+.att-tag-code { margin-left: 0.25rem; font-family: var(--hr-mono); font-size: 0.6875rem; font-weight: 500; color: var(--hr-text-3); }
+.att-tag-note { margin: 0; }
+
+/* ---------- Bulk tag confirmation ---------- */
+.att-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 4rem 1rem;
+    background: var(--hr-overlay);
+    backdrop-filter: blur(2px);
+    animation: hr-fade 0.15s ease-out;
+}
+.att-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100vh - 8rem);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--hr-r-lg);
+    background: var(--hr-surface);
+    box-shadow: var(--hr-sh-modal);
+    overflow: hidden;
+    animation: hr-pop 0.18s ease-out;
+}
+.att-modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.125rem 1.25rem; border-bottom: 1px solid var(--hr-border-soft); }
+.att-modal__head h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--hr-text); }
+.att-modal__body { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; overflow-y: auto; }
+.att-modal__body p { margin: 0; }
+.att-modal__lead { color: var(--hr-text-2); }
+.att-modal__lead strong { color: var(--hr-text); font-variant-numeric: tabular-nums; }
+.att-modal__foot { display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0.875rem 1.25rem; border-top: 1px solid var(--hr-border-soft); }
+
+.att-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 0; }
+@media (min-width: 480px) { .att-stats { grid-template-columns: repeat(4, 1fr); } }
+.att-stat { padding: 0.625rem 0.75rem; }
+.att-stat dt { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--hr-text-3); }
+.att-stat dd { margin: 0.25rem 0 0; font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--hr-text); }
+
+@media (max-width: 639px) {
+    .att-modal-backdrop { padding: 1rem; align-items: flex-end; }
+    .att-modal { max-height: calc(100vh - 2rem); }
+}
+
+/* ---------- Logs table ---------- */
+.att-table-wrapper { overflow-x: auto; max-height: 80vh; position: relative; width: 100%; }
+
+.att-table thead { position: sticky; top: 0; z-index: 10; }
+.att-table th { text-align: center; }
+/* Plain text cells get extra top padding so their first line lines up
+   with the centred 32px rows of the stacked (time/action) cells. */
+.att-table td { padding-top: calc(var(--_py) + 6px); vertical-align: top; }
+.att-table td:has(> .att-cell-stack) { padding-top: var(--_py); }
+.att-table .att-nowrap { white-space: nowrap; }
+.att-table th.text-left,   .att-table td.text-left   { text-align: left; }
+.att-table th.text-center, .att-table td.text-center { text-align: center; }
+.att-border-l { border-left: 1px solid var(--hr-border-soft); }
+
+.att-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--hr-text);
+    white-space: nowrap;
+}
+.att-cell-stack > div { height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+
+.att-time-late   { color: var(--hr-danger-fg); font-weight: 600; }
+.att-time-normal { color: var(--hr-text); }
+.att-time-muted  { color: var(--hr-text-3); }
+.att-time-empty  { color: var(--hr-text-4); user-select: none; }
+
+.att-sys-login {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--hr-info-bd);
+    border-radius: 4px;
+    background: var(--hr-info-bg);
+    color: var(--hr-info-fg);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.att-action-row { display: flex; justify-content: center; align-items: center; gap: 0.25rem; flex-wrap: nowrap; height: 100%; }
+.att-action-btn-mini.edit:hover, .att-action-btn.edit:hover { border-color: var(--hr-accent); color: var(--hr-accent); }
+.att-action-btn-mini.delete:hover { border-color: var(--hr-danger-dot); color: var(--hr-danger-fg); background: var(--hr-danger-bg); }
+
+/* "Current" tag in the edit-time slide-over */
+.form-tag {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--hr-accent);
+}
+
+/* ---------- Employee Logs: summary, toolbar, legend ---------- */
+.att-logs-stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin: 0;
+    border-top: 1px solid var(--hr-border-soft);
+}
+.att-logs-stats > div { padding: 0.75rem 1.25rem; border-left: 1px solid var(--hr-border-soft); }
+.att-logs-stats > div:first-child { border-left: 0; }
+.att-logs-stats dt { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--hr-text-3); }
+.att-logs-stats dd { margin: 0.125rem 0 0; font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--hr-text); }
+@media (max-width: 639px) {
+    .att-logs-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .att-logs-stats > div { padding: 0.625rem 1rem; }
+    .att-logs-stats > div:nth-child(4) { border-left: 0; }
+    .att-logs-stats > div:nth-child(n+4) { border-top: 1px solid var(--hr-border-soft); }
+}
+
+.att-logs-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; }
+.att-logs-toolbar .att-tabs { align-self: auto; }
+.att-logs-search { width: 16rem; max-width: 100%; }
+@media (max-width: 639px) { .att-logs-search { width: 100%; } }
+
+.att-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 1.25rem; margin-top: -0.25rem; font-size: 0.75rem; color: var(--hr-text-3); }
+.att-legend > span { display: inline-flex; align-items: center; gap: 0.375rem; }
+.att-swatch { width: 0.875rem; height: 0.875rem; border: 1px solid var(--hr-border-strong); border-radius: 3px; }
+.att-swatch.gy    { background: var(--hr-row-gy); }
+.att-swatch.fixed { background: var(--hr-info-bg); border-color: var(--hr-info-bd); }
+
+/* Disabled link button (export with nothing to export) */
+a.hr-btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+
+/* ---------- Employee Logs: rows ---------- */
+.att-table tbody tr.att-row-gy { background: var(--hr-row-gy); }
+.att-table tbody tr.att-row-gy:hover { background: var(--hr-row-gy-hover); }
+.att-table tbody tr.att-row-fixed { background: var(--hr-info-bg); }
+.att-table tbody tr.att-row-fixed:hover { background: color-mix(in srgb, var(--hr-info-bd) 45%, var(--hr-info-bg)); }
+.att-table-wrapper.is-loading { opacity: 0.55; transition: opacity var(--hr-dur) ease; }
+
+.att-muted { color: var(--hr-text-3); font-variant-numeric: tabular-nums; }
+.att-emp { display: flex; flex-direction: column; align-items: flex-start; gap: 0.125rem; min-width: 11rem; }
+.att-emp--center { align-items: center; min-width: 0; }
+.att-emp-name { color: var(--hr-text); }
+.att-emp-name strong { font-weight: 600; }
+.att-emp-meta { font-size: 0.75rem; color: var(--hr-text-3); }
+.att-emp-add { margin-top: 0.375rem; }
+.att-table td.att-no-logs { color: var(--hr-text-3); font-style: italic; text-align: center; }
+.att-weekday { color: var(--hr-text-3); font-size: 0.75rem; }
+
+/* System login keeps the late colour when it is late */
+.att-sys-login.att-time-late { color: var(--hr-danger-fg); border-color: var(--hr-danger-bd); background: var(--hr-danger-bg); }
+
+/* Adjusted-time marker */
+.att-adj { margin-left: 2px; font-weight: 700; color: var(--hr-violet-fg); cursor: help; }
+
+.att-remarks { gap: 0.375rem; }
+.att-remarks-text { font-weight: 500; color: var(--hr-text-2); }
+.att-inf-badge button {
+    margin-left: 0.125rem;
+    padding: 0 0.125rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.7;
+}
+.att-inf-badge button:hover { opacity: 1; color: var(--hr-danger-fg); }
+
+/* ---------- Add Infraction slide-over ---------- */
+.att-inf-day, .att-inf-preview { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; padding: 0.75rem 0.875rem; }
+.att-inf-day > div, .att-inf-preview > div { display: flex; flex-direction: column; gap: 0.25rem; }
+.att-inf-day strong, .att-inf-preview strong { font-size: 0.875rem; font-weight: 600; color: var(--hr-text); font-variant-numeric: tabular-nums; }
+.att-inf-preview { align-items: center; margin-top: 0.75rem; }
+.att-inf-preview .add-emp-hint { flex: 1 1 14rem; margin: 0; }
+.att-inf-existing { margin-top: 0.75rem; }
+.att-inf-existing ul { margin: 0.375rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.375rem; }
+.att-inf-existing li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--hr-text-2); }
+.att-inf-pts { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--hr-text-3); white-space: nowrap; }
+
+.att-pagination { display: flex; }
+.att-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.att-logs-note { margin: 0; }
+
+/* Legend: row-colour filters and colour keys */
+.att-legend-check { display: inline-flex; align-items: center; gap: 0.375rem; cursor: pointer; user-select: none; }
+.att-legend-check input { margin: 0; accent-color: var(--hr-accent); cursor: pointer; }
+.att-key { display: inline-block; width: 0.875rem; height: 0.875rem; border-radius: 3px; }
+.att-key--late   { background: var(--hr-danger-fg); }
+.att-key--system { border: 1px solid var(--hr-info-bd); background: var(--hr-info-bg); }
+
+/* ---------- Edit Time slide-over ---------- */
+.att-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
+@media (max-width: 420px) { .att-status-grid { grid-template-columns: 1fr; } }
+.form-tag.att-type-change { color: var(--hr-warning-fg); }
+.att-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Remarks: one badge style, coloured by the day's status (legend: EmployeeLogsReport::TONES) */
+.att-tone { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.att-tone--work  { --_fg: var(--hr-success-fg); --_bg: var(--hr-success-bg); --_bd: var(--hr-success-bd); }
+.att-tone--leave { --_fg: var(--hr-info-fg);    --_bg: var(--hr-info-bg);    --_bd: var(--hr-info-bd); }
+.att-tone--alert { --_fg: var(--hr-danger-fg);  --_bg: var(--hr-danger-bg);  --_bd: var(--hr-danger-bd); }
+.att-tone--muted { --_fg: var(--hr-neutral-fg); --_bg: var(--hr-neutral-bg); --_bd: var(--hr-neutral-bd); }
+.att-legend-tones { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
+
+/* Shift changed for the day (attendance.shiftchange) */
+.att-shift-chg {
+    margin-left: 0.375rem;
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid var(--hr-violet-bd);
+    border-radius: var(--hr-r-pill);
+    background: var(--hr-violet-bg);
+    color: var(--hr-violet-fg);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: help;
+}
+
+/* ---------- Attendance Summary (absences / late) ---------- */
+/* Opens on its own (layouts/report); base styles in ui.css (.hr-report-body). */
+.att-sum-page { max-width: none; padding: 1.25rem 1.25rem 2rem; }
+@media (max-width: 639px) { .att-sum-page { padding: 1rem 1rem 1.5rem; } }
+
+/* Header: company box + incident legend, as on the old page */
+.att-sum-header { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.25rem; }
+.att-sum-company {
+    flex: 0 0 auto;
+    width: 20%;
+    min-width: 15.5rem;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid var(--hr-danger-bd);
+    border-radius: var(--hr-r-lg);
+    background: var(--hr-danger-bg);
+    box-shadow: var(--hr-sh-xs);
+    text-align: center;
+}
+.att-sum-company-name { font-size: 1.375rem; font-weight: 700; line-height: 1.2; text-transform: uppercase; color: var(--hr-text); }
+.att-sum-company-range { font-size: 1.0625rem; font-weight: 600; color: var(--hr-text-2); font-variant-numeric: tabular-nums; }
+.att-sum-month-badge {
+    margin-top: 0.375rem;
+    padding: 0.125rem 0.75rem;
+    border: 1px solid var(--hr-warning-bd);
+    border-radius: var(--hr-r-pill);
+    background: var(--hr-warning-bg);
+    color: var(--hr-warning-fg);
+    font-size: 0.75rem; font-weight: 600;
+}
+
+.att-sum-legend {
+    flex: 1 1 60%;
+    border-collapse: separate; border-spacing: 0;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--hr-r-lg);
+    overflow: hidden;
+    background: var(--hr-surface);
+    box-shadow: var(--hr-sh-xs);
+    font-size: 0.75rem; font-weight: 600;
+}
+.att-sum-legend th {
+    padding: 0.5rem;
+    background: var(--hr-danger-solid);
+    color: #fff;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    text-align: center;
+}
+.att-sum-legend td { padding: 0.4375rem 0.5rem; border-top: 1px solid var(--hr-border-soft); border-left: 1px solid var(--hr-border-soft); color: var(--hr-text); }
+.att-sum-legend td:first-child { border-left: 0; }
+.att-sum-legend tbody tr:nth-child(even) td { background: var(--hr-surface-2); }
+.att-sum-legend .att-sum-legend-pts, .att-sum-legend .att-sum-legend-code { width: 6%; text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 1200px) {
+    .att-sum-company { width: 100%; }
+    .att-sum-legend { flex-basis: 100%; }
+}
+
+/* Controls row */
+.att-sum-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem 0.75rem; }
+.att-sum-search { width: 14rem; max-width: 100%; }
+.att-sum-filter { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0; }
+.att-sum-filter .hr-label { margin: 0; white-space: nowrap; }
+.att-sum-filter .hr-input { width: auto; }
+.att-sum-download { margin-left: auto; }
+.att-sum-note { margin: -0.25rem 0 0; }
+@media (max-width: 639px) {
+    .att-sum-search { width: 100%; }
+    .att-sum-download { margin-left: 0; }
+}
+
+/* Day grid */
+.att-sum-wrapper { max-height: calc(100vh - 2.5rem); }
+.att-sum-table { width: max-content; min-width: 100%; }
+.att-sum-table td { padding-top: var(--_py); vertical-align: middle; white-space: nowrap; }
+.att-sum-table thead tr:first-child th { border-bottom: 1px solid var(--hr-border-soft); }
+
+.att-sum-day { min-width: 2.75rem; letter-spacing: 0; }
+.att-sum-table thead tr:first-child .att-sum-day { color: var(--hr-text); font-size: 0.75rem; }
+.att-sum-table thead tr:last-child .att-sum-day { text-transform: none; font-weight: 500; }
+.att-sum-table th.is-sunday { color: var(--hr-text-2); background: var(--hr-surface-3); }
+.att-sum-table td.att-sum-cell.is-sunday:not(.att-tone) { background: var(--hr-surface-3); }
+/* Month change: a left rule and the new month's name */
+.att-sum-table .att-sum-month-start { border-left: 3px solid var(--hr-warning-dot); }
+.att-sum-mon {
+    display: block; margin: 0 auto 0.125rem; padding: 0 0.25rem; width: max-content;
+    border-radius: 3px; background: var(--hr-warning-bg); color: var(--hr-warning-fg);
+    font-size: 0.5625rem; font-weight: 700;
+}
+
+.att-sum-cell { text-align: center; font-size: 0.6875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.att-sum-cell.att-tone { color: var(--_fg); background: var(--_bg); box-shadow: inset 0 0 0 1px var(--hr-surface); cursor: help; }
+.att-tone--split { --_fg: var(--hr-warning-fg); --_bg: var(--hr-warning-bg); --_bd: var(--hr-warning-bd); }
+
+.att-sum-num { min-width: 2.25rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--hr-text); }
+.att-sum-group { border-left: 2px solid var(--hr-border-strong); }
+
+/* Three sticky employee columns. Graveyard / fixed tint only No. and Name;
+   Department takes its department colour. Backgrounds stay opaque for scrolling. */
+.att-sum-sticky { position: sticky; z-index: 2; background: var(--hr-surface); }
+.att-sum-table thead .att-sum-sticky { z-index: 12; background: var(--hr-surface-2); }
+.att-sum-info { left: 0; border-right: 2px solid var(--hr-border-strong); }
+/* No. and Name widths are fixed by an inner box (cell padding 0.5rem each side), so
+   a long name wraps instead of widening its column, and Department's left offset
+   (No. + Name) always matches where it really sits. */
+.att-sum-table { --sum-c1: 3.5rem; --sum-c2: 15rem; }
+.att-sum-box { width: calc(var(--_w) - 1rem); white-space: normal; overflow-wrap: anywhere; }
+.att-sum-c1 { --_w: var(--sum-c1); left: 0; width: var(--sum-c1); min-width: var(--sum-c1); max-width: var(--sum-c1); text-align: center; }
+.att-sum-c2 { --_w: var(--sum-c2); left: var(--sum-c1); width: var(--sum-c2); min-width: var(--sum-c2); max-width: var(--sum-c2); text-align: left; color: var(--hr-text); }
+.att-sum-c3 { left: calc(var(--sum-c1) + var(--sum-c2)); width: 10rem; min-width: 10rem; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid var(--hr-border-strong); box-shadow: 4px 0 6px -4px var(--hr-edge); }
+.att-sum-table th.att-sum-c2 { text-align: left; }
+.att-sum-c2 strong { font-weight: 600; }
+.att-sum-table tbody tr:hover .att-sum-sticky { background: var(--hr-surface-2); }
+.att-sum-table tbody td.att-sum-gy, .att-sum-table tbody tr:hover td.att-sum-gy { background: var(--hr-row-gy); }
+/* info-bg is translucent in dark mode: layer it on the surface so it stays opaque */
+.att-sum-table tbody td.att-sum-fixed, .att-sum-table tbody tr:hover td.att-sum-fixed { background: linear-gradient(var(--hr-info-bg), var(--hr-info-bg)), var(--hr-surface); }
+.att-sum-table tbody td.att-sum-dept, .att-sum-table tbody tr:hover td.att-sum-dept { background: var(--dept); color: var(--hr-on-pastel); text-align: center; }
+
+.att-sum-res { margin-left: 0.25rem; font-size: 0.625rem; font-style: italic; color: var(--hr-text-3); }
+.att-sum-table tbody tr.att-sum-resigned td { border-bottom: 1px dashed var(--hr-danger-dot); }
+.att-sum-table td.att-sum-empty { text-align: left; padding-left: 1.25rem; }
+
+/* On small screens only the name stays pinned */
+@media (max-width: 767px) {
+    .att-sum-c1, .att-sum-c3, .att-sum-info { position: static; box-shadow: none; }
+    .att-sum-table { --sum-c2: 11rem; }
+    .att-sum-c2 { left: 0; box-shadow: 4px 0 6px -4px var(--hr-edge); }
+}
+
+/* ---------- Missed Logs / OB Summary ---------- */
+/* Same page and day grid as the Attendance Summary (att-sum-*). */
+.att-sum-kind { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--hr-text-3); }
+/* Totals strip under the header */
+.att-mis-stats { grid-template-columns: repeat(8, minmax(0, 1fr)); overflow: hidden; border-top: 0; }
+.att-mis-stats > div { padding: 0.625rem 1rem; }
+@media (max-width: 1023px) {
+    .att-mis-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .att-mis-stats > div:nth-child(4n+1) { border-left: 0; }
+    .att-mis-stats > div:nth-child(n+5) { border-top: 1px solid var(--hr-border-soft); }
+}
+@media (max-width: 639px) {
+    .att-mis-stats > div:nth-child(4) { border-left: 1px solid var(--hr-border-soft); }
+}
+.att-tone--ob     { --_fg: var(--hr-warning-fg); --_bg: var(--hr-warning-bg); --_bd: var(--hr-warning-bd); }
+.att-tone--missed { --_fg: var(--hr-danger-fg);  --_bg: var(--hr-danger-bg);  --_bd: var(--hr-danger-bd); }
+.att-key--ob     { border: 1px solid var(--hr-warning-bd); background: var(--hr-warning-bg); }
+.att-key--missed { border: 1px solid var(--hr-danger-bd); background: var(--hr-danger-bg); }
+.att-sum-table td.att-sum-zero { color: var(--hr-text-4); }
+.att-sum-table td[data-tip]:focus-visible { outline: 2px solid var(--hr-accent); outline-offset: -2px; }
+
+/* Day hover card: label, colon and value in their own columns so the
+   lunch out / lunch in times line up. Positioned by Alpine (fixed). */
+.att-tip {
+    position: fixed;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 0.375rem;
+    row-gap: 0.125rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--hr-r-md);
+    background: var(--hr-text);
+    color: var(--hr-bg);
+    box-shadow: var(--hr-sh-pop);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translate(-50%, calc(-100% - 6px));
+}
+.att-tip.is-below { transform: translate(-50%, 6px); }
+.att-tip-row { display: contents; }
+.att-tip-label { font-weight: 500; opacity: 0.8; }
+.att-tip-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.att-sum-table td.att-sum-strong { font-weight: 600; }
+
+/* ---------- Break Monitoring ---------- */
+/* Opens on its own (layouts/report), like the summaries. */
+.brk-page { display: flex; flex-direction: column; gap: 1rem; }
+
+/* Status counts double as the status filter */
+.brk-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.brk-stat {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.125rem;
+    padding: 0.75rem 1.25rem;
+    border: 0; border-left: 1px solid var(--hr-border-soft);
+    background: transparent; color: inherit; font: inherit; text-align: left;
+    cursor: pointer;
+    transition: background-color var(--hr-dur) ease;
+}
+.brk-stat:first-child { border-left: 0; }
+.brk-stat:hover { background: var(--hr-surface-2); }
+.brk-stat.active { background: var(--hr-accent-soft); box-shadow: inset 0 -2px 0 var(--hr-accent); }
+.brk-stat-label { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--hr-text-3); }
+.brk-stat-value { font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--hr-text); }
+@media (max-width: 639px) {
+    .brk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .brk-stat { padding: 0.625rem 1rem; }
+    .brk-stat:nth-child(odd) { border-left: 0; }
+    .brk-stat:nth-child(n+3) { border-top: 1px solid var(--hr-border-soft); }
+}
+
+.brk-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.brk-dot--overbreak { background: var(--hr-warning-dot); }
+.brk-dot--missing { background: var(--hr-danger-dot); }
+
+.brk-wrapper { max-height: calc(100dvh - 3rem); border: 1px solid var(--hr-border); border-radius: var(--hr-r-lg); background: var(--hr-surface); }
+.brk-table td, .brk-table td:has(> .att-emp) { padding-top: var(--_py); vertical-align: middle; }
+.brk-dept { max-width: 12rem; color: var(--hr-text-2); }
+.brk-time { font-variant-numeric: tabular-nums; }
+.brk-time.is-missing { color: var(--hr-danger-fg); font-style: italic; }
+.brk-off { display: block; font-size: 0.6875rem; font-weight: 600; color: var(--hr-warning-fg); }
+.brk-table .hr-badge + .hr-badge { margin-left: 0.25rem; }
+
+.brk-select { width: 7.5rem; height: var(--hr-control-h-sm); padding-top: 0; padding-bottom: 0; font-size: 0.75rem; }
+.brk-select.is-set { border-color: var(--hr-border-strong); color: var(--hr-text); font-weight: 600; }
+.brk-remark { width: 8.5rem; }
+.brk-remark.is-approved { border-color: var(--hr-success-bd); background-color: var(--hr-success-bg); color: var(--hr-success-fg); font-weight: 600; }
+.brk-remark.is-flagged  { border-color: var(--hr-danger-bd);  background-color: var(--hr-danger-bg);  color: var(--hr-danger-fg);  font-weight: 600; }

@@ -633,3 +633,550 @@ a.pager-page:hover {
         translate: none;
     }
 }
+
+
+/* =========================================================
+   REPORT LINKS (Attendance page)
+   ========================================================= */
+
+.att-reports {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin: -6px 0 18px;
+}
+
+.att-reports-label {
+    color: var(--a-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.att-report-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border: 1px solid var(--a-border-strong);
+    border-radius: 12px;
+    background: var(--a-surface);
+    color: var(--a-heading);
+    text-decoration: none;
+    box-shadow: var(--a-shadow);
+    transition: border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.att-report-link:hover {
+    border-color: var(--a-accent);
+    color: var(--a-accent);
+    transform: translateY(-1px);
+}
+
+.att-report-link i {
+    color: var(--a-accent);
+}
+
+.att-report-link span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.att-report-link strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.att-report-link small {
+    color: var(--a-muted);
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   ATTENDANCE SUMMARY + MISSED LOGS / OB SUMMARY
+   Ported from the HR portal's attendance.css (att-sum-*),
+   with HR's --hr-* colours mapped onto the --a-* theme.
+   ========================================================= */
+
+:root {
+    --a-sum-sticky-hover: #f1f5f9;
+    --a-sum-sunday: #eef2f7;
+    --a-sum-gy: #e5e7eb;
+    --a-sum-fixed: #e0f2fe;
+    --a-sum-edge: rgba(15, 23, 42, 0.16);
+    --a-sum-on-pastel: #1e293b;
+    --a-sum-warn-dot: #f59e0b;
+    --a-sum-danger-bd: rgba(244, 63, 94, 0.28);
+    --a-sum-danger-solid: #e11d48;
+    --a-sum-tip-bg: #0f172a;
+    --a-sum-tip-text: #f8fafc;
+}
+
+html.dark-mode {
+    --a-sum-sticky-hover: #1a2333;
+    --a-sum-sunday: #1b2433;
+    --a-sum-gy: #222c3d;
+    --a-sum-fixed: #13293d;
+    --a-sum-edge: rgba(0, 0, 0, 0.55);
+    --a-sum-danger-bd: rgba(253, 164, 175, 0.25);
+    --a-sum-danger-solid: #9f1239;
+    --a-sum-tip-bg: #e2e8f0;
+    --a-sum-tip-text: #0f172a;
+}
+
+.att-sum-page {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ---------- Header: company box + incident legend ---------- */
+.att-sum-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 16px;
+}
+
+.att-sum-company {
+    flex: 0 0 auto;
+    width: 20%;
+    min-width: 15.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 16px;
+    border: 1px solid var(--a-sum-danger-bd);
+    border-radius: 18px;
+    background: var(--a-absent-bg);
+    text-align: center;
+}
+
+.att-sum-company-name {
+    font-size: 1.375rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: var(--a-heading);
+}
+
+.att-sum-company-range {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--a-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.att-sum-kind {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--a-muted);
+}
+
+.att-sum-month-badge {
+    margin-top: 6px;
+    padding: 2px 12px;
+    border-radius: 999px;
+    background: var(--a-sus-bg);
+    color: var(--a-sus-text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.att-sum-legend {
+    flex: 1 1 60%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--a-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--a-surface);
+    box-shadow: var(--a-shadow);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.att-sum-legend th {
+    padding: 8px;
+    background: var(--a-sum-danger-solid);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.att-sum-legend td {
+    padding: 7px 8px;
+    border-top: 1px solid var(--a-border);
+    border-left: 1px solid var(--a-border);
+    color: var(--a-heading);
+}
+
+.att-sum-legend td:first-child { border-left: 0; }
+.att-sum-legend tbody tr:nth-child(even) td { background: var(--a-surface-2); }
+
+.att-sum-legend .att-sum-legend-pts,
+.att-sum-legend .att-sum-legend-code {
+    width: 6%;
+    text-align: center;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1200px) {
+    .att-sum-company { width: 100%; }
+    .att-sum-legend { flex-basis: 100%; }
+}
+
+/* ---------- Missed Logs totals strip ---------- */
+.att-mis-stats {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--a-border);
+    border-radius: 18px;
+    background: var(--a-surface);
+    box-shadow: var(--a-shadow);
+}
+
+.att-mis-stats > div {
+    padding: 10px 16px;
+    border-left: 1px solid var(--a-border);
+}
+
+.att-mis-stats > div:first-child { border-left: 0; }
+
+.att-mis-stats dt {
+    color: var(--a-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.att-mis-stats dd {
+    margin: 2px 0 0;
+    color: var(--a-heading);
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1023px) {
+    .att-mis-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .att-mis-stats > div:nth-child(4n+1) { border-left: 0; }
+    .att-mis-stats > div:nth-child(n+5) { border-top: 1px solid var(--a-border); }
+}
+
+/* ---------- Controls row ---------- */
+.att-sum-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 12px 14px;
+    background: var(--a-surface);
+    border: 1px solid var(--a-border);
+    border-radius: 18px;
+    box-shadow: var(--a-shadow);
+}
+
+.att-sum-filter {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.att-sum-label {
+    margin: 0;
+    color: var(--a-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.att-sum-input {
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--a-border-strong);
+    border-radius: 10px;
+    background: var(--a-input-bg);
+    color: var(--a-heading);
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+html.dark-mode .att-sum-input { color-scheme: dark; }
+
+.att-sum-input:focus {
+    outline: none;
+    border-color: var(--a-accent);
+    box-shadow: 0 0 0 4px var(--a-focus);
+}
+
+.att-sum-search { width: 14rem; max-width: 100%; }
+
+.att-sum-btn {
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    border: 1px solid var(--a-border-strong);
+    border-radius: 10px;
+    background: var(--a-input-bg);
+    color: var(--a-text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.att-sum-btn:hover {
+    border-color: var(--a-accent);
+    color: var(--a-accent);
+}
+
+.att-sum-btn-primary {
+    border: 0;
+    color: #fff;
+    background: linear-gradient(120deg, var(--a-grad-start), var(--a-grad-end));
+}
+
+.att-sum-btn-primary:hover {
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.att-legend-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--a-text);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.att-legend-check input {
+    margin: 0;
+    accent-color: var(--a-accent);
+    cursor: pointer;
+}
+
+.att-sum-page .att-alert { margin-bottom: 0; }
+
+.att-sum-warn {
+    background: var(--a-sus-bg);
+    color: var(--a-sus-text);
+}
+
+@media (max-width: 639px) {
+    .att-sum-search { width: 100%; }
+}
+
+/* ---------- Day grid ---------- */
+/* Prefixed with table.att-table so these win over the records table above. */
+.att-sum-wrapper { max-height: calc(100vh - 7rem); }
+
+table.att-table.att-sum-table {
+    --sum-c1: 3.5rem;
+    --sum-c2: 15rem;
+    width: max-content;
+    min-width: 100%;
+    font-size: 12px;
+}
+
+table.att-table.att-sum-table thead th {
+    z-index: 10;
+    padding: 8px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0;
+}
+
+table.att-table.att-sum-table thead tr:first-child th { border-bottom: 1px solid var(--a-border); }
+table.att-table.att-sum-table thead tr:last-child th { top: 31px; }
+
+table.att-table.att-sum-table tbody td {
+    padding: 7px 8px;
+    white-space: nowrap;
+}
+
+table.att-table.att-sum-table .att-sum-day { min-width: 2.75rem; }
+table.att-table.att-sum-table thead tr:first-child .att-sum-day { color: var(--a-heading); font-size: 12px; }
+table.att-table.att-sum-table thead tr:last-child .att-sum-day { text-transform: none; font-weight: 500; }
+table.att-table.att-sum-table th.is-sunday,
+table.att-table.att-sum-table td.att-sum-cell.is-sunday:not(.att-tone) { background: var(--a-sum-sunday); }
+
+/* Month change: a left rule and the new month's name */
+table.att-table.att-sum-table .att-sum-month-start { border-left: 3px solid var(--a-sum-warn-dot); }
+
+.att-sum-mon {
+    display: block;
+    width: max-content;
+    margin: 0 auto 2px;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--a-sus-bg);
+    color: var(--a-sus-text);
+    font-size: 9px;
+    font-weight: 700;
+}
+
+table.att-table.att-sum-table td.att-sum-cell {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Day colours (EmployeeLogsReport::tone, MissedLogsSummaryReport) */
+.att-tone--work   { --_fg: var(--a-present-text); --_bg: var(--a-present-bg); }
+.att-tone--leave  { --_fg: var(--a-leave-text);   --_bg: var(--a-leave-bg); }
+.att-tone--alert  { --_fg: var(--a-absent-text);  --_bg: var(--a-absent-bg); }
+.att-tone--muted  { --_fg: var(--a-other-text);   --_bg: var(--a-other-bg); }
+.att-tone--split  { --_fg: var(--a-sus-text);     --_bg: var(--a-sus-bg); }
+.att-tone--ob     { --_fg: var(--a-sus-text);     --_bg: var(--a-sus-bg); }
+.att-tone--missed { --_fg: var(--a-absent-text);  --_bg: var(--a-absent-bg); }
+
+table.att-table.att-sum-table tbody td.att-sum-cell.att-tone,
+table.att-table.att-sum-table tbody tr:hover td.att-sum-cell.att-tone {
+    color: var(--_fg);
+    background: var(--_bg);
+    box-shadow: inset 0 0 0 1px var(--a-surface);
+    cursor: help;
+}
+
+table.att-table.att-sum-table .att-sum-num {
+    min-width: 2.25rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+table.att-table.att-sum-table .att-sum-group { border-left: 2px solid var(--a-border-strong); }
+table.att-table.att-sum-table td.att-sum-zero { color: var(--a-placeholder); }
+table.att-table.att-sum-table td.att-sum-strong { font-weight: 600; }
+table.att-table.att-sum-table td[data-tip]:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
+
+/* Three sticky employee columns. Graveyard / fixed tint only No. and Name;
+   Department takes its department colour. Backgrounds stay opaque for scrolling. */
+table.att-table.att-sum-table .att-sum-sticky { position: sticky; z-index: 2; background: var(--a-surface); }
+table.att-table.att-sum-table thead .att-sum-sticky { z-index: 12; background: var(--a-surface-2); }
+table.att-table.att-sum-table .att-sum-info { left: 0; border-right: 2px solid var(--a-border-strong); }
+
+/* No. and Name widths are fixed by an inner box (cell padding 8px each side), so
+   a long name wraps instead of widening its column, and Department's left offset
+   (No. + Name) always matches where it really sits. */
+.att-sum-box { width: calc(var(--_w) - 16px); white-space: normal; overflow-wrap: anywhere; }
+
+table.att-table.att-sum-table .att-sum-c1 {
+    --_w: var(--sum-c1);
+    left: 0;
+    width: var(--sum-c1);
+    min-width: var(--sum-c1);
+    max-width: var(--sum-c1);
+    text-align: center;
+}
+
+table.att-table.att-sum-table .att-sum-c2 {
+    --_w: var(--sum-c2);
+    left: var(--sum-c1);
+    width: var(--sum-c2);
+    min-width: var(--sum-c2);
+    max-width: var(--sum-c2);
+    text-align: left;
+    color: var(--a-heading);
+}
+
+table.att-table.att-sum-table .att-sum-c3 {
+    left: calc(var(--sum-c1) + var(--sum-c2));
+    width: 10rem;
+    min-width: 10rem;
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-right: 2px solid var(--a-border-strong);
+    box-shadow: 4px 0 6px -4px var(--a-sum-edge);
+}
+
+.att-sum-c2 strong { font-weight: 600; }
+
+table.att-table.att-sum-table tbody tr:hover td.att-sum-sticky { background: var(--a-sum-sticky-hover); }
+
+table.att-table.att-sum-table tbody td.att-sum-gy,
+table.att-table.att-sum-table tbody tr:hover td.att-sum-gy { background: var(--a-sum-gy); }
+
+table.att-table.att-sum-table tbody td.att-sum-fixed,
+table.att-table.att-sum-table tbody tr:hover td.att-sum-fixed { background: var(--a-sum-fixed); }
+
+table.att-table.att-sum-table tbody td.att-sum-dept,
+table.att-table.att-sum-table tbody tr:hover td.att-sum-dept {
+    background: var(--dept);
+    color: var(--a-sum-on-pastel);
+    text-align: center;
+}
+
+.att-sum-res { margin-left: 4px; font-size: 10px; font-style: italic; color: var(--a-muted); }
+table.att-table.att-sum-table tbody tr.att-sum-resigned td { border-bottom: 1px dashed var(--a-absent-text); }
+
+table.att-table.att-sum-table td.att-sum-empty {
+    padding: 32px 20px;
+    text-align: left;
+    color: var(--a-muted);
+}
+
+/* On small screens only the name stays pinned */
+@media (max-width: 767px) {
+    table.att-table.att-sum-table .att-sum-c1,
+    table.att-table.att-sum-table .att-sum-c3,
+    table.att-table.att-sum-table .att-sum-info { position: static; box-shadow: none; }
+    table.att-table.att-sum-table { --sum-c2: 11rem; }
+    table.att-table.att-sum-table .att-sum-c2 { left: 0; box-shadow: 4px 0 6px -4px var(--a-sum-edge); }
+}
+
+/* ---------- Day hover card (Missed Logs) ---------- */
+/* Label, colon and value in their own columns so the lunch times line up. */
+.att-tip {
+    position: fixed;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 6px;
+    row-gap: 2px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--a-sum-tip-bg);
+    color: var(--a-sum-tip-text);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.45);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translate(-50%, calc(-100% - 6px));
+}
+
+.att-tip[hidden] { display: none; }
+.att-tip.is-below { transform: translate(-50%, 6px); }
+.att-tip-row { display: contents; }
+.att-tip-label { font-weight: 500; opacity: 0.8; }
+.att-tip-value { font-weight: 600; font-variant-numeric: tabular-nums; }

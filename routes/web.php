@@ -35,6 +35,8 @@ Route::middleware('accounting.auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/detail', [DashboardController::class, 'detail'])->name('dashboard.detail');
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/summary', [AttendanceController::class, 'summary'])->name('attendance.summary');
+    Route::get('/attendance/missed-summary', [AttendanceController::class, 'missedSummary'])->name('attendance.missed-summary');
     Route::get('/leaves/applications', [LeaveApplicationController::class, 'index'])->name('leaves.applications');
     Route::get('/leaves/time-adjustments', [TimeAdjustmentController::class, 'index'])->name('leaves.time-adjustments');
     Route::get('/leaves/overtime', [OvertimeApplicationController::class, 'index'])->name('leaves.overtime');

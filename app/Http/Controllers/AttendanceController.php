@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AttendanceSummaryReport;
+use App\Services\MissedLogsSummaryReport;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -139,6 +141,118 @@ class AttendanceController extends Controller
             'records'     => $records,
             'corrections' => $this->approvedCorrections($conn, collect($records->items())),
         ]);
+    }
+
+    /**
+     * Attendance Summary (absences / late), as on the HR portal: one column per
+     * day plus incident and leave totals per employee. Read only.
+     */
+    public function summary(Request $request, AttendanceSummaryReport $report): View
+    {
+        $scope = $this->summaryScope($request);
+
+        $employees = AttendanceSummaryReport::filter(
+            $report->employees($scope['company'], $scope['departments'], $scope['from'], $scope['to']),
+            $scope['search'], $scope['fixed'], $scope['gy'], $scope['am'],
+        );
+        $dates = AttendanceSummaryReport::dates($scope['from'], $scope['to']);
+        $employees->each(fn ($emp) => $emp->cells = $report->cells($emp, $dates));
+
+        return view('attendance.summary', $scope + [
+            'employees'  => $employees,
+            'dates'      => $dates,
+            'monthRange' => $this->monthRange($dates),
+        ]);
+    }
+
+    /**
+     * Missed Logs / OB Summary, as on the HR portal: the same day grid for lunch
+     * over-breaks and missed logins, with totals and points. Read only.
+     */
+    public function missedSummary(Request $request, MissedLogsSummaryReport $report): View
+    {
+        $scope = $this->summaryScope($request);
+
+        $employees = AttendanceSummaryReport::filter(
+            $report->employees($scope['company'], $scope['departments'], $scope['from'], $scope['to']),
+            $scope['search'], $scope['fixed'], $scope['gy'], $scope['am'],
+        );
+        if ($scope['incidents']) {
+            $employees = $employees->filter(fn ($e) => $e->totals['total'] > 0)->values();
+        }
+        $dates = AttendanceSummaryReport::dates($scope['from'], $scope['to']);
+        $employees->each(fn ($emp) => $emp->cells = $report->cells($emp, $dates));
+        $codes = array_values(MissedLogsSummaryReport::CODES);
+
+        return view('attendance.missed-summary', $scope + [
+            'employees'  => $employees,
+            'dates'      => $dates,
+            'codes'      => $codes,
+            'monthRange' => $this->monthRange($dates),
+            // Totals of the rows shown, for the stat strip.
+            'stats'      => [
+                'employees'     => $employees->count(),
+                'withIncidents' => $employees->filter(fn ($e) => $e->totals['total'] > 0)->count(),
+                'codes'         => collect($codes)->mapWithKeys(fn ($c) => [$c => $employees->sum(fn ($e) => $e->totals[$c])])->all(),
+                'points'        => $employees->sum(fn ($e) => $e->totals['points']),
+            ],
+        ]);
+    }
+
+    /**
+     * Filters shared by the two summaries (HR's SummaryFilters): company,
+     * optional department, a date range capped at MAX_RANGE_DAYS, search and
+     * the shift checkboxes. An end before the start becomes the start.
+     */
+    private function summaryScope(Request $request): array
+    {
+        $conn = DB::connection(self::HRIS_CONNECTION);
+
+        $companies = $conn->table('settings')->select('companycode', 'companyname')->orderBy('companycode')->get();
+
+        $validated = $request->validate([
+            'company'    => ['nullable', 'string', 'in:' . $companies->pluck('companycode')->implode(',')],
+            'from'       => ['nullable', 'date_format:Y-m-d'],
+            'to'         => ['nullable', 'date_format:Y-m-d'],
+            'department' => ['nullable', 'integer'],
+            'search'     => ['nullable', 'string', 'max:100'],
+            'am'         => ['nullable', 'in:1'],
+            'gy'         => ['nullable', 'in:1'],
+            'fixed'      => ['nullable', 'in:1'],
+            'incidents'  => ['nullable', 'in:1'],
+        ]);
+
+        [$defaultFrom, $defaultTo] = $this->currentPeriodRange($conn);
+
+        $company = (string) ($validated['company'] ?? $companies->first()?->companycode);
+        $from = $validated['from'] ?? $defaultFrom;
+        $to = max($validated['to'] ?? $defaultTo, $from);
+        $maxTo = CarbonImmutable::parse($from, 'Asia/Manila')->addDays(self::MAX_RANGE_DAYS - 1)->toDateString();
+        $department = isset($validated['department']) ? (int) $validated['department'] : null;
+
+        return [
+            'company'     => $company,
+            'companyName' => optional($companies->firstWhere('companycode', $company))->companyname ?: $company,
+            'department'  => $department,
+            'departments' => $department ? [$department] : [],
+            'deptName'    => $department ? $conn->table('department')->where('id', $department)->value('department') : null,
+            'from'        => $from,
+            'to'          => min($to, $maxTo),
+            'rangeCapped' => $to > $maxTo,
+            'search'      => trim((string) ($validated['search'] ?? '')),
+            'am'          => isset($validated['am']),
+            'gy'          => isset($validated['gy']),
+            'fixed'       => isset($validated['fixed']),
+            'incidents'   => isset($validated['incidents']),
+        ];
+    }
+
+    /** "October 2026 → November 2026" when the range crosses a month, else null. */
+    private function monthRange(array $dates): ?string
+    {
+        $months = collect($dates)->pluck('month')->unique()->values();
+
+        return $months->count() > 1 ? $months->join(' → ') : null;
     }
 
     /**

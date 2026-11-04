@@ -60,7 +60,7 @@ function SubmitDetails() {
     @csrf
 
         @if ($isPosted)
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:12px 16px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:14px;">
+            <div class="posted-banner">
                 <i class="fa-solid fa-lock"></i>
                 <span><strong>This payroll is posted.</strong> Unpost it from Manage Payroll before changing time, add-ons, deductions or saving.</span>
             </div>
@@ -68,70 +68,66 @@ function SubmitDetails() {
 
         <div class="content-panel">
             <div class="panel-heading">
-                <div class="flex-item-left" style="display: flex; align-items: center; gap: 10px;">
-                    <div style="font-size: 18px; padding-left: 5px;">
-                        <span style="display: block; font-family: Arial, sans-serif; font-size: 18px; color: #333;">
-                            <i class="fa fa-user"></i>
-                            <strong style="font-size: 18px;">{{ $employee->lastname ?? '' }}, {{ $employee->firstname ?? '' }} {{ $employee->suffix ?? '' }}</strong>
-                        </span>
-                    </div>
-                </div>
+                <span class="employee-name">
+                    <i class="fa fa-user"></i>
+                    {{ $employee->lastname ?? '' }}, {{ $employee->firstname ?? '' }} {{ $employee->suffix ?? '' }}
+                </span>
 
-                <div class="export-btn" style="display: flex; margin-left: auto; float: right;">
+                <div class="export-btn">
                     @if ($isSaved)
                         @php $defaultSignatory = config('payroll.payslip_default_signatory.' . ($employeeDetails->company ?? ''), 'salvador'); @endphp
                         @if ($salaryType === 'Rated')
-                            <a href="{{ route('payroll.edit.payslip.rated', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}"class="btn btn-warning btn-xs"title="View Payslip"target="_blank"><i class="fa fa-eye"></i></a>
-                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip" style="float:right; margin-right:10px;"
+                            <a href="{{ route('payroll.edit.payslip.rated', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}" class="btn btn-warning" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
+                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip"
                                 data-url="{{ route('payroll.payslip.rated.pdf', $payrollId) }}" data-signatory="{{ $defaultSignatory }}"><i class="fa fa-download"></i></button>
                         @elseif ($salaryType === 'Fixed')
-                            <a href="{{ route('payroll.edit.payslip.fixed', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}"class="btn btn-warning btn-xs"title="View Payslip"target="_blank"><i class="fa fa-eye"></i></a>
-                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip" style="float:right; margin-right:10px;"
+                            <a href="{{ route('payroll.edit.payslip.fixed', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}" class="btn btn-warning" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
+                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip"
                                 data-url="{{ route('payroll.payslip.fixed.pdf', $payrollId) }}" data-signatory="{{ $defaultSignatory }}"><i class="fa fa-download"></i></button>
                         @elseif ($salaryType === 'Daily')
-                            <a href="{{ route('payroll.edit.payslip.daily', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}" class="btn btn-warning btn-xs" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
-                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip" style="float:right; margin-right:10px;"
+                            <a href="{{ route('payroll.edit.payslip.daily', [ 'payroll' => $payroll->id,'idno' => $idno,'detail' => $payrollId,]) }}" class="btn btn-warning" title="View Payslip" target="_blank"><i class="fa fa-eye"></i></a>
+                            <button type="button" class="btn btn-success export-payslip-btn" title="Export Payslip"
                                 data-url="{{ route('payroll.payslip.daily.pdf', $payrollId) }}" data-signatory="{{ $defaultSignatory }}"><i class="fa fa-download"></i></button>
                         @endif
                     @endif
                 </div>
             </div>
 
-            <div style="display: block; margin-left: 20px; margin-bottom: 10px;">
-                <div style="float: left;">
-                    <label style="display: block; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+            <div class="info-grid">
+                <div class="info-block">
+                    <span>
                         <strong>Payroll Period:</strong> {{ $payroll->periodfrom->format('M d, Y') }} to {{ $payroll->periodto->format('M d, Y') }}
-                    </label>
-                    <div style="display: flex; align-items: center; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-                        <label style="margin-right: 10px;"><strong>Salary Type:</strong></label>
-                        <label class="radio-inline" style="margin-right: 10px; margin-top: -10px;">
+                    </span>
+                    <div class="salary-type-group">
+                        <strong>Salary Type:</strong>
+                        <label>
                             <input type="radio" name="salary_type" value="Fixed" @checked($salaryType === 'Fixed')> Fixed
                         </label>
-                        <label class="radio-inline" style="margin-top: -10px;">
+                        <label>
                             <input type="radio" name="salary_type" value="Rated" @checked($salaryType === 'Rated')> Rated
                         </label>
-                        <label class="radio-inline" style="margin-right:10px; margin-top:-10px;">
+                        <label>
                             <input type="radio" name="salary_type" value="Daily" @checked($salaryType === 'Daily')> Fixed Daily
                         </label>
                     </div>
-                    <span style="display: block; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <span>
                         <strong>Shift:</strong>
                         {{ !empty($employeeDetails->startshift) ? date('h:i A', strtotime($employeeDetails->startshift)) : '-' }}
                         -
                         {{ !empty($employeeDetails->endshift) ? date('h:i A', strtotime($employeeDetails->endshift)) : '-' }}
                     </span>
-                    <span style="display: block; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <span>
                         <strong>Location:</strong> {{ $employeeDetails->location ?? '-' }}
                     </span>
                 </div>
-                <div style="margin-left: auto; float: right; margin-right: 475px;">
-                    <span style="display: block; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                <div class="info-block">
+                    <span>
                         <strong>Rate per Day:</strong> Php {{ number_format($salaryRate ?? 0, 2) }}
                     </span>
-                    <span style="display: block; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <span>
                         <strong>Effective:</strong> {{ $effectivity ? date('M d, Y', strtotime($effectivity)) : 'N/A' }}
                     </span>
-                    <span style="display: block; font-family: Arial, sans-serif; font-size: 14px; color: #FF0000;">
+                    <span class="prev-rate">
                         <strong>Previous Rate:</strong> Php {{ number_format($prevSalary ?? 0, 2) }}
                     </span>
                 </div>
@@ -168,6 +164,7 @@ function SubmitDetails() {
             </script>
 
             <div class="panel-body">
+                <div class="attendance-table-wrap">
                 <table class="table table-bordered-bottom-only">
                     <thead>
                         <tr>
@@ -240,26 +237,30 @@ function SubmitDetails() {
                                 </td>
                             </tr>
                         @endforelse
-                        <tr>
-                            <td colspan="5" class="table-cont-2" style="font-size: 1.3rem"><strong>TOTAL</strong></td>
-                            <td class="table-cont-1" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalhours'], 2) }}</strong></td>
-                            <td class="table-cont-1" style="font-size: 1.3rem"><strong>{{ number_format($totals['regularhours'], 2) }}</strong></td>
-                            <td class="table-cont-1" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalovertime'], 2) }}</strong></td>
-                            <td class="table-cont-1" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalndhrs'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalbasesalary'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalregdaysot'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalndrate'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalspholiday'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalspholidayot'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalregholidayot'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['totalregholiday'], 2) }}</strong></td>
-                            <td class="table-cont-2" style="font-size: 1.3rem"><strong>{{ number_format($totals['grandtotal'] ?: $totals['totalpay'], 2) }}</strong></td>
+                        <tr class="total-row">
+                            <td colspan="5" class="total-label">TOTAL</td>
+                            <td class="table-cont-1">{{ number_format($totals['totalhours'], 2) }}</td>
+                            <td class="table-cont-1">{{ number_format($totals['regularhours'], 2) }}</td>
+                            <td class="table-cont-1">{{ number_format($totals['totalovertime'], 2) }}</td>
+                            <td class="table-cont-1">{{ number_format($totals['totalndhrs'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalbasesalary'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalregdaysot'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalndrate'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalspholiday'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalspholidayot'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalregholidayot'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['totalregholiday'], 2) }}</td>
+                            <td class="table-cont-2">{{ number_format($totals['grandtotal'] ?: $totals['totalpay'], 2) }}</td>
+                            <td></td>
                         </tr>
                     </tbody>
                 </table>
+                </div>
 
                 {{-- Totals are recalculated on the server when saving; nothing but the salary type is sent. --}}
-                <input type="submit" name="submitPayroll" class="btn btn-primary" value="Save Details" style="float:right;" @disabled($isPosted)>
+                <div class="save-row">
+                    <input type="submit" name="submitPayroll" class="btn btn-primary" value="Save Details" @disabled($isPosted)>
+                </div>
             </div>
         </div>
     </form>
@@ -408,7 +409,7 @@ function SubmitDetails() {
                                             <td>
                                                     <form method="POST" action="{{ route('payroll.edit.deductions.constant.apply', ['payroll' => $payroll->id, 'idno' => $idno, 'employeeDeduction' => $const->id, 'company' => $company, 'dept' => $deptId]) }}" style="display:inline">
                                                         @csrf
-                                                    <button type="submit" class="btn btn-xs" style="background: #3498db; color: #fff; margin-right: 3px;" title="Add to current payroll only"><i class="fa fa-plus"></i> Add</button>
+                                                    <button type="submit" class="btn btn-xs btn-apply" title="Add to current payroll only"><i class="fa fa-plus"></i> Add</button>
                                                     </form>
                                                     <form method="POST" action="{{ route('payroll.edit.deductions.constant.destroy', ['payroll' => $payroll->id, 'idno' => $idno, 'employeeDeduction' => $const->id, 'company' => $company, 'dept' => $deptId]) }}" style="display:inline" onsubmit="return confirm('Remove this constant deduction?')">
                                                         @csrf @method('DELETE')
@@ -576,7 +577,7 @@ function SubmitDetails() {
                                             <td>
                                                     <form method="POST" action="{{ route('payroll.edit.addons.constant.apply', ['payroll' => $payroll->id, 'idno' => $idno, 'employeeAddon' => $const->id, 'company' => $company, 'dept' => $deptId]) }}" style="display:inline">
                                                         @csrf
-                                                    <button type="submit" class="btn btn-xs" style="background: #3498db; color: #fff; margin-right: 3px;" title="Add to current payroll only"><i class="fa fa-plus"></i> Add</button>
+                                                    <button type="submit" class="btn btn-xs btn-apply" title="Add to current payroll only"><i class="fa fa-plus"></i> Add</button>
                                                     </form>
                                                     <form method="POST" action="{{ route('payroll.edit.addons.constant.destroy', ['payroll' => $payroll->id, 'idno' => $idno, 'employeeAddon' => $const->id, 'company' => $company, 'dept' => $deptId]) }}" style="display:inline" onsubmit="return confirm('Remove this constant addon?')">
                                                         @csrf @method('DELETE')

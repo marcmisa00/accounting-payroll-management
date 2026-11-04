@@ -87,6 +87,20 @@
         </div>
     </form>
 
+    {{-- ===================== Reports (same filters, day grid) ===================== --}}
+    @php $reportQuery = array_filter(['company' => $company, 'from' => $from, 'to' => $to, 'department' => $department, 'search' => $employee]); @endphp
+    <div class="att-reports">
+        <span class="att-reports-label">Reports</span>
+        <a href="{{ route('attendance.summary', $reportQuery) }}" class="att-report-link">
+            <i class="fa-solid fa-table-cells"></i>
+            <span><strong>Attendance Summary</strong><small>Absences / late, per day</small></span>
+        </a>
+        <a href="{{ route('attendance.missed-summary', $reportQuery) }}" class="att-report-link">
+            <i class="fa-solid fa-mug-hot"></i>
+            <span><strong>Missed Logs / OB Summary</strong><small>Missed logins and over-breaks</small></span>
+        </a>
+    </div>
+
     @if ($errors->any() || $rangeError)
         <div class="att-alert" role="alert">
             <i class="fa-solid fa-circle-exclamation"></i>
