@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AccountingAccess;
+use App\Services\AuthenticatorCode;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -12,11 +14,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Sonata\GoogleAuthenticator\GoogleAuthenticator;
 
 class AccountingLoginController extends Controller
 {
     private const NO_ACCESS = "You don't have access to this page.";
+
+    // One message for every failed registration check, so it can't be used to learn which IDs exist
+    private const NOT_VERIFIED = "We couldn't verify these details. Check your ID number and HRIS authenticator code.";
+
+    // Wrong passwords per username, and wrong HRIS codes per ID number, before a lockout (from any IP)
+    private const LOGIN_MAX_FAILS = 10;
+
+    private const REGISTER_MAX_FAILS = 5;
+
+    private const LOCK_SECONDS = 15 * 60;
 
     // Minutes a pending registration (password + new secret) stays valid in the session
     private const PENDING_MINUTES = 10;
@@ -46,23 +59,42 @@ class AccountingLoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('username', strtolower(trim($data['username'])))->first();
+        $username = strtolower(trim($data['username']));
+
+        // Counted for unknown usernames too, so a lockout doesn't reveal which ones exist
+        $limitKey = 'accounting-login:' . sha1($username);
+
+        if (RateLimiter::tooManyAttempts($limitKey, self::LOGIN_MAX_FAILS)) {
+            return back()
+                ->withInput($request->only('username', 'remember'))
+                ->with('error', $this->lockedMessage($limitKey));
+        }
+
+        $user = User::where('username', $username)->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
+            RateLimiter::hit($limitKey, self::LOCK_SECONDS);
+
             return back()
                 ->withInput($request->only('username', 'remember'))
                 ->with('error', 'Invalid username or password.');
         }
 
+        RateLimiter::clear($limitKey);
+
         // Access is managed in HRIS, so re-check it on every login
-        if (!$this->hasAccountingAccess($user->idno)) {
+        if (!AccountingAccess::allows($user->idno)) {
             return back()
                 ->withInput($request->only('username', 'remember'))
                 ->with('error', self::NO_ACCESS);
         }
 
         $request->session()->regenerate();
-        session(['accounting_pending_user_id' => $user->id]);
+        // The OTP step must follow within AccountingAuthController::PENDING_SECONDS
+        session([
+            'accounting_pending_user_id' => $user->id,
+            'accounting_pending_at' => time(),
+        ]);
 
         $rememberCookie = $request->boolean('remember')
             ? cookie(self::REMEMBER_COOKIE, $user->username, self::REMEMBER_MINUTES)
@@ -86,24 +118,44 @@ class AccountingLoginController extends Controller
 
         $data = $request->validate([
             'idno' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/'],
+            'hris_code' => ['required', 'digits:6'],
             'username' => self::USERNAME_RULES,
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ], [
             'idno.regex' => 'ID number may only contain letters, numbers and dashes.',
+            'hris_code.required' => 'Enter the 6-digit code from your HRIS Accounting authenticator.',
+            'hris_code.digits' => 'The HRIS authenticator code must be 6 digits.',
             'username.regex' => 'Username may only contain letters, numbers, dots, dashes and underscores.',
         ]);
 
-        if (!$this->hasAccountingAccess($data['idno'])) {
+        // Knowing an ID number is not enough: the person must also hold the authenticator
+        // they already use for Accounting in HRIS (hris.employee_payroll.ga_secret).
+        $limitKey = 'accounting-register:' . sha1(strtoupper($data['idno']));
+
+        if (RateLimiter::tooManyAttempts($limitKey, self::REGISTER_MAX_FAILS)) {
             return back()
                 ->withInput($request->only('idno', 'username'))
-                ->with('error', self::NO_ACCESS);
+                ->with('error', $this->lockedMessage($limitKey));
         }
 
-        if (User::where('idno', $data['idno'])->exists()) {
+        $hrisSecret = (string) DB::connection('hris')
+            ->table('employee_payroll')
+            ->where('idno', $data['idno'])
+            ->value('ga_secret');
+
+        $verified = AuthenticatorCode::verify(trim($hrisSecret), $data['hris_code'], 'hris:' . strtoupper($data['idno']))
+            && AccountingAccess::allows($data['idno'])
+            && !User::where('idno', $data['idno'])->exists();
+
+        if (!$verified) {
+            RateLimiter::hit($limitKey, self::LOCK_SECONDS);
+
             return back()
                 ->withInput($request->only('idno', 'username'))
-                ->with('error', 'This ID number is already registered. Please sign in.');
+                ->with('error', self::NOT_VERIFIED);
         }
+
+        RateLimiter::clear($limitKey);
 
         if (User::where('username', $data['username'])->exists()) {
             return back()
@@ -167,14 +219,14 @@ class AccountingLoginController extends Controller
 
         $secret = Crypt::decryptString($pending['secret']);
 
-        if (!(new GoogleAuthenticator())->checkCode($secret, $request->code)) {
+        if (!AuthenticatorCode::verify($secret, $request->code, 'setup:' . $pending['username'])) {
             return redirect()
                 ->route('register.setup')
                 ->with('error', 'Invalid Google Authenticator code.');
         }
 
         // Re-check in case HRIS access changed while setting up
-        if (!$this->hasAccountingAccess($pending['idno'])) {
+        if (!AccountingAccess::allows($pending['idno'])) {
             session()->forget('accounting_registration');
 
             return redirect()->route('register')->with('error', self::NO_ACCESS);
@@ -233,20 +285,10 @@ class AccountingLoginController extends Controller
         return $pending;
     }
 
-    // hris.users.access is a comma-separated list, e.g. "HR,ACCOUNTING,EMPLOYEE PORTAL"
-    private function hasAccountingAccess(string $idno): bool
+    private function lockedMessage(string $limitKey): string
     {
-        $access = DB::connection('hris')
-            ->table('users')
-            ->where('idno', $idno)
-            ->value('access');
+        $minutes = max(1, (int) ceil(RateLimiter::availableIn($limitKey) / 60));
 
-        if (!$access) {
-            return false;
-        }
-
-        $accessList = array_map(fn ($item) => strtoupper(trim($item)), explode(',', $access));
-
-        return in_array('ACCOUNTING', $accessList, true);
+        return "Too many attempts. Please try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.';
     }
 }

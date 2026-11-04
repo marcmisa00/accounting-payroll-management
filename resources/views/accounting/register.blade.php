@@ -2,7 +2,7 @@
 
 @section('title', 'Register')
 @section('heading', 'Create account')
-@section('subtitle', 'Available to employees with Accounting access in HRIS.')
+@section('subtitle', 'Available to employees with Accounting access in HRIS. Have your HRIS Accounting authenticator ready.')
 
 @section('content')
     <form method="POST" action="{{ route('register.submit') }}" class="auth-form">
@@ -12,6 +12,12 @@
         <input type="text" id="idno" name="idno" class="text-input"
                value="{{ old('idno') }}" maxlength="20"
                autocomplete="off" required autofocus>
+
+        <label class="field-label" for="hris_code">HRIS authenticator code</label>
+        <input type="text" id="hris_code" name="hris_code" class="text-input"
+               inputmode="numeric" pattern="\d{6}" maxlength="6"
+               autocomplete="one-time-code" required>
+        <p class="hint">The 6-digit code from the authenticator you already use for Accounting in HRIS</p>
 
         <label class="field-label" for="username">Username</label>
         <input type="text" id="username" name="username" class="text-input"
