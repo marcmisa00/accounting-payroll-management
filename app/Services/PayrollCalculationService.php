@@ -618,6 +618,9 @@ class PayrollCalculationService
 
             $holidayToday = null;
             $holidayNextDay = null;
+            // Names are for the Edit Payroll row badge only; pay uses the types
+            $holidayTodayName = null;
+            $holidayNextDayName = null;
             $holidayRows = $conn->table('holidays')
                 ->where(function ($q) use ($employeeWorkArea) {
                     $q->where('location', 'allbranch')->orWhere('location', $employeeWorkArea);
@@ -629,8 +632,10 @@ class PayrollCalculationService
             foreach ($holidayRows as $hRow) {
                 if ($hRow->date == $logindate) {
                     $holidayToday = $hRow->type;
+                    $holidayTodayName = $hRow->description;
                 } elseif ($hRow->date == date('Y-m-d', strtotime($logindate . ' +1 day'))) {
                     $holidayNextDay = $hRow->type;
+                    $holidayNextDayName = $hRow->description;
                 }
             }
 
@@ -926,6 +931,22 @@ class PayrollCalculationService
                 $style = 'color: #f50a50;';
             }
 
+            // Holiday marker for the row (display only), with the same precedence
+            // as the colouring above: a special holiday wins over a regular one.
+            // Night shifts take the next day's holiday, as the pay rules do; "next_day"
+            // only when that is not already the date shown on the row (DLS rows show it).
+            $holiday = null;
+            $nextDayDate = date('Y-m-d', strtotime($logindate . ' +1 day'));
+            foreach (['rh' => [$rh, $rh_auto, $rh_auto_nextday], 'snwh' => [$snwh, $snwh_auto, $snwh_auto_nextday]] as $type => [$tagged, $auto, $autoNextDay]) {
+                if ($tagged > 0 || $auto || $autoNextDay) {
+                    $holiday = [
+                        'type'     => $type,
+                        'next_day' => $autoNextDay && $displayLogindate !== $nextDayDate,
+                        'name'     => $autoNextDay ? $holidayNextDayName : ($holidayToday === $type ? $holidayTodayName : null),
+                    ];
+                }
+            }
+
             $showTimes = ! (($sus > 0 && $remarks === 'SUS') || $leave > 0 || $ab > 0);
 
             $rows[] = [
@@ -949,6 +970,7 @@ class PayrollCalculationService
                 'regholiday'   => number_format($regholiday, 2),
                 'totalpay'     => number_format($totalpay, 2),
                 'style'        => $style,
+                'holiday'      => $holiday,
                 'attendance_id'=> $attendance->id,
                 'is_overridden'=> $isOverridden,
                 'calculated'   => $calculated,

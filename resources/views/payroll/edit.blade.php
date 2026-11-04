@@ -164,6 +164,13 @@ function SubmitDetails() {
             </script>
 
             <div class="panel-body">
+                <div class="row-legend" aria-label="Row colours">
+                    <span><span class="legend-key legend-key--rh"></span> Regular Holiday</span>
+                    <span><span class="legend-key legend-key--snwh"></span> Special Holiday</span>
+                    <span><span class="legend-key legend-key--ot"></span> Overtime</span>
+                    <span><span class="legend-key legend-key--prev"></span> Before new rate</span>
+                    <span><i class="fa fa-pencil" style="color:#e67e22;"></i> Manual override</span>
+                </div>
                 <div class="attendance-table-wrap">
                 <table class="table table-bordered-bottom-only">
                     <thead>
@@ -190,11 +197,24 @@ function SubmitDetails() {
                     </thead>
                     <tbody>
                         @forelse ($rows as $row)
-                            <tr @if ($row['style']) style="{{ $row['style'] }}" @endif @if ($row['is_overridden']) title="This day has a manual override" @endif>
+                            @php $holiday = $row['holiday'] ?? null; @endphp
+                            <tr @class(['is-holiday' => $holiday, 'is-holiday--'.($holiday['type'] ?? '') => $holiday]) @if ($row['style']) style="{{ $row['style'] }}" @endif @if ($row['is_overridden']) title="This day has a manual override" @endif>
                                 <td class="table-cont-1">
                                     {{ $row['date'] }}
                                     @if ($row['is_overridden'])
                                         <i class="fa fa-pencil" style="color:#e67e22; margin-left:4px;" title="Manually overridden"></i>
+                                    @endif
+                                    @if ($holiday)
+                                        @php
+                                            $holidayLabel = $holiday['next_day'] ? 'Holiday (next day)' : ($holiday['type'] === 'rh' ? 'Regular Holiday' : 'Special Holiday');
+                                            $holidayTitle = ($holiday['type'] === 'rh' ? 'Regular Holiday' : 'Special Non-Working Holiday')
+                                                . ($holiday['name'] ? ': '.$holiday['name'] : '')
+                                                . ($holiday['next_day'] ? ' (falls on the next day of this night shift)' : '');
+                                        @endphp
+                                        <span class="holiday-badge holiday-badge--{{ $holiday['type'] }}" title="{{ $holidayTitle }}">
+                                            <i class="fa-solid fa-flag" aria-hidden="true"></i>
+                                            {{ $holidayLabel }}@if ($holiday['name']) · {{ $holiday['name'] }}@endif
+                                        </span>
                                     @endif
                                 </td>
                                 @if ($row['show_times'])

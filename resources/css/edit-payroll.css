@@ -392,6 +392,99 @@ body {
     font-weight: 700;
 }
 
+/* Row colours set by PayrollCalculationService (inline style on the row):
+   purple = OT, red = before the new rate. Cells inherit them. */
+.table-bordered-bottom-only tbody tr[style] td {
+    color: inherit;
+}
+.dark-mode .table-bordered-bottom-only tbody tr[style*="8F00FF"] {
+    color: #c084fc !important;
+}
+
+/* Holiday rows: tint + left bar; text stays normal, the badge names the holiday */
+:root {
+    --holiday-rh: #d97706;
+    --holiday-rh-bg: rgba(245, 158, 11, 0.12);
+    --holiday-rh-text: #92400e;
+    --holiday-snwh: #e11d48;
+    --holiday-snwh-bg: rgba(244, 63, 94, 0.09);
+    --holiday-snwh-text: #9f1239;
+}
+.dark-mode {
+    --holiday-rh: #f59e0b;
+    --holiday-rh-bg: rgba(245, 158, 11, 0.13);
+    --holiday-rh-text: #fcd34d;
+    --holiday-snwh: #fb7185;
+    --holiday-snwh-bg: rgba(244, 63, 94, 0.13);
+    --holiday-snwh-text: #fda4af;
+}
+
+.table-bordered-bottom-only tbody tr.is-holiday td,
+.table-bordered-bottom-only tbody tr.is-holiday:hover td {
+    color: var(--text-primary);
+}
+.table-bordered-bottom-only tbody tr.is-holiday--rh,
+.table-bordered-bottom-only tbody tr.is-holiday--rh:hover {
+    background: var(--holiday-rh-bg);
+}
+.table-bordered-bottom-only tbody tr.is-holiday--snwh,
+.table-bordered-bottom-only tbody tr.is-holiday--snwh:hover {
+    background: var(--holiday-snwh-bg);
+}
+.table-bordered-bottom-only tbody tr.is-holiday--rh td:first-child {
+    box-shadow: inset 4px 0 0 var(--holiday-rh);
+}
+.table-bordered-bottom-only tbody tr.is-holiday--snwh td:first-child {
+    box-shadow: inset 4px 0 0 var(--holiday-snwh);
+}
+
+.holiday-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: max-content;
+    max-width: 190px;
+    margin: 4px auto 0;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: normal;
+    cursor: help;
+}
+.holiday-badge i { font-size: 9px; }
+.holiday-badge--rh   { background: var(--holiday-rh-bg);   color: var(--holiday-rh-text);   border: 1px solid var(--holiday-rh); }
+.holiday-badge--snwh { background: var(--holiday-snwh-bg); color: var(--holiday-snwh-text); border: 1px solid var(--holiday-snwh); }
+
+/* Legend above the attendance table */
+.row-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--muted-color);
+}
+.row-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.legend-key {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+.legend-key--rh   { background: var(--holiday-rh-bg);   box-shadow: inset 3px 0 0 var(--holiday-rh); border: 1px solid var(--holiday-rh); }
+.legend-key--snwh { background: var(--holiday-snwh-bg); box-shadow: inset 3px 0 0 var(--holiday-snwh); border: 1px solid var(--holiday-snwh); }
+.legend-key--ot   { background: #8F00FF; }
+.legend-key--prev { background: #FF0000; }
+.dark-mode .legend-key--ot   { background: #c084fc; }
+.dark-mode .legend-key--prev { background: #f0788a; }
+
 /* Horizontal scroll for the 18-column attendance table */
 .attendance-table-wrap {
     overflow-x: auto;
