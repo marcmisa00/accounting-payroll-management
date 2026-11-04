@@ -164,23 +164,7 @@
 
         </li>
 
-        <a href="{{ route('hso.index') }}"
-           class="{{ request()->routeIs('hso.*') ? 'active' : '' }}">
-            <span class="icon">
-                <i class="fa-solid fa-laptop-house"></i>
-            </span>
-            <span class="nav-text">HSO Application</span>
-        </a>
-
-        <a href="{{ route('transfer.index') }}"
-           class="{{ request()->routeIs('transfer.*') ? 'active' : '' }}">
-            <span class="icon">
-                <i class="fa-solid fa-building-circle-arrow-right"></i>
-            </span>
-            <span class="nav-text">Site Transfer</span>
-        </a>
-
-        {{-- EMPLOYEE DETAILS (same sub-menu markup/classes as Payroll) --}}
+          {{-- EMPLOYEE DETAILS (same sub-menu markup/classes as Payroll) --}}
         <li class="nav-item payroll-menu">
 
             <a href="javascript:void(0);"
@@ -248,6 +232,25 @@
             </ul>
 
         </li>
+
+        
+        <a href="{{ route('hso.index') }}"
+           class="{{ request()->routeIs('hso.*') ? 'active' : '' }}">
+            <span class="icon">
+                <i class="fa-solid fa-laptop-house"></i>
+            </span>
+            <span class="nav-text">HSO Application</span>
+        </a>
+
+        <a href="{{ route('transfer.index') }}"
+           class="{{ request()->routeIs('transfer.*') ? 'active' : '' }}">
+            <span class="icon">
+                <i class="fa-solid fa-building-circle-arrow-right"></i>
+            </span>
+            <span class="nav-text">Site Transfer</span>
+        </a>
+
+      
 
         <a href="{{ route('attendance.index') }}"
            class="{{ request()->routeIs('attendance.*') ? 'active' : '' }}">
