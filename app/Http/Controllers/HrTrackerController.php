@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
  * Read-only HR trackers migrated from the legacy accounting portal:
- * movement tracker, work setup (transfer) tracker and resigned employees.
+ * movement tracker, work setup (transfer) tracker, resigned employees and
+ * employee infractions.
  * Nothing here writes to the database.
  */
 class HrTrackerController extends Controller
@@ -20,6 +22,11 @@ class HrTrackerController extends Controller
     private const PER_PAGE = 50;
 
     public const RESIGNED_PER_PAGE = [50, 100, 500];
+
+    public const INFRACTION_STATUSES = ['pending', 'Served', 'Void'];
+
+    // The legacy infraction page hides this memo
+    private const INFRACTION_EXCLUDED_MEMOS = ['25-0508'];
 
     // Fallback labels from the HR portal for points whose offense has no description
     private const OFFENSE_LABELS = [
@@ -320,6 +327,136 @@ class HrTrackerController extends Controller
                 $ctx, $ctx['company'], $perPage, (int) $request->query('page', 1)
             )),
         ]);
+    }
+
+    /**
+     * Employee infractions (port of the legacy accounting manageinfraction.php):
+     * company → department, year / date issued range, status filter.
+     */
+    public function infractions(Request $request): View
+    {
+        $companies = $this->companies();
+        $codes = $companies->pluck('companycode')->all();
+        $ctx = $this->context($request, $codes, true);
+        $extra = $this->infractionFilters($request);
+
+        $base = $this->infractionQuery($ctx, $codes, $extra['status']);
+
+        [$company, $tabs] = $this->companyTabs($companies, $ctx, (clone $base)
+            ->selectRaw('ed.company, COUNT(*) AS n')
+            ->groupBy('ed.company')
+            ->pluck('n', 'company'));
+
+        // Departments that have infractions in the current filters
+        $departments = (clone $base)
+            ->where('ed.company', $company)
+            ->selectRaw('d.id, d.department, COUNT(*) AS n')
+            ->groupBy('d.id', 'd.department')
+            ->orderBy('d.department')
+            ->get()
+            ->map(fn ($d) => ['id' => (int) $d->id, 'name' => $d->department, 'matches' => (int) $d->n]);
+
+        $department = $departments->contains('id', $extra['department']) ? $extra['department'] : null;
+
+        $rows = $this->infractionRows((clone $base)->where('ed.company', $company))
+            ->when($department, fn ($q) => $q->where('ed.department', $department))
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        $years = DB::connection(self::HRIS_CONNECTION)->table('infraction')
+            ->whereNotNull('dateissued')
+            ->where('dateissued', '>', '0001-01-01')
+            ->selectRaw('DISTINCT YEAR(dateissued) AS y')
+            ->orderByDesc('y')
+            ->pluck('y');
+
+        return view('hr.infractions', array_merge($this->listData($ctx, $company, $tabs, $rows, $years), [
+            'departments' => $departments,
+            'department'  => $department,
+            'status'      => $extra['status'],
+            'deptTotal'   => $departments->sum('matches'),
+        ]));
+    }
+
+    /**
+     * Excel download of the selected company's infractions (all departments),
+     * same filters as the list, like the legacy page's download button.
+     */
+    public function infractionsExport(Request $request): Response
+    {
+        $companies = $this->companies();
+        $codes = $companies->pluck('companycode')->all();
+        $ctx = $this->context($request, $codes, true);
+        $extra = $this->infractionFilters($request);
+        $company = $ctx['company'] ?? $companies->first()->companycode;
+
+        $rows = $this->infractionRows(
+            $this->infractionQuery($ctx, $codes, $extra['status'])->where('ed.company', $company),
+            true
+        )->get();
+
+        // $company is validated against the company list, so it is safe in the file name
+        return response()
+            ->view('hr.infractions-export', ['byDepartment' => $rows->groupBy('department')])
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $company . '_Infraction_Report.xls"');
+    }
+
+    private function infractionFilters(Request $request): array
+    {
+        $v = $request->validate([
+            'status'     => ['nullable', 'in:' . implode(',', self::INFRACTION_STATUSES)],
+            'department' => ['nullable', 'integer'],
+        ]);
+
+        return [
+            'status'     => $v['status'] ?? null,
+            'department' => isset($v['department']) ? (int) $v['department'] : null,
+        ];
+    }
+
+    /**
+     * Infractions of active employees and of employees who resigned this year,
+     * with the legacy page's joins and memo exclusion.
+     */
+    private function infractionQuery(array $ctx, array $codes, ?string $status): Builder
+    {
+        $conn = DB::connection(self::HRIS_CONNECTION);
+        $year = now('Asia/Manila')->year;
+
+        $q = $conn->table('infraction as i')
+            ->join('employee_details as ed', 'ed.idno', '=', 'i.idno')
+            ->join('employee_profile as ep', 'ep.idno', '=', 'ed.idno')
+            ->join('department as d', 'd.id', '=', 'ed.department')
+            ->join('jobtitle as jt', 'jt.id', '=', 'ed.designation')
+            ->whereIn('ed.company', $codes)
+            ->whereNotIn('i.memonumber', self::INFRACTION_EXCLUDED_MEMOS)
+            // EXISTS, not a join: some employees have more than one resignation row
+            ->where(fn ($w) => $w
+                ->where('ed.status', 'not like', '%RESIGNED%')
+                ->orWhereExists(fn ($r) => $r->from('resignation as r')
+                    ->whereColumn('r.idno', 'ed.idno')
+                    ->whereYear('r.dateresigned', $year)))
+            ->when($status, fn ($w, $s) => $w->where('i.status', $s));
+        $this->applySearch($q, $ctx['search']);
+        $this->applyDates($q, 'i.dateissued', $ctx);
+
+        return $q;
+    }
+
+    // Pending first, then Served, then the rest (Void); newest issued first
+    private function infractionRows(Builder $q, bool $byDepartment = false): Builder
+    {
+        return $q->select(
+            'i.id', 'ep.idno', 'ep.lastname', 'ep.firstname', 'ep.middlename', 'ep.suffix',
+            'jt.jobtitle', 'd.department',
+            'i.dateissued', 'i.dateserved', 'i.typeofmemo', 'i.typeofoffense', 'i.typecat',
+            'i.points', 'i.memonumber', 'i.dateofincident', 'i.dateofsuspension', 'i.status'
+        )
+            ->when($byDepartment, fn ($w) => $w->orderBy('d.department'))
+            ->orderByRaw("CASE WHEN i.status = 'pending' THEN 1 WHEN i.status = 'Served' THEN 2 ELSE 3 END")
+            ->orderByDesc('i.dateissued')
+            ->orderByDesc('i.id');
     }
 
     private function companies()

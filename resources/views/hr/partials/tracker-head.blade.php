@@ -97,4 +97,9 @@
             </a>
         @endforeach
     </div>
+
+    {{-- Optional extra controls under the company tabs (gets $pageUrl and $keep) --}}
+    @isset($belowTabs)
+        @include($belowTabs)
+    @endisset
 </form>

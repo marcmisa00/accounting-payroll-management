@@ -229,6 +229,14 @@
                     </a>
                 </li>
 
+                <li>
+                    <a href="{{ route('hr.infractions') }}"
+                    class="{{ request()->routeIs('hr.infractions*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span class="nav-text">Employee Infractions</span>
+                    </a>
+                </li>
+
             </ul>
 
         </li>

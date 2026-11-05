@@ -269,6 +269,10 @@ html.dark-mode {
     border-top: 1px solid var(--hr-border);
 }
 
+/* Infractions: status pills + download button on one line */
+.hr-pills--bar { align-items: center; }
+.hr-pills-end { margin-left: auto; flex: 0 0 auto; }
+
 .hr-tab,
 .hr-pill {
     flex: 0 0 auto;
@@ -380,128 +384,26 @@ table.hr-table tbody tr.hr-row-blue:hover td { background: var(--hr-row-blue-hov
 table.hr-table tbody tr.hr-row-gray td { background: var(--hr-row-gray); }
 table.hr-table tbody tr.hr-row-gray:hover td { background: var(--hr-row-gray-hover); }
 
-.hr-th-inner {
+/* Roster date filter bar: field, From month/day, To month/day */
+.hr-datebar { margin-top: 10px; }
+
+.hr-datebar-group {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-}
-
-.hr-th-filter-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--hr-placeholder);
-    font-size: 9px;
-    cursor: pointer;
-}
-
-.hr-th-filter-btn:hover { background: var(--hr-soft); color: var(--hr-accent); }
-.hr-th-filter-btn.is-active { background: var(--hr-accent); color: #fff; }
-
-/* Fixed so the scrolling table wrapper does not clip it (placed by hr-roster.js) */
-.hr-popover {
-    position: fixed;
-    z-index: 50;
-    width: 250px;
-    padding: 12px;
-    background: var(--hr-surface);
+    gap: 8px;
+    padding: 5px 10px;
     border: 1px solid var(--hr-border-strong);
     border-radius: 12px;
-    box-shadow: var(--hr-shadow);
-    color: var(--hr-text);
-    font-size: 13px;
-    font-weight: 400;
-    letter-spacing: normal;
-    text-transform: none;
-    white-space: normal;
+    background: var(--hr-surface-2);
 }
 
-.hr-popover[hidden] { display: none; }
-
-.hr-popover-input {
-    width: 100%;
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--hr-border-strong);
-    border-radius: 8px;
-    background: var(--hr-input-bg);
+.hr-datebar-group > span {
     color: var(--hr-heading);
-    font-family: inherit;
     font-size: 13px;
-    outline: none;
-    color-scheme: light;
+    font-weight: 700;
 }
 
-html.dark-mode .hr-popover-input { color-scheme: dark; }
-.hr-popover-input:focus { border-color: var(--hr-accent); box-shadow: 0 0 0 3px var(--hr-focus); }
-
-.hr-popover-options {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.hr-popover-option,
-.hr-popover-tab {
-    padding: 7px 10px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--hr-text);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-}
-
-.hr-popover-option:hover,
-.hr-popover-tab:hover { background: var(--hr-row-hover); }
-
-.hr-popover-option.is-active,
-.hr-popover-tab.is-active {
-    background: var(--hr-soft);
-    color: var(--hr-soft-text);
-}
-
-.hr-popover-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    margin-bottom: 10px;
-}
-
-.hr-popover-tab { text-align: center; }
-
-.hr-popover-range {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 6px;
-    text-align: center;
-    color: var(--hr-muted);
-}
-
-.hr-popover-range[hidden],
-[data-panel][hidden] { display: none; }
-
-.hr-popover-hint {
-    margin: 0;
-    color: var(--hr-muted);
-    font-size: 12px;
-}
-
-.hr-popover-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-    margin-top: 12px;
-}
+.hr-datebar .hr-select { height: 34px; }
 
 .hr-id {
     color: var(--hr-muted) !important;

@@ -9,16 +9,8 @@
 
 @section('content')
 @php
-    $filterMeta = [
-        'jobtitle'       => ['label' => 'Job Title',      'type' => 'text'],
-        'status'         => ['label' => 'Status',         'type' => 'enum', 'options' => \App\Http\Controllers\HrRosterController::STATUSES],
-        'dateofhired'    => ['label' => 'Date Hired',     'type' => 'date'],
-        'dateofregular'  => ['label' => 'Regularization', 'type' => 'date'],
-        'dateoffulltime' => ['label' => 'Fulltime',       'type' => 'date'],
-        'shift'          => ['label' => 'Shift',          'type' => 'text'],
-        'location'       => ['label' => 'Work Setup',     'type' => 'text'],
-        'work_area'      => ['label' => 'Location',       'type' => 'text'],
-    ];
+    $dateFields = \App\Http\Controllers\HrRosterController::DATE_FIELDS;
+    $dateKeys = ['date_field', 'from_month', 'from_day', 'to_month', 'to_day'];
 
     // Roster URL with some query values changed (filter changes go back to page 1)
     $baseCtx = \Illuminate\Support\Arr::except($listContext, ['page']);
@@ -26,18 +18,20 @@
         array_merge($baseCtx, $changes),
         fn ($v) => $v !== null && $v !== '' && $v !== []
     ));
-    $withoutFilter = fn (string $key) => $rosterUrl(['f' => \Illuminate\Support\Arr::except($filters, $key)]);
 
     $fmt = fn ($d) => $d && !in_array($d, ['0000-00-00', '0001-01-01'], true) ? date('M d, Y', strtotime($d)) : '';
 
-    $chipText = function (string $key, $value) use ($filterMeta) {
-        if (!is_array($value)) return $value;
-        return match ($value['mode']) {
-            'month' => \Carbon\Carbon::create()->month($value['month'])->format('F'),
-            'year'  => $value['year'],
-            'range' => ($value['from'] ?? '…') . ' → ' . ($value['to'] ?? '…'),
-        };
-    };
+    // Fixed year and day 1 so the month name never overflows (e.g. "February" on the 30th)
+    $monthName = fn (int $m, string $f = 'F') => \Carbon\Carbon::create(2000, $m, 1)->format($f);
+    $mdText = fn (int $m, ?int $d) => $monthName($m, 'M') . ($d ? ' ' . str_pad($d, 2, '0', STR_PAD_LEFT) : '');
+
+    // Chip: "Mar 01 → Apr 15", or one value when From and To are the same
+    $dateChip = null;
+    if ($date) {
+        $fromText = $mdText($date['from_month'], $date['from_day']);
+        $toText   = $mdText($date['to_month'], $date['to_day']);
+        $dateChip = $fromText === $toText ? $fromText : "$fromText → $toText";
+    }
 @endphp
 
 <div class="hr">
@@ -50,7 +44,7 @@
         @endif
 
         <div class="hr-head-bar">
-            {{-- Searches ID and name only; the other columns have their own header filters --}}
+            {{-- Searches ID and name only; dates use the filter bar below --}}
             <div class="hr-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="search" name="search" value="{{ $search }}" id="hrSearch"
@@ -71,15 +65,42 @@
             </div>
         </div>
 
-        {{-- Active filter chips --}}
-        @if ($filters)
-            <div class="hr-chips">
-                @foreach ($filters as $key => $value)
-                    <span class="hr-chip">
-                        <strong>{{ $filterMeta[$key]['label'] }}</strong> {{ $chipText($key, $value) }}
-                        <a href="{{ $withoutFilter($key) }}" aria-label="Remove {{ $filterMeta[$key]['label'] }} filter">×</a>
-                    </span>
+        {{-- Date filter: month and day only, any year --}}
+        <div class="hr-head-bar hr-datebar">
+            <select name="date_field" class="hr-select" aria-label="Date to filter">
+                @foreach ($dateFields as $key => $label)
+                    <option value="{{ $key }}" @selected(($date['date_field'] ?? null) === $key)>{{ $label }}</option>
                 @endforeach
+            </select>
+
+            @foreach (['from' => 'From', 'to' => 'To'] as $side => $label)
+                <div class="hr-datebar-group">
+                    <span>{{ $label }}:</span>
+                    <select name="{{ $side }}_month" class="hr-select" aria-label="{{ $label }} month">
+                        <option value="">Month</option>
+                        @foreach (range(1, 12) as $m)
+                            <option value="{{ $m }}" @selected(($date[$side . '_month'] ?? null) === $m)>{{ $monthName($m) }}</option>
+                        @endforeach
+                    </select>
+                    <select name="{{ $side }}_day" class="hr-select" aria-label="{{ $label }} day">
+                        <option value="">Day</option>
+                        @foreach (range(1, 31) as $d)
+                            <option value="{{ $d }}" @selected(($date[$side . '_day'] ?? null) === $d)>{{ $d }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endforeach
+
+            <button type="submit" class="hr-btn hr-btn-primary hr-btn-sm">Filter</button>
+        </div>
+
+        {{-- Active date filter chip --}}
+        @if ($dateChip)
+            <div class="hr-chips">
+                <span class="hr-chip">
+                    <strong>{{ $dateFields[$date['date_field']] }}</strong> {{ $dateChip }}
+                    <a href="{{ $rosterUrl(array_fill_keys($dateKeys, null)) }}" aria-label="Remove date filter">×</a>
+                </span>
             </div>
         @endif
 
@@ -125,78 +146,15 @@
                 <tr>
                     <th>ID</th>
                     <th>Employee Name</th>
-                    @foreach (['jobtitle', 'eligibility', 'status', 'dateofhired', 'dateofregular', 'dateoffulltime', 'shift', 'location', 'work_area'] as $colKey)
-                        @if ($colKey === 'eligibility')
-                            <th class="text-center">Eligibility</th>
-                            @continue
-                        @endif
-                        @php
-                            $meta   = $filterMeta[$colKey];
-                            $active = isset($filters[$colKey]);
-                        @endphp
-                        <th class="hr-th-filterable {{ in_array($colKey, ['status', 'location', 'work_area'], true) ? 'text-center' : '' }}">
-                            <div class="hr-th-inner">
-                                <span>{{ $meta['label'] }}</span>
-                                <button type="button" class="hr-th-filter-btn {{ $active ? 'is-active' : '' }}"
-                                        data-popover="pop-{{ $colKey }}" title="Filter {{ $meta['label'] }}">
-                                    <i class="fa-solid fa-filter"></i>
-                                </button>
-                            </div>
-
-                            <div class="hr-popover" id="pop-{{ $colKey }}" hidden>
-                                @if ($meta['type'] === 'text')
-                                    <input type="text" form="hrForm" name="f[{{ $colKey }}]" value="{{ $filters[$colKey] ?? '' }}"
-                                           class="hr-popover-input" placeholder="Contains…">
-
-                                @elseif ($meta['type'] === 'enum')
-                                    <input type="hidden" form="hrForm" name="f[{{ $colKey }}]" value="{{ $filters[$colKey] ?? '' }}">
-                                    <div class="hr-popover-options">
-                                        <button type="button" data-value="" class="hr-popover-option {{ empty($filters[$colKey]) ? 'is-active' : '' }}">Any</button>
-                                        @foreach ($meta['options'] as $opt)
-                                            <button type="button" data-value="{{ $opt }}"
-                                                    class="hr-popover-option {{ ($filters[$colKey] ?? '') === $opt ? 'is-active' : '' }}">{{ $opt }}</button>
-                                        @endforeach
-                                    </div>
-
-                                @elseif ($meta['type'] === 'date')
-                                    @php
-                                        $dv   = $filters[$colKey] ?? [];
-                                        $mode = $dv['mode'] ?? '';
-                                    @endphp
-                                    <input type="hidden" form="hrForm" name="f[{{ $colKey }}][mode]" value="{{ $mode }}" data-mode-input>
-                                    <div class="hr-popover-tabs">
-                                        @foreach (['month' => 'Month', 'year' => 'Year', 'range' => 'Range'] as $m => $label)
-                                            <button type="button" data-mode="{{ $m }}" class="hr-popover-tab {{ $mode === $m ? 'is-active' : '' }}">{{ $label }}</button>
-                                        @endforeach
-                                    </div>
-
-                                    <div data-panel="month" @unless ($mode === 'month') hidden @endunless>
-                                        <select form="hrForm" name="f[{{ $colKey }}][month]" class="hr-popover-input" @disabled($mode !== 'month')>
-                                            <option value="">Pick month…</option>
-                                            @foreach (range(1, 12) as $m)
-                                                <option value="{{ $m }}" @selected(($dv['month'] ?? null) === $m)>{{ \Carbon\Carbon::create()->month($m)->format('F') }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div data-panel="year" @unless ($mode === 'year') hidden @endunless>
-                                        <input type="number" form="hrForm" name="f[{{ $colKey }}][year]" value="{{ $dv['year'] ?? '' }}"
-                                               class="hr-popover-input" min="1900" max="2100" placeholder="e.g. {{ now('Asia/Manila')->year }}" @disabled($mode !== 'year')>
-                                    </div>
-                                    <div data-panel="range" class="hr-popover-range" @unless ($mode === 'range') hidden @endunless>
-                                        <input type="date" form="hrForm" name="f[{{ $colKey }}][from]" value="{{ $dv['from'] ?? '' }}" class="hr-popover-input" @disabled($mode !== 'range')>
-                                        <span>→</span>
-                                        <input type="date" form="hrForm" name="f[{{ $colKey }}][to]" value="{{ $dv['to'] ?? '' }}" class="hr-popover-input" @disabled($mode !== 'range')>
-                                    </div>
-                                    <p class="hr-popover-hint" data-panel="" @if ($mode !== '') hidden @endif>Pick a mode above.</p>
-                                @endif
-
-                                <div class="hr-popover-actions">
-                                    <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" data-clear>Clear</button>
-                                    <button type="submit" form="hrForm" class="hr-btn hr-btn-primary hr-btn-sm">Done</button>
-                                </div>
-                            </div>
-                        </th>
-                    @endforeach
+                    <th>Job Title</th>
+                    <th class="text-center">Eligibility</th>
+                    <th class="text-center">Status</th>
+                    <th>Date Hired</th>
+                    <th>Regularization</th>
+                    <th>Fulltime</th>
+                    <th>Shift</th>
+                    <th class="text-center">Work Setup</th>
+                    <th class="text-center">Location</th>
                     <th>Referred by</th>
                     <th>Referral Fee</th>
                     <th class="text-center">Action</th>

@@ -49,6 +49,8 @@ Route::middleware('accounting.auth')->group(function () {
     Route::get('/hr/movement-tracker', [HrTrackerController::class, 'movement'])->name('hr.movement-tracker');
     Route::get('/hr/work-setup-tracker', [HrTrackerController::class, 'workSetup'])->name('hr.work-setup-tracker');
     Route::get('/hr/resigned', [HrTrackerController::class, 'resigned'])->name('hr.resigned');
+    Route::get('/hr/infractions', [HrTrackerController::class, 'infractions'])->name('hr.infractions');
+    Route::get('/hr/infractions/export', [HrTrackerController::class, 'infractionsExport'])->name('hr.infractions.export');
     Route::get('/hr/resigned/{idno}', [HrTrackerController::class, 'resignedShow'])->where('idno', '[A-Za-z0-9-]+')->name('hr.resigned.show');
     Route::get('/hso-applications', [HsoApplicationController::class, 'index'])->name('hso.index');
     Route::get('/hso-applications/{id}', [HsoApplicationController::class, 'show'])->whereNumber('id')->name('hso.show');
