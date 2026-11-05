@@ -384,14 +384,19 @@ table.hr-table tbody tr.hr-row-blue:hover td { background: var(--hr-row-blue-hov
 table.hr-table tbody tr.hr-row-gray td { background: var(--hr-row-gray); }
 table.hr-table tbody tr.hr-row-gray:hover td { background: var(--hr-row-gray-hover); }
 
-/* Roster date filter bar: field, From month/day, To month/day */
-.hr-datebar { margin-top: 10px; }
+/* Roster date filter (same row as the search box): field, From month/day, To month/day */
+.hr-datebar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
 
 .hr-datebar-group {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 10px;
+    padding: 2px 8px;
     border: 1px solid var(--hr-border-strong);
     border-radius: 12px;
     background: var(--hr-surface-2);

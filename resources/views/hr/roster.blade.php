@@ -44,12 +44,41 @@
         @endif
 
         <div class="hr-head-bar">
-            {{-- Searches ID and name only; dates use the filter bar below --}}
+            {{-- Searches ID and name only; dates use the filter next to it --}}
             <div class="hr-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="search" name="search" value="{{ $search }}" id="hrSearch"
                        placeholder="Search by employee ID or name…" aria-label="Search by employee ID or name"
                        autocomplete="off">
+            </div>
+
+            {{-- Date filter: month and day only, any year --}}
+            <div class="hr-datebar">
+                <select name="date_field" class="hr-select" aria-label="Date to filter">
+                    @foreach ($dateFields as $key => $label)
+                        <option value="{{ $key }}" @selected(($date['date_field'] ?? null) === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+
+                @foreach (['from' => 'From', 'to' => 'To'] as $side => $label)
+                    <div class="hr-datebar-group">
+                        <span>{{ $label }}:</span>
+                        <select name="{{ $side }}_month" class="hr-select" aria-label="{{ $label }} month">
+                            <option value="">Month</option>
+                            @foreach (range(1, 12) as $m)
+                                <option value="{{ $m }}" @selected(($date[$side . '_month'] ?? null) === $m)>{{ $monthName($m) }}</option>
+                            @endforeach
+                        </select>
+                        <select name="{{ $side }}_day" class="hr-select" aria-label="{{ $label }} day">
+                            <option value="">Day</option>
+                            @foreach (range(1, 31) as $d)
+                                <option value="{{ $d }}" @selected(($date[$side . '_day'] ?? null) === $d)>{{ $d }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endforeach
+
+                <button type="submit" class="hr-btn hr-btn-primary hr-btn-sm">Filter</button>
             </div>
 
             @if ($searching)
@@ -63,35 +92,6 @@
                     <strong>{{ number_format($employees->total()) }}</strong> {{ Str::plural('employee', $employees->total()) }}
                 </span>
             </div>
-        </div>
-
-        {{-- Date filter: month and day only, any year --}}
-        <div class="hr-head-bar hr-datebar">
-            <select name="date_field" class="hr-select" aria-label="Date to filter">
-                @foreach ($dateFields as $key => $label)
-                    <option value="{{ $key }}" @selected(($date['date_field'] ?? null) === $key)>{{ $label }}</option>
-                @endforeach
-            </select>
-
-            @foreach (['from' => 'From', 'to' => 'To'] as $side => $label)
-                <div class="hr-datebar-group">
-                    <span>{{ $label }}:</span>
-                    <select name="{{ $side }}_month" class="hr-select" aria-label="{{ $label }} month">
-                        <option value="">Month</option>
-                        @foreach (range(1, 12) as $m)
-                            <option value="{{ $m }}" @selected(($date[$side . '_month'] ?? null) === $m)>{{ $monthName($m) }}</option>
-                        @endforeach
-                    </select>
-                    <select name="{{ $side }}_day" class="hr-select" aria-label="{{ $label }} day">
-                        <option value="">Day</option>
-                        @foreach (range(1, 31) as $d)
-                            <option value="{{ $d }}" @selected(($date[$side . '_day'] ?? null) === $d)>{{ $d }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            @endforeach
-
-            <button type="submit" class="hr-btn hr-btn-primary hr-btn-sm">Filter</button>
         </div>
 
         {{-- Active date filter chip --}}
