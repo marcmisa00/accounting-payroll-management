@@ -138,14 +138,14 @@ class PayrollCalculationService
         $leaveTypes = ['vl' => 0, 'sl' => 0, 'bl' => 0, 'bday' => 0, 'ptl' => 0, 'spl' => 0];
         $dailyLeaveDays = ['old' => $leaveTypes, 'new' => $leaveTypes];
 
-        $attendanceStart = $periodStart;
-
-        if (($employeeDetails->dls ?? 0) == 1) {
-            $attendanceStart = date(
-                'Y-m-d H:i:s',
-                strtotime($periodStart . ' -1 day')
-            );
-        }
+        // Always reach one day back: an attendance_dls = 1 row logged the day
+        // before the period counts for its first day. Each row's own
+        // attendance_dls (not the employee's current dls, which a mid-period
+        // shift movement can change) decides below whether it belongs here.
+        $attendanceStart = date(
+            'Y-m-d H:i:s',
+            strtotime($periodStart . ' -1 day')
+        );
 
         $attendanceRows = $conn->table('attendance')
             ->where('idno', $idno)
@@ -177,8 +177,8 @@ class PayrollCalculationService
 
             $dayOfWeek = date('l', strtotime($logindate));
 
-            [$startshift, $endshift, $dls] = $this->resolveShiftForDate(
-                $conn, $idno, $logindate, $attendance->shiftchange ?? null, $dayOfWeek, $employeeDetails
+            [$startshift, $endshift] = $this->resolveShiftForDate(
+                $conn, $idno, $payrollDate, (int) $attendanceDls, $attendance->shiftchange ?? null, $dayOfWeek, $employeeDetails
             );
 
             [$loginam, $logoutam, $loginpm, $logoutpm] = $this->resolveDisplayTimes(
@@ -398,11 +398,11 @@ class PayrollCalculationService
             $spholiday = $spholidayot = $regholiday = $regholidayot = 0;
             $reghoursnwamount = 0;
 
-            $effectivity = $effectivityRaw
-                ? ($dls == 1 ? date('Y-m-d', strtotime($effectivityRaw . ' -1 day')) : $effectivityRaw)
-                : 'N/A';
+            // Old rate for days before the salary effectivity, judged by the day
+            // the row counts for (same as the Fixed/Daily split above).
+            $effectivity = $effectivityRaw ? date('Y-m-d', strtotime($effectivityRaw)) : 'N/A';
 
-            $empsalary = ($effectivity !== 'N/A' && $effectivity > $logindate) ? $previousSalary : $salary;
+            $empsalary = ($effectivity !== 'N/A' && $effectivity > $payrollDate) ? $previousSalary : $salary;
             $missingsal = $empsalary;
 
             if ($otremarks === 'OT') {
@@ -1149,30 +1149,35 @@ class PayrollCalculationService
      * schedule, then movement_tracker's effective-dated shift ranges,
      * falling back to the employee's default shift.
      */
-    private function resolveShiftForDate($conn, string $idno, string $logindate, ?string $shiftChangeRaw, string $dayOfWeek, object $employeeDetails): array
+    private function resolveShiftForDate($conn, string $idno, string $payrollDate, int $attendanceDls, ?string $shiftChangeRaw, string $dayOfWeek, object $employeeDetails): array
     {
         $startshift = $employeeDetails->startshift;
         $endshift   = $employeeDetails->endshift;
-        $dls        = $employeeDetails->dls;
 
+        // $payrollDate is the day the row counts for (logindate + 1 for
+        // attendance_dls = 1 rows), so a movement's effectivity is compared
+        // per row instead of through the employee's current dls.
         $movement = $conn->table('movement_tracker')
             ->where('idno', $idno)
-            ->where('effectivitydate', '<=', $logindate)
+            ->where('effectivitydate', '<=', $payrollDate)
             ->orderByDesc('effectivitydate')
             ->first();
 
         if ($movement) {
-            $shiftEffectivity = $movement->effectivitydate;
-            if ($dls == 1) {
-                $shiftEffectivity = date('Y-m-d', strtotime($shiftEffectivity . ' -1 day'));
-            }
+            $effectivity = date('Y-m-d', strtotime($movement->effectivitydate));
+            $shiftStr = ($payrollDate < $effectivity) ? $movement->shiftfrom : $movement->shiftto;
 
-            if ($logindate < $shiftEffectivity) {
-                $shiftStr = $movement->shiftfrom;
-                $dls = $movement->dls;
-            } else {
-                $shiftStr = $movement->shiftto;
-                $dls = $employeeDetails->dls;
+            // A night <-> day change can put two rows on the effectivity date
+            // (the last old-shift night and the first new-shift day). A row
+            // whose attendance_dls doesn't match the new shift's is the old
+            // one: use the shift in force before this movement (the earlier
+            // movement's shiftto, as shiftfrom is not always well-formed).
+            if ($payrollDate === $effectivity && $attendanceDls !== $this->shiftIsDls($movement->shiftto)) {
+                $shiftStr = $conn->table('movement_tracker')
+                    ->where('idno', $idno)
+                    ->where('effectivitydate', '<', $movement->effectivitydate)
+                    ->orderByDesc('effectivitydate')
+                    ->value('shiftto') ?: $movement->shiftfrom;
             }
 
             if (! empty($shiftStr)) {
@@ -1203,7 +1208,23 @@ class PayrollCalculationService
             }
         }
 
-        return [$startshift, $endshift, $dls];
+        return [$startshift, $endshift];
+    }
+
+    /**
+     * Same rule HRIS uses when applying a shift movement
+     * (cron/automatic_movements.php): a shift starting at 23:00 or 00:00
+     * is a dls shift. movement_tracker.dls itself isn't reliable for this.
+     */
+    private function shiftIsDls(?string $shiftStr): int
+    {
+        if (empty($shiftStr) || ! str_contains($shiftStr, '-')) {
+            return -1; // unknown: never matches, so no tie-break override
+        }
+
+        $hour = (int) date('H', strtotime(trim(explode('-', $shiftStr, 2)[0])));
+
+        return ($hour === 23 || $hour === 0) ? 1 : 0;
     }
 
     /**
