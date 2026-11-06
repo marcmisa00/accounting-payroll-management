@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\AccountingAccess;
 use App\Services\AuthenticatorCode;
+use App\Services\LoginMonitor;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -20,6 +21,8 @@ use Sonata\GoogleAuthenticator\GoogleAuthenticator;
 class AccountingLoginController extends Controller
 {
     private const NO_ACCESS = "You don't have access to this page.";
+
+    public const DISABLED = 'This Accounting account is disabled. Please contact the administrator.';
 
     // One message for every failed registration check, so it can't be used to learn which IDs exist
     private const NOT_VERIFIED = "We couldn't verify these details. Check your ID number and HRIS authenticator code.";
@@ -65,6 +68,8 @@ class AccountingLoginController extends Controller
         $limitKey = 'accounting-login:' . sha1($username);
 
         if (RateLimiter::tooManyAttempts($limitKey, self::LOGIN_MAX_FAILS)) {
+            LoginMonitor::failure($request, $username, User::where('username', $username)->value('idno'), 'locked');
+
             return back()
                 ->withInput($request->only('username', 'remember'))
                 ->with('error', $this->lockedMessage($limitKey));
@@ -74,6 +79,7 @@ class AccountingLoginController extends Controller
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             RateLimiter::hit($limitKey, self::LOCK_SECONDS);
+            LoginMonitor::failure($request, $username, $user?->idno, $user ? 'wrong_password' : 'unknown_user');
 
             return back()
                 ->withInput($request->only('username', 'remember'))
@@ -82,8 +88,19 @@ class AccountingLoginController extends Controller
 
         RateLimiter::clear($limitKey);
 
+        // Disabled from the NESI Admin site
+        if ($user->disabled_at) {
+            LoginMonitor::failure($request, $username, $user->idno, 'disabled');
+
+            return back()
+                ->withInput($request->only('username', 'remember'))
+                ->with('error', self::DISABLED);
+        }
+
         // Access is managed in HRIS, so re-check it on every login
         if (!AccountingAccess::allows($user->idno)) {
+            LoginMonitor::failure($request, $username, $user->idno, 'no_access');
+
             return back()
                 ->withInput($request->only('username', 'remember'))
                 ->with('error', self::NO_ACCESS);

@@ -64,6 +64,28 @@ return [
             ]) : [],
         ],
 
+        // admin-nesi: sign-in monitoring (login_sessions, login_failures), written by LoginMonitor
+        'admin' => [
+            'driver' => 'mysql',
+            'host' => env('ADMIN_DB_HOST', '127.0.0.1'),
+            'port' => env('ADMIN_DB_PORT', '3306'),
+            'database' => env('ADMIN_DB_DATABASE'),
+            'username' => env('ADMIN_DB_USERNAME'),
+            'password' => env('ADMIN_DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // A slow or unreachable admin database must not hold up Accounting
+                PDO::ATTR_TIMEOUT => 3,
+            ]) : [],
+        ],
+
         'hris' => [
             'driver' => 'mysql',
             'url' => env('HRIS_DATABASE_URL'),

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\AuthenticatorCode;
+use App\Services\LoginMonitor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -47,7 +48,17 @@ class AccountingAuthController extends Controller
         $limitKey = 'accounting-otp:' . $user->id;
 
         if (RateLimiter::tooManyAttempts($limitKey, self::OTP_MAX_FAILS)) {
+            LoginMonitor::failure($request, (string) $user->username, $user->idno, 'locked');
+
             return $this->lockedOut($limitKey);
+        }
+
+        // Disabled from the NESI Admin site between the password and the code
+        if ($user->disabled_at) {
+            session()->forget(['accounting_pending_user_id', 'accounting_pending_at']);
+            LoginMonitor::failure($request, (string) $user->username, $user->idno, 'disabled');
+
+            return redirect()->route('login')->with('error', AccountingLoginController::DISABLED);
         }
 
         // Validate the submitted code
@@ -64,6 +75,7 @@ class AccountingAuthController extends Controller
         // Verify the 6-digit code; a code already used to sign in is refused
         if (!AuthenticatorCode::verify($user->ga_secret, $request->code, 'user:' . $user->id)) {
             RateLimiter::hit($limitKey, self::LOCK_SECONDS);
+            LoginMonitor::failure($request, (string) $user->username, $user->idno, 'wrong_code');
 
             if (RateLimiter::tooManyAttempts($limitKey, self::OTP_MAX_FAILS)) {
                 return $this->lockedOut($limitKey);
@@ -88,11 +100,14 @@ class AccountingAuthController extends Controller
             'accounting_checked_at' => time(),
         ]);
 
+        LoginMonitor::start($request, $user);
+
         return redirect()->route('dashboard');
     }
 
     public function logout(Request $request)
     {
+        LoginMonitor::end('logout');
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

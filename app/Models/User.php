@@ -28,6 +28,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'ga_secret' => 'encrypted',
+            'disabled_at' => 'datetime',
         ];
     }
 }
