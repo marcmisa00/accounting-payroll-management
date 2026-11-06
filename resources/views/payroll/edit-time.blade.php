@@ -102,6 +102,17 @@
 
                     <tbody>
 
+                        {{-- STATUS / REMARKS (raw attendance record, display only) --}}
+                        <tr>
+                            <td>Status</td>
+                            <td>{{ filled($attendanceRecord->status ?? null) ? $attendanceRecord->status : '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <td>Remarks</td>
+                            <td>{{ filled($attendanceRecord->remarks ?? null) ? $attendanceRecord->remarks : '—' }}</td>
+                        </tr>
+
                         {{-- OT TIME (raw attendance.ottime — not the same as the OT override above) --}}
                         <tr>
                             <td>OT Time (attendance record)</td>
@@ -142,6 +153,41 @@
                     @csrf
 
                     <div class="form-grid">
+
+                        {{-- STATUS / REMARKS - READ ONLY (no name attribute, so they are never submitted) --}}
+                        <div class="form-group">
+                            <label class="control-label">
+                                Status
+                            </label>
+
+                            <small class="help-text">
+                                From the HRIS attendance record. Change this in HRIS attendance.
+                            </small>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ filled($attendanceRecord->status ?? null) ? $attendanceRecord->status : '—' }}"
+                                readonly
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="control-label">
+                                Remarks
+                            </label>
+
+                            <small class="help-text">
+                                From the HRIS attendance record. Change this in HRIS attendance.
+                            </small>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ filled($attendanceRecord->remarks ?? null) ? $attendanceRecord->remarks : '—' }}"
+                                readonly
+                            >
+                        </div>
 
                         {{-- OT TIME - READ ONLY --}}
                         <div class="form-group">
