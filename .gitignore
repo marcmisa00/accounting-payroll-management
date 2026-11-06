@@ -27,3 +27,7 @@ Homestead.yaml
 Thumbs.db
 /storage/framework/
 /storage/logs/
+
+# Database dumps (contain employee/bank data)
+*.sql
+*.sql.gz
