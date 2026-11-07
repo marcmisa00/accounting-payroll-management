@@ -10,8 +10,7 @@ use Illuminate\View\View;
 
 /**
  * Read-only HR roster: active employees by company → department, with the
- * a month-day date filter (Date Hired / Regularization / Fulltime, any year),
- * and a view-only employee profile.
+ * HR portal's column filters, and a view-only employee profile.
  * Nothing here writes to the database.
  */
 class HrRosterController extends Controller
@@ -23,12 +22,11 @@ class HrRosterController extends Controller
     // Shift start times the legacy roster treats as graveyard
     private const GRAVEYARD_STARTS = ['23:00', '00:00', '01:00'];
 
-    // employee_details date columns the roster can filter on, with their labels
-    public const DATE_FIELDS = [
-        'dateofhired'    => 'Date Hired',
-        'dateofregular'  => 'Regularization',
-        'dateoffulltime' => 'Fulltime',
-    ];
+    private const TEXT_FILTERS = ['jobtitle', 'shift', 'work_area', 'location'];
+
+    private const DATE_FILTERS = ['dateofhired', 'dateofregular', 'dateoffulltime'];
+
+    public const STATUSES = ['REGULAR', 'PROBATIONARY'];
 
     public function index(Request $request): View
     {
@@ -95,7 +93,7 @@ class HrRosterController extends Controller
             'department'  => $department,
             'deptTotal'   => (int) ($companyCounts[$company] ?? 0),
             'search'      => $ctx['search'],
-            'date'        => $ctx['date'],
+            'filters'     => $ctx['filters'],
             'searching'   => $ctx['searching'],
             'listContext' => $this->listContext($ctx, $company, $department, $employees->currentPage()),
             'graveyard'   => self::GRAVEYARD_STARTS,
@@ -222,62 +220,78 @@ class HrRosterController extends Controller
     }
 
     /**
-     * Search, date filter, company, department and page from the query string.
-     * Old links with the removed column filters (f[...]) are ignored.
+     * Search, filters, company, department and page from the query string.
      */
     private function context(Request $request, array $companyCodes): array
     {
-        $v = $request->validate([
+        $rules = [
             'search'     => ['nullable', 'string', 'max:100'],
             'company'    => ['nullable', 'in:' . implode(',', $companyCodes)],
             'department' => ['nullable', 'integer'],
             'page'       => ['nullable', 'integer', 'min:1'],
-            'date_field' => ['nullable', 'in:' . implode(',', array_keys(self::DATE_FIELDS))],
-            'from_month' => ['nullable', 'integer', 'between:1,12'],
-            'from_day'   => ['nullable', 'integer', 'between:1,31'],
-            'to_month'   => ['nullable', 'integer', 'between:1,12'],
-            'to_day'     => ['nullable', 'integer', 'between:1,31'],
-        ]);
+            'f'          => ['nullable', 'array'],
+            'f.status'   => ['nullable', 'in:' . implode(',', self::STATUSES)],
+        ];
+        foreach (self::TEXT_FILTERS as $key) {
+            $rules["f.$key"] = ['nullable', 'string', 'max:100'];
+        }
+        foreach (self::DATE_FILTERS as $key) {
+            $rules["f.$key"]       = ['nullable', 'array'];
+            $rules["f.$key.mode"]  = ['nullable', 'in:month,year,range'];
+            $rules["f.$key.month"] = ['nullable', 'integer', 'between:1,12'];
+            $rules["f.$key.year"]  = ['nullable', 'integer', 'between:1900,2100'];
+            $rules["f.$key.from"]  = ['nullable', 'date_format:Y-m-d'];
+            $rules["f.$key.to"]    = ['nullable', 'date_format:Y-m-d'];
+        }
 
-        // Month and day only (any year). With one side given, that month / day alone.
-        $int = fn ($x) => empty($x) ? null : (int) $x;
-        [$fm, $fd, $tm, $td] = [$int($v['from_month'] ?? null), $int($v['from_day'] ?? null),
-            $int($v['to_month'] ?? null), $int($v['to_day'] ?? null)];
-        $date = null;
-        if ($fm || $tm) {
-            if (!$fm) {
-                [$fm, $fd] = [$tm, $td];
+        $v = $request->validate($rules);
+
+        // Keep only filters that actually narrow the list
+        $filters = [];
+        if (!empty($v['f']['status'])) {
+            $filters['status'] = $v['f']['status'];
+        }
+        foreach (self::TEXT_FILTERS as $key) {
+            $text = trim((string) ($v['f'][$key] ?? ''));
+            if ($text !== '') {
+                $filters[$key] = $text;
             }
-            if (!$tm) {
-                [$tm, $td] = [$fm, $fd];
+        }
+        foreach (self::DATE_FILTERS as $key) {
+            $f = $v['f'][$key] ?? [];
+            $mode = $f['mode'] ?? '';
+            $date = match (true) {
+                $mode === 'month' && !empty($f['month']) => ['mode' => 'month', 'month' => (int) $f['month']],
+                $mode === 'year' && !empty($f['year'])   => ['mode' => 'year', 'year' => (int) $f['year']],
+                $mode === 'range' && (!empty($f['from']) || !empty($f['to'])) => array_filter([
+                    'mode' => 'range', 'from' => $f['from'] ?? null, 'to' => $f['to'] ?? null,
+                ]),
+                default => null,
+            };
+            if ($date) {
+                $filters[$key] = $date;
             }
-            $date = [
-                'date_field' => $v['date_field'] ?? array_key_first(self::DATE_FIELDS),
-                'from_month' => $fm,
-                'from_day'   => $fd,
-                'to_month'   => $tm,
-                'to_day'     => $td,
-            ];
         }
 
         $search = trim((string) ($v['search'] ?? ''));
 
         return [
             'search'     => $search,
-            'date'       => $date,
+            'filters'    => $filters,
             'company'    => $v['company'] ?? null,
             'department' => isset($v['department']) ? (int) $v['department'] : null,
             'page'       => (int) ($v['page'] ?? 1),
-            'searching'  => $search !== '' || $date !== null,
+            'searching'  => $search !== '' || $filters !== [],
         ];
     }
 
     /**
-     * Active employees matching search and date filter, across all companies.
+     * Active employees matching search and filters, across all companies.
      */
     private function rosterQuery(array $ctx, array $companyCodes): Builder
     {
         $like = fn (string $v) => '%' . addcslashes($v, '%_\\') . '%';
+        $f = $ctx['filters'];
 
         $q = DB::connection(self::HRIS_CONNECTION)->table('employee_profile as ep')
             ->join('employee_details as ed', 'ed.idno', '=', 'ep.idno')
@@ -296,21 +310,32 @@ class HrRosterController extends Controller
                 ->orWhereRaw("CONCAT(ep.lastname, ', ', ep.firstname) LIKE ?", [$s]));
         }
 
-        if ($date = $ctx['date']) {
-            // Column comes from the validated DATE_FIELDS list, never raw input
-            $col = 'ed.' . $date['date_field'];
-            $md = "DATE_FORMAT($col, '%m%d')";
-            $from = sprintf('%02d%02d', $date['from_month'], $date['from_day'] ?? 1);
-            $to = sprintf('%02d%02d', $date['to_month'], $date['to_day'] ?? 31);
+        if (isset($f['status'])) {
+            $q->where('ed.status', $f['status']);
+        }
+        if (isset($f['jobtitle'])) {
+            $q->where('jt.jobtitle', 'like', $like($f['jobtitle']));
+        }
+        if (isset($f['shift'])) {
+            $q->whereRaw("CONCAT(TIME_FORMAT(ed.startshift, '%h:%i %p'), ' - ', TIME_FORMAT(ed.endshift, '%h:%i %p')) LIKE ?", [$like($f['shift'])]);
+        }
+        if (isset($f['work_area'])) {
+            $q->where('ed.work_area', 'like', $like($f['work_area']));
+        }
+        if (isset($f['location'])) {
+            $q->where('ed.location', 'like', $like($f['location']));
+        }
 
-            // Skip empty / placeholder dates (0000-00-00, 0001-01-01)
-            $q->where($col, '>', '0001-01-01');
-            if ($from <= $to) {
-                $q->whereRaw("$md BETWEEN ? AND ?", [$from, $to]);
-            } else {
-                // Range across New Year, e.g. Dec 15 → Jan 15
-                $q->where(fn ($w) => $w->whereRaw("$md >= ?", [$from])->orWhereRaw("$md <= ?", [$to]));
-            }
+        foreach (self::DATE_FILTERS as $key) {
+            $date = $f[$key] ?? null;
+            $col = "ed.$key";
+            match ($date['mode'] ?? null) {
+                'month' => $q->whereMonth($col, $date['month']),
+                'year'  => $q->whereYear($col, $date['year']),
+                'range' => $q->when($date['from'] ?? null, fn ($w, $from) => $w->where($col, '>=', $from))
+                             ->when($date['to'] ?? null, fn ($w, $to) => $w->where($col, '<=', $to)),
+                default => null,
+            };
         }
 
         return $q;
@@ -365,12 +390,13 @@ class HrRosterController extends Controller
      */
     private function listContext(array $ctx, ?string $company, ?int $department, int $page): array
     {
-        return array_filter(array_merge($ctx['date'] ?? [], [
+        return array_filter([
             'search'     => $ctx['search'],
+            'f'          => $ctx['filters'],
             'company'    => $company,
             'department' => $department,
             'page'       => $page > 1 ? $page : null,
-        ]), fn ($v) => $v !== null && $v !== '' && $v !== []);
+        ], fn ($v) => $v !== null && $v !== '' && $v !== []);
     }
 
     // Same rule as the legacy accounting roster

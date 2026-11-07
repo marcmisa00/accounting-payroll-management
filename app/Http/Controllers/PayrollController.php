@@ -337,11 +337,12 @@ class PayrollController extends Controller
             $query->where(function ($q) use ($searchColumn, $like) {
                 match ($searchColumn) {
                     '1'     => $q->where('ep.idno', 'like', $like),
-                    '2'     => $q->where(DB::raw("CONCAT(ep.lastname,' ',ep.firstname,' ',ep.middlename)"), 'like', $like),
+                    '2'     => $q->where(DB::raw("CONCAT_WS(' ', ep.lastname, ep.firstname, ep.middlename)"), 'like', $like),
                     '3'     => $q->where('ed.location', 'like', $like),
                     default => $q->where('ep.idno', 'like', $like)
                         ->orWhere('ep.lastname', 'like', $like)
                         ->orWhere('ep.firstname', 'like', $like)
+                        ->orWhere('ep.middlename', 'like', $like)
                         ->orWhere('ed.location', 'like', $like),
                 };
             });

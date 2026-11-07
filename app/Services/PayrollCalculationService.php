@@ -7,6 +7,8 @@ class PayrollCalculationService
 {
     private const HRIS_CONNECTION = 'hris';
 
+    public function __construct(private readonly WorkSetupTimeline $workSetup) {}
+
     /**
      * @return array{rows: array, totals: array}
      */
@@ -154,12 +156,20 @@ class PayrollCalculationService
             ->orderByDesc('addedtime')
             ->get();
 
+        // OS / WFH / Hybrid per day (same timeline as HRIS), so a transfer in
+        // the middle of the cut-off applies the OS or WFH rules (early login,
+        // hours, OT, ND) to the days on each side of it.
+        $workSetupTimeline = $this->workSetup->forEmployee($idno, $employeeDetails);
+
         $rows = [];
         $t = $this->emptyTotals(); // running totals accumulator
 
         foreach ($attendanceRows as $attendance) {
             $logindate = $attendance->logindate;
             $attendanceDls = $attendance->attendance_dls ?? 0;
+
+            // Resolved by logindate, as HRIS does.
+            $location = $this->workSetup->resolve($workSetupTimeline, date('Y-m-d', strtotime($logindate)))['location'];
 
             $payrollDate = $attendanceDls == 1
                 ? date('Y-m-d', strtotime($logindate . ' +1 day'))
@@ -974,6 +984,7 @@ class PayrollCalculationService
                 'attendance_id'=> $attendance->id,
                 'is_overridden'=> $isOverridden,
                 'calculated'   => $calculated,
+                'work_setup'   => $location,
             ];
 
             if (($nd > 0 || $work > 0) && $rh == 0 && $snwh == 0 && $leave == 0) {
@@ -1162,6 +1173,25 @@ class PayrollCalculationService
             ->where('effectivitydate', '<=', $payrollDate)
             ->orderByDesc('effectivitydate')
             ->first();
+
+        // Before the employee's first movement: employee_details already holds
+        // the NEW shift once HRIS applies the movement, so use the shift the
+        // first movement changed from (its shiftfrom). E.g. one movement
+        // 23:00-08:00 -> 00:00-09:00 effective Nov 2: Oct 28 - Nov 1 use
+        // 23:00-08:00. A blank or malformed shiftfrom keeps employee_details.
+        if (! $movement) {
+            $first = $conn->table('movement_tracker')
+                ->where('idno', $idno)
+                ->where('effectivitydate', '>', $payrollDate)
+                ->orderBy('effectivitydate')
+                ->first();
+
+            $parts = $first ? preg_split('/\s*-\s*/', trim((string) $first->shiftfrom)) : [];
+            if (count($parts) === 2 && strtotime($parts[0]) !== false && strtotime($parts[1]) !== false) {
+                $startshift = date('H:i:s', strtotime($parts[0]));
+                $endshift   = date('H:i:s', strtotime($parts[1]));
+            }
+        }
 
         if ($movement) {
             $effectivity = date('Y-m-d', strtotime($movement->effectivitydate));

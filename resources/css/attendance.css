@@ -506,6 +506,158 @@ table.att-table small {
 
 
 /* =========================================================
+   EMPLOYEES' LOGS (one row per employee, logs listed inside)
+   ========================================================= */
+
+/* Attendance Monitoring uses the full width of the content area */
+.att.att-wide {
+    max-width: none;
+}
+
+.att-emp-list {
+    --att-emp-cols: 5.5rem minmax(10rem, 1.2fr) 6.5rem minmax(8rem, 1fr) 9.5rem 4.5rem minmax(32rem, 3.2fr);
+    overflow: hidden;
+    background: var(--a-surface);
+    border: 1px solid var(--a-border);
+    border-radius: 18px;
+    box-shadow: var(--a-shadow);
+    font-size: 13px;
+}
+
+.att-emp-head,
+.att-emp-row {
+    display: grid;
+    grid-template-columns: var(--att-emp-cols);
+    column-gap: 16px;
+    padding: 12px 16px;
+}
+
+.att-emp-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--a-surface-2);
+    color: var(--a-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--a-border-strong);
+}
+
+.att-emp-row {
+    align-items: start;
+    color: var(--a-text);
+    border-bottom: 1px solid var(--a-border);
+    transition: background 0.15s;
+}
+
+.att-emp-row:last-child { border-bottom: none; }
+.att-emp-row:hover { background: var(--a-row-hover); }
+.att-emp-row p { margin: 0; }
+
+.att-emp-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 600;
+    color: var(--a-heading);
+}
+
+.att-emp-name {
+    font-weight: 600;
+    color: var(--a-heading);
+}
+
+/* Column name shown in front of a value only on the stacked (narrow) layout */
+.att-emp-label { display: none; }
+
+.att-emp-logs { min-width: 0; }
+
+.att-log {
+    display: grid;
+    grid-template-columns: 6.5rem repeat(4, minmax(4.75rem, 7rem)) minmax(0, 1fr);
+    column-gap: 8px;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.att-log + .att-log { border-top: 1px dashed var(--a-border); }
+
+.att-log-date {
+    font-weight: 600;
+    color: var(--a-heading);
+    white-space: nowrap;
+}
+
+.att-log-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    min-width: 0;
+}
+
+.att-log-status .att-chip { padding: 1px 8px; font-size: 10px; }
+.att-log-status .att-flag { margin-top: 0; font-size: 10px; }
+
+.att-log-note {
+    color: var(--a-muted);
+    font-size: 11px;
+}
+
+.att-log-note i { margin-right: 2px; }
+
+.att-log-empty {
+    margin: 0;
+    font-size: 12px;
+}
+
+@media (max-width: 1280px) {
+    /* Stack each employee: details on top, logs underneath */
+    .att-emp-head { display: none; }
+
+    .att-emp-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 4px;
+    }
+
+    .att-emp-id,
+    .att-emp-name { grid-column: span 1; }
+
+    .att-emp-label {
+        display: inline;
+        margin-right: 6px;
+        color: var(--a-placeholder);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .att-emp-logs {
+        grid-column: 1 / -1;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--a-border);
+    }
+}
+
+@media (max-width: 640px) {
+    .att-emp-row { grid-template-columns: 1fr; }
+
+    .att-log {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        row-gap: 2px;
+        padding: 6px 0;
+    }
+
+    .att-log-date,
+    .att-log-status { grid-column: 1 / -1; }
+}
+
+
+/* =========================================================
    PAGINATION (markup from payroll.partials.history-pagination)
    ========================================================= */
 

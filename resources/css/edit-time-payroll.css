@@ -63,6 +63,74 @@
         padding: 22px 24px 26px;
     }
 
+    /* ---------- Highlighted employee / date / remarks ---------- */
+    .day-highlight {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #3b82f6;
+    }
+
+    .day-highlight-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .day-highlight-item i {
+        margin-top: 3px;
+        color: #2563eb;
+        font-size: 15px;
+    }
+
+    .day-highlight-item span {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .day-highlight-item small {
+        color: #3b5b8a;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .day-highlight-item strong {
+        color: #1e3a8a;
+        font-size: 16px;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .day-highlight-item em {
+        color: #3b5b8a;
+        font-size: 12px;
+        font-style: normal;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .dark-mode .day-highlight {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: rgba(96, 165, 250, 0.35);
+        border-left-color: #60a5fa;
+    }
+    .dark-mode .day-highlight-item i { color: #93c5fd; }
+    .dark-mode .day-highlight-item small,
+    .dark-mode .day-highlight-item em { color: #a5c4ec; }
+    .dark-mode .day-highlight-item strong { color: #dbeafe; }
+
+    @media (max-width: 720px) {
+        .day-highlight { grid-template-columns: 1fr; }
+    }
+
     /* ================================================= */
     /* HORIZONTAL LAYOUT: table left, form right         */
     /* ================================================= */

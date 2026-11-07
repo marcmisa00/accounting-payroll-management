@@ -86,7 +86,7 @@ class AttendanceController extends Controller
                 'departments' => $departments,
                 'rangeError'  => $rangeError,
                 'summary'     => null,
-                'records'     => null,
+                'employees'   => null,
                 'corrections' => collect(),
             ]);
         }
@@ -102,44 +102,96 @@ class AttendanceController extends Controller
             ->selectRaw("SUM(a.status REGEXP '(^|/)sus(/|$)') AS suspended")
             ->first();
 
-        $records = $this->baseQuery($conn, $company, $from, $to, $department, $employee)
+        $statusRegex = $status !== '' ? '(^|/)' . self::STATUSES[$status]['token'] . '(/|$)' : null;
+
+        // One row per active employee (as on the portal's Employees' logs page).
+        // With a status filter, only employees who have a matching day in the range.
+        $employees = $conn->table('employee_profile as ep')
+            ->join('employee_details as ed', 'ed.idno', '=', 'ep.idno')
             ->leftJoin('department as d', 'd.id', '=', 'ed.department')
-            ->when($status !== '', function ($q) use ($status) {
-                $q->whereRaw('a.status REGEXP ?', ['(^|/)' . self::STATUSES[$status]['token'] . '(/|$)']);
+            ->where('ed.company', $company)
+            ->where('ed.status', 'not like', '%RESIGNED%')
+            ->when($department, fn ($q) => $q->where('ed.department', $department))
+            ->when($employee !== '', function ($q) use ($employee) {
+                $like = '%' . addcslashes($employee, '%_\\') . '%';
+                $q->where(function ($q) use ($like) {
+                    $q->where('ep.idno', 'like', $like)
+                        ->orWhere('ep.firstname', 'like', $like)
+                        ->orWhere('ep.lastname', 'like', $like)
+                        ->orWhereRaw("CONCAT(ep.firstname, ' ', ep.lastname) LIKE ?", [$like])
+                        ->orWhereRaw("CONCAT_WS(' ', ep.lastname, ep.firstname, ep.middlename) LIKE ?", [$like]);
+                });
+            })
+            ->when($statusRegex, function ($q) use ($from, $to, $statusRegex) {
+                $q->whereExists(function ($sub) use ($from, $to, $statusRegex) {
+                    $sub->selectRaw('1')
+                        ->from('attendance as a')
+                        ->whereColumn('a.idno', 'ep.idno')
+                        ->whereBetween('a.logindate', [$from->subDay()->toDateString(), $to->toDateString() . ' 23:59:59'])
+                        ->whereRaw(self::WORK_DATE_SQL . ' BETWEEN ? AND ?', [$from->toDateString(), $to->toDateString()])
+                        ->whereRaw('a.status REGEXP ?', [$statusRegex]);
+                });
             })
             ->select(
-                'a.id',
-                'a.idno',
-                'a.logindate',
-                'a.attendance_dls',
-                'a.loginam',
-                'a.logoutam',
-                'a.loginpm',
-                'a.logoutpm',
-                'a.status',
-                'a.remarks',
-                'a.otremarks',
-                'a.ottime',
-                'a.idle',
+                'ep.idno',
                 'ep.lastname',
                 'ep.firstname',
+                'ep.middlename',
+                'ep.suffix',
+                'ed.status as emp_status',
+                'ed.startshift',
+                'ed.endshift',
+                'ed.location',
                 'd.department as department_name'
             )
-            ->selectRaw(self::WORK_DATE_SQL . ' AS work_date')
-            ->orderBy('work_date')
             ->orderBy('ep.lastname')
             ->orderBy('ep.firstname')
-            ->orderBy('a.id')
-            ->paginate(50)
+            ->orderBy('ep.idno')
+            ->paginate(25)
             ->withQueryString();
+
+        // Every day in the range for this page's employees, in one query
+        $logs = collect();
+        $ids = collect($employees->items())->pluck('idno')->all();
+        if ($ids) {
+            $logs = $this->baseQuery($conn, $company, $from, $to, $department, '')
+                ->whereIn('a.idno', $ids)
+                ->when($statusRegex, fn ($q) => $q->whereRaw('a.status REGEXP ?', [$statusRegex]))
+                ->select(
+                    'a.id',
+                    'a.idno',
+                    'a.logindate',
+                    'a.attendance_dls',
+                    'a.loginam',
+                    'a.logoutam',
+                    'a.loginpm',
+                    'a.logoutpm',
+                    'a.status',
+                    'a.remarks',
+                    'a.otremarks',
+                    'a.ottime',
+                    'a.idle'
+                )
+                ->selectRaw(self::WORK_DATE_SQL . ' AS work_date')
+                ->orderBy('work_date')
+                ->orderBy('a.id')
+                ->get();
+        }
+
+        $logsByEmployee = $logs->groupBy(fn ($l) => trim((string) $l->idno));
+        $employees->setCollection($employees->getCollection()->map(function ($e) use ($logsByEmployee) {
+            $e->logs = $logsByEmployee->get(trim((string) $e->idno), collect());
+
+            return $e;
+        }));
 
         return view('attendance.index', $filters + [
             'companies'   => $companies,
             'departments' => $departments,
             'rangeError'  => null,
             'summary'     => $summary,
-            'records'     => $records,
-            'corrections' => $this->approvedCorrections($conn, collect($records->items())),
+            'employees'   => $employees,
+            'corrections' => $this->approvedCorrections($conn, $logs),
         ]);
     }
 

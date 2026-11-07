@@ -31,6 +31,77 @@ function initRoster() {
             form.requestSubmit();
         });
     });
+
+    // Column filter popovers: fixed to their header cell so the
+    // horizontally scrolling table wrapper does not clip them
+    let openPopover = null;
+
+    const place = () => {
+        if (!openPopover) return;
+        const rect = openPopover.closest('th').getBoundingClientRect();
+        const width = openPopover.offsetWidth;
+        openPopover.style.top = `${rect.bottom + 6}px`;
+        openPopover.style.left = `${Math.min(Math.max(8, rect.left), window.innerWidth - width - 8)}px`;
+    };
+
+    const close = () => {
+        if (openPopover) openPopover.hidden = true;
+        openPopover = null;
+    };
+
+    document.querySelectorAll('[data-popover]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pop = document.getElementById(btn.dataset.popover);
+            const wasOpen = pop === openPopover;
+            close();
+            if (wasOpen) return;
+            pop.hidden = false;
+            openPopover = pop;
+            place();
+            pop.querySelector('input:not([type=hidden]):not(:disabled), select:not(:disabled)')?.focus();
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (openPopover && !openPopover.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, { passive: true });
+    document.getElementById('hrTableWrap')?.addEventListener('scroll', place, { passive: true });
+
+    document.querySelectorAll('.hr-popover').forEach((pop) => {
+        // Status: pick one option and apply
+        pop.querySelectorAll('[data-value]').forEach((opt) => {
+            opt.addEventListener('click', () => {
+                pop.querySelector('input[type=hidden]').value = opt.dataset.value;
+                form.requestSubmit();
+            });
+        });
+
+        // Dates: Month / Year / Range; inputs of the other modes are disabled so they are not sent
+        pop.querySelectorAll('[data-mode]').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const mode = tab.dataset.mode;
+                pop.querySelector('[data-mode-input]').value = mode;
+                pop.querySelectorAll('[data-mode]').forEach((t) => t.classList.toggle('is-active', t === tab));
+                pop.querySelectorAll('[data-panel]').forEach((panel) => {
+                    const on = panel.dataset.panel === mode;
+                    panel.hidden = !on;
+                    panel.querySelectorAll('input, select').forEach((el) => (el.disabled = !on));
+                });
+                place();
+            });
+        });
+
+        pop.querySelector('[data-clear]')?.addEventListener('click', () => {
+            pop.querySelectorAll('input, select').forEach((el) => (el.value = ''));
+            form.requestSubmit();
+        });
+    });
 }
 
 function initProfile() {

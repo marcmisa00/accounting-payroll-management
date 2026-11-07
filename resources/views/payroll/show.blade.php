@@ -121,7 +121,7 @@
                 @foreach ($companies as $index => $company)
                    @php $companyHasMatch = collect($company['departments'])->contains('has_search_match', true); @endphp
                    <li class="{{ $index === 0 ? 'active' : '' }} {{ $companyHasMatch ? 'has-search-indicator' : '' }}">
-                        <a class="company-tab"
+                        <a class="company-tab co-tab"
                         href="#company-{{ $company['code'] }}"
                         data-tab-target="company-{{ $company['code'] }}">
                             {{ $company['name'] }}

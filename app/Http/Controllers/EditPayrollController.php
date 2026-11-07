@@ -577,7 +577,21 @@ class EditPayrollController extends Controller
             ->where('attendance_id', $attendance)
             ->first();
 
+        // Full name for the highlighted header (display only)
+        $profile = $conn->table('employee_profile')
+            ->where('idno', $idno)
+            ->first(['lastname', 'firstname', 'middlename', 'suffix']);
+
+        $employeeName = $profile
+            ? trim(trim((string) $profile->lastname) . ', ' . trim(implode(' ', array_filter([
+                trim((string) $profile->firstname),
+                trim((string) $profile->middlename),
+                trim((string) $profile->suffix),
+            ]))), ', ')
+            : '';
+
         return view('payroll.edit-time', [
+            'employeeName'     => $employeeName,
             'payroll'          => $payroll,
             'idno'             => $idno,
             'company'          => $company,

@@ -71,7 +71,8 @@ class AttendanceSummaryReport
             return $employees;
         }
 
-        // Plain idno (not TRIM(idno)) so the idno + logindate index is used.
+        // Plain idno (not TRIM(idno)) so the idno + logindate index is used. MySQL also matches
+        // ids saved with a trailing space (e.g. "103081 "), so they are trimmed when grouped.
         $records = $employees->pluck('idno')->map(fn ($id) => (string) $id)->chunk(500)
             ->flatMap(fn ($chunk) => $this->db->connection('hris')->table('attendance')
                 ->select('idno', 'logindate', 'loginam', 'status', 'remarks', 'previousRemarks')
@@ -79,10 +80,10 @@ class AttendanceSummaryReport
                 ->whereBetween('logindate', [$startDate, $endDate])
                 ->orderBy('id')
                 ->get())
-            ->groupBy([fn ($a) => (string) $a->idno, 'logindate']);
+            ->groupBy([fn ($a) => trim((string) $a->idno), 'logindate']);
 
         foreach ($employees as $emp) {
-            $emp->records = $records->get((string) $emp->idno, collect());
+            $emp->records = $records->get(trim((string) $emp->idno), collect());
             $emp->totals = $this->totals($emp->records);
         }
 

@@ -29,9 +29,21 @@
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <body class="{{ request()->routeIs('payroll.*','holidays.*', 'attendance.*', 'leaves.*', 'hr.*','hso.*','transfer.*','attendance.*','payroll.history*') ? 'payroll-page sidebar-collapsed' : '' }} {{ request()->routeIs('payroll.show', 'payroll.edit.show') ? 'payroll-show' : '' }}">
+    <script>
+        // Saved sidebar choice (this browser), applied before the sidebar paints.
+        // Without one, the page default above stays (payroll pages start collapsed).
+        (function () {
+            try {
+                const saved = localStorage.getItem('sidebarCollapsed');
+                if (saved === '1' || saved === '0') {
+                    document.body.classList.toggle('sidebar-collapsed', saved === '1');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <aside class="sidebar">
 
-            <button type="button" class="sidebar-toggle" id="sidebarToggle">
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Collapse / expand menu" aria-label="Collapse or expand the menu">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
             
@@ -41,13 +53,25 @@
 
     <nav>
 
-        <a href="{{ route('dashboard') }}"
+        <a href="{{ route('dashboard') }}" data-toggle-anchor
            class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
             <span class="icon">
                 <i class="fa-solid fa-house"></i>
             </span>
             <span class="nav-text">Dashboard</span>
         </a>
+        <script>
+            // Level the collapse button with the Dashboard icon (the brand row above
+            // changes height when collapsed, so it is measured, not hard-coded)
+            window.levelSidebarToggle = function () {
+                const toggle = document.getElementById('sidebarToggle');
+                const anchor = document.querySelector('[data-toggle-anchor]');
+                if (toggle && anchor) {
+                    toggle.style.top = (anchor.offsetTop + (anchor.offsetHeight - toggle.offsetHeight) / 2) + 'px';
+                }
+            };
+            window.levelSidebarToggle();
+        </script>
 
 
         {{-- PAYROLL --}}
@@ -595,7 +619,11 @@
             // Expanding/collapsing the sidebar closes any open flyout
             const sidebarToggle = document.getElementById('sidebarToggle');
             if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function () { closeFlyouts(); });
+                // Re-level once fonts/icons have loaded and when the window changes size
+            window.addEventListener('load', window.levelSidebarToggle);
+            window.addEventListener('resize', window.levelSidebarToggle);
+
+            sidebarToggle.addEventListener('click', function () { closeFlyouts(); });
             }
 
         });
@@ -609,14 +637,12 @@
                 return;
             }
 
-            const isPayrollPage = document.body.classList.contains('payroll-page');
-
-            if (isPayrollPage && !document.body.classList.contains('sidebar-collapsed')) {
-                document.body.classList.add('sidebar-collapsed');
-            }
-
+            // The open/closed state is set before paint (top of <body>); clicking
+            // the toggle remembers the choice for every page in this browser.
             sidebarToggle.addEventListener('click', function () {
-                document.body.classList.toggle('sidebar-collapsed');
+                const collapsed = document.body.classList.toggle('sidebar-collapsed');
+                try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+                window.levelSidebarToggle && window.levelSidebarToggle();
             });
 
         });

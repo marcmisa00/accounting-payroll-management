@@ -79,30 +79,36 @@
             transition: width 0.25s var(--ease), background 0.2s;
         }
 
-        /* Sidebar collapse button */
+        /* Sidebar collapse button: at the top beside the brand, filled with the
+           text colour (inverts in dark mode) so it stands out without a new colour */
         .sidebar-toggle {
             position: absolute;
-            top: 50%;
-            right: -12px;
-            transform: translateY(-50%);
-            width: 24px;
-            height: 24px;
-            border: 1px solid var(--border);
+            top: 18px;
+            right: -15px;
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--surface);
             border-radius: 50%;
-            background: var(--surface);
-            color: var(--muted);
-            font-size: 10px;
+            background: var(--text-primary);
+            color: var(--surface);
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 1000;
-            transition: transform 0.25s var(--ease), color 0.15s, border-color 0.15s;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+            transition: transform 0.25s var(--ease), box-shadow 0.15s;
         }
 
         .sidebar-toggle:hover {
-            color: var(--text-primary);
-            border-color: var(--muted);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+        }
+
+        .sidebar-toggle:focus-visible {
+            outline: 2px solid var(--text-primary);
+            outline-offset: 2px;
         }
 
         /* Collapsed sidebar: slimmer and cleaner for payroll pages */
@@ -160,7 +166,11 @@
         }
 
         body.sidebar-collapsed .sidebar-toggle {
-            transform: translateY(-50%) rotate(180deg);
+            transform: rotate(180deg);
+        }
+
+        body.sidebar-collapsed .sidebar-toggle:hover {
+            transform: rotate(180deg) scale(1.1);
         }
 
         body.sidebar-collapsed .main {

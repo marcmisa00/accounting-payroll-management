@@ -770,3 +770,23 @@
         0%, 35% { background: rgba(224, 160, 48, 0.28); }
         100% { background: transparent; }
     }
+
+    /* ---------- Company tabs stand out: borders and bold, no extra colours ---------- */
+    .company-tabs > li > a.co-tab {
+        padding: 9px 18px;
+        border: 1px solid var(--tab-border);
+        border-bottom: none;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+    .company-tabs > li.active > a.co-tab,
+    .company-tabs > li.active > a.co-tab:hover,
+    .company-tabs > li.active > a.co-tab:focus {
+        border: 2px solid var(--text-primary);
+        border-bottom: none;
+        box-shadow: inset 0 3px 0 var(--text-primary);
+        font-weight: 800;
+        opacity: 1;
+    }

@@ -67,7 +67,7 @@ class MissedLogsSummaryReport
                 ->whereIn('offense', array_map('strval', array_keys(self::CODES)))
                 ->orderBy('id')
                 ->get())
-            ->groupBy([fn ($p) => (string) $p->idno, 'logindate']);
+            ->groupBy([fn ($p) => trim((string) $p->idno), 'logindate']);
 
         // Lunch times for the tooltips, only for days with an infraction.
         $withPoints = $points->keys()->all();
@@ -78,11 +78,11 @@ class MissedLogsSummaryReport
                 ->whereBetween('logindate', [$startDate, $endDate])
                 ->orderBy('id')
                 ->get())
-            ->groupBy([fn ($a) => (string) $a->idno, 'logindate']);
+            ->groupBy([fn ($a) => trim((string) $a->idno), 'logindate']);
 
         foreach ($employees as $emp) {
-            $emp->infractions = $points->get((string) $emp->idno, collect());
-            $emp->lunch = $lunch->get((string) $emp->idno, collect());
+            $emp->infractions = $points->get(trim((string) $emp->idno), collect());
+            $emp->lunch = $lunch->get(trim((string) $emp->idno), collect());
             $emp->totals = $this->totals($emp->infractions);
         }
 

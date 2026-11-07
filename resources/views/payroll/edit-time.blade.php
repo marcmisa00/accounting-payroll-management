@@ -89,6 +89,32 @@
                 </div>
             @endif
 
+            {{-- Who / which day / remarks (from the HRIS attendance record, display only) --}}
+            <div class="day-highlight">
+                <div class="day-highlight-item">
+                    <i class="fa-solid fa-user" aria-hidden="true"></i>
+                    <span>
+                        <small>Employee</small>
+                        <strong>{{ $employeeName !== '' ? $employeeName : $idno }}</strong>
+                        <em>{{ $idno }}</em>
+                    </span>
+                </div>
+                <div class="day-highlight-item">
+                    <i class="fa-solid fa-calendar-day" aria-hidden="true"></i>
+                    <span>
+                        <small>Date</small>
+                        <strong>{{ date('D, M d, Y', strtotime($row['date'])) }}</strong>
+                    </span>
+                </div>
+                <div class="day-highlight-item">
+                    <i class="fa-solid fa-note-sticky" aria-hidden="true"></i>
+                    <span>
+                        <small>Remarks</small>
+                        <strong>{{ filled($attendanceRecord->remarks ?? null) ? $attendanceRecord->remarks : '—' }}</strong>
+                    </span>
+                </div>
+            </div>
+
             <div class="horizontal-grid">
 
                 {{-- LEFT: Calculated / Attendance Values --}}
@@ -101,17 +127,6 @@
                     </thead>
 
                     <tbody>
-
-                        {{-- STATUS / REMARKS (raw attendance record, display only) --}}
-                        <tr>
-                            <td>Status</td>
-                            <td>{{ filled($attendanceRecord->status ?? null) ? $attendanceRecord->status : '—' }}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Remarks</td>
-                            <td>{{ filled($attendanceRecord->remarks ?? null) ? $attendanceRecord->remarks : '—' }}</td>
-                        </tr>
 
                         {{-- OT TIME (raw attendance.ottime — not the same as the OT override above) --}}
                         <tr>
@@ -153,41 +168,6 @@
                     @csrf
 
                     <div class="form-grid">
-
-                        {{-- STATUS / REMARKS - READ ONLY (no name attribute, so they are never submitted) --}}
-                        <div class="form-group">
-                            <label class="control-label">
-                                Status
-                            </label>
-
-                            <small class="help-text">
-                                From the HRIS attendance record. Change this in HRIS attendance.
-                            </small>
-
-                            <input
-                                type="text"
-                                class="form-control"
-                                value="{{ filled($attendanceRecord->status ?? null) ? $attendanceRecord->status : '—' }}"
-                                readonly
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label class="control-label">
-                                Remarks
-                            </label>
-
-                            <small class="help-text">
-                                From the HRIS attendance record. Change this in HRIS attendance.
-                            </small>
-
-                            <input
-                                type="text"
-                                class="form-control"
-                                value="{{ filled($attendanceRecord->remarks ?? null) ? $attendanceRecord->remarks : '—' }}"
-                                readonly
-                            >
-                        </div>
 
                         {{-- OT TIME - READ ONLY --}}
                         <div class="form-group">

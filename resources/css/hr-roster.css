@@ -384,31 +384,128 @@ table.hr-table tbody tr.hr-row-blue:hover td { background: var(--hr-row-blue-hov
 table.hr-table tbody tr.hr-row-gray td { background: var(--hr-row-gray); }
 table.hr-table tbody tr.hr-row-gray:hover td { background: var(--hr-row-gray-hover); }
 
-/* Roster date filter (same row as the search box): field, From month/day, To month/day */
-.hr-datebar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-}
-
-.hr-datebar-group {
+.hr-th-inner {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 2px 8px;
+    gap: 6px;
+}
+
+.hr-th-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--hr-placeholder);
+    font-size: 9px;
+    cursor: pointer;
+}
+
+.hr-th-filter-btn:hover { background: var(--hr-soft); color: var(--hr-accent); }
+.hr-th-filter-btn.is-active { background: var(--hr-accent); color: #fff; }
+
+/* Fixed so the scrolling table wrapper does not clip it (placed by hr-roster.js) */
+.hr-popover {
+    position: fixed;
+    z-index: 50;
+    width: 250px;
+    padding: 12px;
+    background: var(--hr-surface);
     border: 1px solid var(--hr-border-strong);
     border-radius: 12px;
-    background: var(--hr-surface-2);
-}
-
-.hr-datebar-group > span {
-    color: var(--hr-heading);
+    box-shadow: var(--hr-shadow);
+    color: var(--hr-text);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: normal;
 }
 
-.hr-datebar .hr-select { height: 34px; }
+.hr-popover[hidden] { display: none; }
+
+.hr-popover-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--hr-border-strong);
+    border-radius: 8px;
+    background: var(--hr-input-bg);
+    color: var(--hr-heading);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    color-scheme: light;
+}
+
+html.dark-mode .hr-popover-input { color-scheme: dark; }
+.hr-popover-input:focus { border-color: var(--hr-accent); box-shadow: 0 0 0 3px var(--hr-focus); }
+
+.hr-popover-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hr-popover-option,
+.hr-popover-tab {
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--hr-text);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.hr-popover-option:hover,
+.hr-popover-tab:hover { background: var(--hr-row-hover); }
+
+.hr-popover-option.is-active,
+.hr-popover-tab.is-active {
+    background: var(--hr-soft);
+    color: var(--hr-soft-text);
+}
+
+.hr-popover-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.hr-popover-tab { text-align: center; }
+
+.hr-popover-range {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    text-align: center;
+    color: var(--hr-muted);
+}
+
+.hr-popover-range[hidden],
+[data-panel][hidden] { display: none; }
+
+.hr-popover-hint {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 12px;
+}
+
+.hr-popover-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 12px;
+}
 
 .hr-id {
     color: var(--hr-muted) !important;
@@ -1221,6 +1318,69 @@ table.hr-table--compact tbody td { padding: 8px 10px; }
     text-overflow: ellipsis;
     white-space: nowrap;
     vertical-align: middle;
+}
+
+
+
+
+/* =========================================================
+   HR ROSTER: full width, table fits the page (no scroll box)
+   Scoped to .hr--roster so the trackers and profiles keep their layout.
+   ========================================================= */
+
+.hr.hr--roster { max-width: none; }
+
+/* Grow with the rows instead of a 70vh scroll box; the page scrolls instead */
+.hr--roster .hr-table-wrap {
+    max-height: none;
+    overflow: visible;
+}
+
+table.hr-table.hr-table--roster {
+    min-width: 0;
+    font-size: 12.5px;
+}
+
+/* Header sticks to the top of the window while the page scrolls */
+table.hr-table--roster thead th {
+    padding: 10px 8px;
+    white-space: normal;
+    line-height: 1.25;
+}
+
+table.hr-table--roster thead th:first-child { border-top-left-radius: 18px; }
+table.hr-table--roster thead th:last-child { border-top-right-radius: 18px; }
+
+table.hr-table--roster tbody td { padding: 8px; }
+
+/* Let long names and job titles wrap instead of widening the table */
+table.hr-table--roster .hr-name {
+    max-width: none;
+    min-width: 150px;
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.35;
+}
+
+table.hr-table--roster .hr-wrap {
+    min-width: 110px;
+    max-width: 200px;
+}
+
+table.hr-table--roster .hr-referrer { white-space: normal; }
+table.hr-table--roster .hr-status,
+table.hr-table--roster .hr-loc { padding: 2px 8px; }
+table.hr-table--roster .hr-view-btn { padding: 5px 9px; }
+
+/* Narrow windows: icon-only View button to save room */
+@media (max-width: 1500px) {
+    table.hr-table--roster .hr-view-btn { font-size: 0; gap: 0; }
+    table.hr-table--roster .hr-view-btn i { font-size: 12px; }
+}
+
+/* Below this the 14 columns cannot fit; scroll sideways rather than squash */
+@media (max-width: 1100px) {
+    .hr--roster .hr-table-wrap { overflow-x: auto; }
 }
 
 

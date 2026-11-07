@@ -66,6 +66,32 @@ function SubmitDetails() {
             </div>
         @endif
 
+        @php
+            // Days where the work setup differs from the day before (display only;
+            // each day's pay already uses its own setup in PayrollCalculationService).
+            $setupChanges = [];
+            $prevSetup = null;
+            foreach ($rows as $r) {
+                $setup = $r['work_setup'] ?? null;
+                if ($setup !== null && $prevSetup !== null && $setup !== $prevSetup) {
+                    $setupChanges[] = ['from' => $prevSetup, 'to' => $setup, 'date' => $r['date']];
+                }
+                $prevSetup = $setup ?? $prevSetup;
+            }
+        @endphp
+        @if ($setupChanges)
+            <div class="setup-banner">
+                <i class="fa-solid fa-right-left"></i>
+                <span>
+                    <strong>Work setup changed in this cut-off:</strong>
+                    @foreach ($setupChanges as $change)
+                        {{ $change['from'] }} &rarr; {{ $change['to'] }} on {{ date('M d', strtotime($change['date'])) }}@if (! $loop->last), @endif
+                    @endforeach
+                    <br>
+                </span>
+            </div>
+        @endif
+
         <div class="content-panel">
             <div class="panel-heading">
                 <span class="employee-name">
@@ -201,6 +227,9 @@ function SubmitDetails() {
                             <tr @class(['is-holiday' => $holiday, 'is-holiday--'.($holiday['type'] ?? '') => $holiday]) @if ($row['style']) style="{{ $row['style'] }}" @endif @if ($row['is_overridden']) title="This day has a manual override" @endif>
                                 <td class="table-cont-1">
                                     {{ $row['date'] }}
+                                    @if (! empty($row['work_setup']))
+                                        <span class="setup-tag setup-tag--{{ strtolower($row['work_setup']) }}" title="Work setup on this day">{{ $row['work_setup'] }}</span>
+                                    @endif
                                     @if ($row['is_overridden'])
                                         <i class="fa fa-pencil" style="color:#e67e22; margin-left:4px;" title="Manually overridden"></i>
                                     @endif

@@ -28,7 +28,7 @@
     $companyName = optional($companies->firstWhere('companycode', $company))->companyname;
 @endphp
 
-<div class="att">
+<div class="att att-wide">
 
     {{-- ===================== Filters ===================== --}}
     <form method="GET" action="{{ route('attendance.index') }}" class="att-filters">
@@ -138,93 +138,84 @@
             </div>
         </div>
 
-        {{-- ===================== Table ===================== --}}
-        @if ($records->isEmpty())
+        {{-- ===================== Employees' logs (one row per employee) ===================== --}}
+        @if ($employees->isEmpty())
             <div class="att-empty">
                 <i class="fa-regular fa-calendar-xmark"></i>
-                <p>No attendance found for these filters.</p>
+                <p>No employees found for these filters.</p>
             </div>
         @else
             <div class="att-summary">
-                Showing <strong>{{ number_format($records->firstItem()) }}–{{ number_format($records->lastItem()) }}</strong>
-                of <strong>{{ number_format($records->total()) }}</strong> records
+                Showing <strong>{{ number_format($employees->firstItem()) }}–{{ number_format($employees->lastItem()) }}</strong>
+                of <strong>{{ number_format($employees->total()) }}</strong> employees
             </div>
 
-            <div class="att-table-wrap">
-                <table class="att-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Employee</th>
-                            <th>Department</th>
-                            <th>Time In</th>
-                            <th>Lunch Out</th>
-                            <th>Lunch In</th>
-                            <th>Time Out</th>
-                            <th>Status</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($records as $r)
-                            @php
-                                [$chipLabel, $chipClass] = $statusChip($r->status);
-                                $name = trim(($r->lastname ?? '') . ', ' . ($r->firstname ?? ''), ', ') ?: $r->idno;
-                                // attendance_dls = 1: the row counts for the day after logindate
-                                $loginDate = substr((string) $r->logindate, 0, 10);
-                                $date = substr((string) $r->work_date, 0, 10);
-                                $isDls = (int) $r->attendance_dls === 1;
-                                $corrected = $corrections->has($r->idno . '|' . $loginDate);
-                                $ot = $time($r->ottime);
-                                $idle = ($r->idle && $r->idle !== '00:00:00') ? substr($r->idle, 0, 5) : null;
-                            @endphp
-                            <tr>
-                                <td class="att-date">
-                                    {{ date('M d', strtotime($date)) }}
-                                    <small>
-                                        {{ date('D', strtotime($date)) }}
+            <div class="att-emp-list" role="table" aria-label="Employees' logs">
+                <div class="att-emp-head" role="row">
+                    @foreach (['ID', 'Name', 'Status', 'Department', 'Shift', 'Setup', 'Logs (date · time in · lunch out · lunch in · time out · status)'] as $h)
+                        <span role="columnheader">{{ $h }}</span>
+                    @endforeach
+                </div>
+
+                @foreach ($employees as $e)
+                    @php
+                        $name = trim(($e->lastname ?? '') . ', ' . trim(($e->firstname ?? '') . ' ' . ($e->middlename ?? '') . ' ' . ($e->suffix ?? '')), ', ') ?: $e->idno;
+                        $shift = $e->startshift ? $time($e->startshift) . ' – ' . ($time($e->endshift) ?? '—') : '—';
+                    @endphp
+                    <div class="att-emp-row" role="row">
+                        <p class="att-emp-id" role="cell">{{ $e->idno }}</p>
+                        <p class="att-emp-name" role="cell">{{ $name }}</p>
+                        <p class="att-muted" role="cell"><span class="att-emp-label">Status</span>{{ $e->emp_status ?: '—' }}</p>
+                        <p class="att-muted" role="cell"><span class="att-emp-label">Department</span>{{ $e->department_name ?: '—' }}</p>
+                        <p class="att-time" role="cell"><span class="att-emp-label">Shift</span>{{ $shift }}</p>
+                        <p class="att-muted" role="cell"><span class="att-emp-label">Setup</span>{{ $e->location ?: '—' }}</p>
+                        <div class="att-emp-logs" role="cell">
+                            @forelse ($e->logs as $l)
+                                @php
+                                    [$chipLabel, $chipClass] = $statusChip($l->status);
+                                    // attendance_dls = 1: the row counts for the day after logindate
+                                    $loginDate = substr((string) $l->logindate, 0, 10);
+                                    $date = substr((string) $l->work_date, 0, 10);
+                                    $isDls = (int) $l->attendance_dls === 1;
+                                    $corrected = $corrections->has($l->idno . '|' . $loginDate);
+                                    $ot = $time($l->ottime);
+                                    $idle = ($l->idle && $l->idle !== '00:00:00') ? substr($l->idle, 0, 5) : null;
+                                @endphp
+                                <div class="att-log">
+                                    <span class="att-log-date">
+                                        {{ date('m/d D', strtotime($date)) }}
                                         @if ($isDls)
                                             <span class="att-dls" title="Logged on {{ date('M d, Y', strtotime($loginDate)) }} (Graveyard Shift)">DLS</span>
                                         @endif
-                                    </small>
-                                </td>
-                                <td>
-                                    <div class="att-person">
-                                        <span class="att-avatar" aria-hidden="true">{{ strtoupper(substr($r->firstname ?: $name, 0, 1)) }}</span>
-                                        <div>
-                                            <strong>{{ $name }}</strong>
-                                            <small>{{ $r->idno }}</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="att-muted">{{ $r->department_name ?? '—' }}</td>
-                                @foreach (['loginam', 'logoutam', 'loginpm', 'logoutpm'] as $col)
-                                    <td class="att-time">{!! $time($r->{$col}) ? e($time($r->{$col})) : '<span class="att-none">—</span>' !!}</td>
-                                @endforeach
-                                <td>
-                                    <span class="att-chip {{ $chipClass }}">{{ $chipLabel }}</span>
-                                    @if ($corrected)
-                                        <span class="att-flag" title="This day has an approved missed-log application">
-                                            <i class="fa-solid fa-pen-to-square"></i> Missed log
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="att-remarks">
-                                    {{ $r->remarks ?: '—' }}
-                                    @if ($r->otremarks === 'OT' || $ot)
-                                        <small><i class="fa-solid fa-clock"></i> OT{{ $ot ? ' until ' . $ot : '' }}</small>
-                                    @endif
-                                    @if ($idle)
-                                        <small><i class="fa-solid fa-hourglass-half"></i> Idle {{ $idle }}</small>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                    </span>
+                                    @foreach (['loginam', 'logoutam', 'loginpm', 'logoutpm'] as $col)
+                                        <span class="att-time">{!! $time($l->{$col}) ? e($time($l->{$col})) : '<span class="att-none">—</span>' !!}</span>
+                                    @endforeach
+                                    <span class="att-log-status">
+                                        <span class="att-chip {{ $chipClass }}">{{ $chipLabel }}</span>
+                                        @if ($corrected)
+                                            <span class="att-flag" title="This day has an approved missed-log application"><i class="fa-solid fa-pen-to-square"></i> Missed log</span>
+                                        @endif
+                                        @if ($l->otremarks === 'OT' || $ot)
+                                            <span class="att-log-note"><i class="fa-solid fa-clock"></i> OT{{ $ot ? ' until ' . $ot : '' }}</span>
+                                        @endif
+                                        @if ($idle)
+                                            <span class="att-log-note"><i class="fa-solid fa-hourglass-half"></i> Idle {{ $idle }}</span>
+                                        @endif
+                                        @if ($l->remarks)
+                                            <span class="att-log-note" title="Remarks">{{ $l->remarks }}</span>
+                                        @endif
+                                    </span>
+                                </div>
+                            @empty
+                                <p class="att-none att-log-empty">No logs in this range</p>
+                            @endforelse
+                        </div>
+                    </div>
+                @endforeach
             </div>
 
-            {{ $records->onEachSide(1)->links('payroll.partials.history-pagination') }}
+            {{ $employees->onEachSide(1)->links('payroll.partials.history-pagination') }}
         @endif
     @endif
 
